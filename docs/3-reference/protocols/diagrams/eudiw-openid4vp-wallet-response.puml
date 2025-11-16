@@ -1,0 +1,27 @@
+@startuml
+title EUDIW OpenID4VP wallet response
+
+actor "Verifier" as Verifier
+participant "Wallet" as Wallet
+actor "Holder" as Holder
+
+== Prepare presentations ==
+
+Wallet -> Holder: ① Display request summary\nand consent prompt
+Holder -> Wallet: ② Holder consents and selects\ncredentials to share
+Wallet -> Wallet: ③ Select credentials\n(SD-JWT, mdoc) matching\npresentation_definition
+Wallet -> Wallet: ④ Build vp_token and\npresentation_submission structures
+note right of Wallet
+  SD-JWT disclosures and mdoc
+  DeviceResponse payloads are
+  assembled according to
+  credential and profile rules.
+end note
+
+== Send response ==
+
+Wallet -> Verifier: ⑤ POST response (vp_token,\npresentation_submission, state, nonce)\naccording to response_mode
+
+Verifier -> Verifier: ⑥ Correlate response with\nrequest using state and nonce
+
+@enduml

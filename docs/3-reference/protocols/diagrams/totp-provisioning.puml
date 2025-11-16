@@ -1,0 +1,27 @@
+@startuml
+title TOTP secret provisioning
+
+actor "Secret issuer" as Issuer
+participant "Verifier" as Verifier
+participant "OTP client" as Client
+
+note over Issuer
+  Provisioning establishes a shared secret K
+  and TOTP parameters (X, T0, Digits, Algorithm)
+  for a subject.
+  See RFC 6238 §4 for parameter details.
+end note
+
+Issuer -> Issuer: ① Generate secret K and parameters (X, T0, Digits, Algorithm)
+Issuer -> Verifier: ② Store (account_id, K, X, T0, Digits, Algorithm)
+note right of Verifier
+  Persist the TOTP secret and parameters
+  bound to the subject's account.
+  Example implementation:
+  core/.../TotpPersistenceDefaults
+end note
+
+Issuer -> Client: ③ Deliver K and parameters over secure channel
+Client -> Client: ④ Store K and parameters locally,\nready to generate time-based TOTP values
+
+@enduml

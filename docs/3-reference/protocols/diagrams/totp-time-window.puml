@@ -1,0 +1,25 @@
+@startuml
+title TOTP time-step view (verifier perspective)
+
+scale 1.2
+
+[*] --> Evaluating
+
+state Evaluating {
+  Evaluating --> Accept : TOTP matches at T_server-1\nwithin drift window
+  Evaluating --> Accept : TOTP matches at T_server\nwithin drift window
+  Evaluating --> Accept : TOTP matches at T_server+1\nwithin drift window
+  Evaluating --> Reject : No match in drift window
+}
+
+note right of Evaluating
+  The verifier maps each incoming
+  request to a server-side time-step
+  T_server and evaluates candidates
+  in a drift window around it.
+end note
+
+Accept --> [*]
+Reject --> [*]
+
+@enduml

@@ -46,6 +46,8 @@ _Last updated:_ 2025-11-13
   - **Spec alignment:** R5.4 (stored-mask sanitisation), R6.3–R6.4 (credential directory), and R7.2/R8.1 (stored replay hydration) now cite concrete code/tests: `rest-api/src/main/resources/static/ui/emv/console.js`, `EmvCapOperatorUiSeleniumTest`, `rest-api/src/test/javascript/emv/console.test.js`, `EmvCapCredentialDirectoryController{,Test}`, and replay Selenium coverage. Inline overrides + stored hydration flows remain covered in both JS and Selenium tests.
   - **Coverage:** Success, validation, and failure branches span REST, CLI, JS, and Selenium harnesses with digest/length assertions. No divergences identified; sanitisation helper pattern recommended for Feature 026. Artifacts synced across feature plan/tasks, knowledge map, and `_current-session.md`.
 
+- **Protocol reference alignment:** When EMV/CAP behaviour or inputs change (for example, master key handling, ATC semantics, CDOL1 composition, or decimalisation rules), verify that the EMV/CAP protocol reference page and diagrams (`docs/3-reference/protocols/emv-cap.md` and `docs/3-reference/protocols/diagrams/emv-cap-*.puml`/`*.png`) still describe the algorithms, parameters, and flows accurately; update them in the same increment if drift is found.
+
 ## Provenance Field Mapping (T-005-24a)
 
 Spec R2.4 plus `EmvCapTraceProvenanceSchema` define a six-section provenance payload. Capturing the lineage here keeps future increments aligned without rereading `TraceAssembler` every time.

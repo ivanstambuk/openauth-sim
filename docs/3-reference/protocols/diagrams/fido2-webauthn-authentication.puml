@@ -1,0 +1,44 @@
+@startuml
+title WebAuthn authentication / assertion
+
+actor "User" as User
+participant "Relying party (RP)" as RP
+participant "Client (browser)" as Client
+participant "Authenticator" as Auth
+
+== Initiate authentication ==
+
+User -> RP: Start login (username or identifier)
+RP -> RP: Generate challenge and\nPublicKeyCredentialRequestOptions
+RP -> Client: ① send get() options\n(rpId, challenge, allowCredentials, policy)
+
+== Obtain assertion from authenticator ==
+
+Client -> Auth: ② getAssertion(options)
+Auth -> Auth: Select credential by RP ID\nand allowCredentials (if provided)
+Auth -> Auth: Verify user presence/verification\naccording to policy
+Auth -> Auth: ③ Compute signature over\nauthenticatorData || hash(clientDataJSON)
+Auth --> Client: ④ authenticatorData,\nclientDataJSON, signature, credentialId
+
+== Verify assertion at RP ==
+
+Client -> RP: ⑤ Return assertion response
+RP -> RP: Verify origin and challenge\nfrom clientDataJSON
+RP -> RP: Look up stored public key\nby credentialId and rpId
+RP -> RP: Verify signature and flags\nin authenticatorData
+note right of RP
+  Assertion verification proves
+  possession of the private key
+  bound to the RP ID and origin.
+  Example implementations:
+  core/.../WebAuthnAssertionVerifier
+  application/.../WebAuthnEvaluationApplicationService
+end note
+
+alt Verification succeeds and policy passes
+  RP --> User: Authentication success
+else Verification fails or policy violation
+  RP --> User: Authentication failure
+end alt
+
+@enduml

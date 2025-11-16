@@ -1,0 +1,35 @@
+@startuml
+title TOTP clock drift and time-step window
+
+participant "OTP client" as Client
+participant "Verifier" as Verifier
+
+== Client and server clocks differ ==
+
+Client -> Client: ① Compute T_client from client clock
+Verifier -> Verifier: ② Compute T_server from server clock
+
+... authentication attempt ...
+
+Client -> Verifier: ③ Submit (account_id, TOTP_client)
+Verifier -> Verifier: ④ For i in [-window, window]:\n  candidate = TOTP(K, T_server + i)
+
+alt Match at T_server or neighbour
+  Verifier -> Verifier: ⑤ Identify T_match within drift window
+  note right of Verifier
+    Drift window accepts a TOTP value
+    generated using a time-step derived
+    from a slightly skewed clock.
+  end note
+  Verifier --> Client: ⑥ Authentication success
+else No match in drift window
+  note right of Verifier
+    Implementations typically apply
+    throttling or lockout policies
+    after repeated failures, and may
+    signal potential clock skew.
+  end note
+  Verifier --> Client: ⑥ Authentication failure
+end alt
+
+@enduml

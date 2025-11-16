@@ -77,6 +77,7 @@ facades, replay workflows, and operator-console panels aligned after renumbering
     - [ ] Check that OCRA how-to guides (CLI/REST/UI/Native Java) reference the correct commands/endpoints and use request/response examples that match current DTOs and JSON payloads.  
     - [ ] Verify telemetry documentation (e.g., OCRA telemetry snapshots) matches actual `ocra.*` events emitted by the application and facades (hashed fields, status/reason codes).  
     - [ ] Re-run and validate OpenAPI snapshots for OCRA endpoints when behaviour changes (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`), and confirm the spec still matches the generated contract.  
+    - [ ] Verify that the OCRA protocol reference page and diagrams (`docs/3-reference/protocols/ocra.md` and `docs/3-reference/protocols/diagrams/ocra-*.puml`/`*.png`) accurately describe the current OCRA suite, inputs, flows, and core/application entry points; update them in the same increment when behaviour changes.  
 
   - **UI & replay behaviour**
     - [ ] Confirm operator console OCRA flows (stored/inline/replay) match REST/CLI semantics for:  

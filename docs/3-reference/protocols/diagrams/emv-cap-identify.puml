@@ -1,0 +1,42 @@
+@startuml
+title EMV/CAP Identify mode (cardholder authentication)
+
+actor "Cardholder" as User
+participant "CAP reader" as Reader
+participant "Card" as Card
+participant "Issuer backend" as Issuer
+
+== Start Identify ==
+
+User -> Reader: ① Insert card and select\nIdentify function
+User -> Reader: ② Enter PIN
+Reader -> Card: ③ EMV commands\n(PIN verification, application init)
+
+== Generate cryptogram ==
+
+Card -> Card: ④ Verify PIN and\ncompute application cryptogram
+Card --> Reader: ⑤ Cryptogram and\nEMV response data
+
+Reader -> Reader: ⑥ Derive CAP code\nfrom cryptogram and mode parameters
+note right of Reader
+  CAP code derivation uses issuer-specific rules
+  and the configured CAP mode.
+  Example engine:
+  core/.../EmvCapEngine
+end note
+
+Reader --> User: ⑦ Display CAP code
+
+== Online authentication ==
+
+User -> Issuer: ⑧ Enter CAP code\non issuer channel (e.g., web)
+Issuer -> Issuer: ⑨ Reconstruct EMV/CAP\ninput for Identify mode
+Issuer -> Issuer: ⑩ Validate CAP code\nagainst expected result
+
+alt Code valid and risk checks pass
+  Issuer --> User: ⑪ Authentication success
+else Code invalid or risk checks fail
+  Issuer --> User: ⑪ Authentication failure
+end alt
+
+@enduml

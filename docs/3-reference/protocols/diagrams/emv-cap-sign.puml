@@ -1,0 +1,43 @@
+@startuml
+title EMV/CAP Sign mode (transaction binding)
+
+actor "Cardholder" as User
+participant "CAP reader" as Reader
+participant "Card" as Card
+participant "Issuer backend" as Issuer
+
+== Present transaction ==
+
+Issuer -> User: ① Display transaction\n(amount, currency, beneficiary)
+User -> Reader: ② Insert card, select Sign,\nenter PIN and transaction details
+
+== EMV/CAP calculation with transaction data ==
+
+Reader -> Card: ③ EMV commands including\ntransaction-derived input
+Card -> Card: ④ Verify PIN and compute\napplication cryptogram
+Card --> Reader: ⑤ Cryptogram and\nEMV response data
+
+Reader -> Reader: ⑥ Derive CAP code\nbound to transaction data
+note right of Reader
+  Sign mode encodes amount, currency,
+  and other fields into the CAP input
+  so the resulting code is
+  transaction-specific.
+  Example engine:
+  core/.../EmvCapEngine
+end note
+Reader --> User: ⑦ Display CAP code
+
+== Authorise transaction ==
+
+User -> Issuer: ⑧ Submit CAP code\nfor the pending transaction
+Issuer -> Issuer: ⑨ Rebuild transaction\npayload from pending request
+Issuer -> Issuer: ⑩ Validate CAP code\nagainst expected result
+
+alt Code valid and risk checks pass
+  Issuer --> User: ⑪ Transaction approved
+else Code invalid or risk checks fail
+  Issuer --> User: ⑪ Transaction rejected
+end alt
+
+@enduml

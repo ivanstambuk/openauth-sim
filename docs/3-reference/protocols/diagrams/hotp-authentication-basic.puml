@@ -1,0 +1,40 @@
+@startuml
+title HOTP authentication (basic)
+
+participant "OTP client" as Client
+participant "Verifier" as Verifier
+
+== Generate HOTP on client ==
+
+Client -> Client: ① Read shared secret K and counter C
+Client -> Client: ② HOTP = Truncate(HMAC-SHA-1(K, C))
+note right of Client
+  HOTP generation follows RFC 4226 §5:
+  H = HMAC-SHA-1(K, C)
+  Apply dynamic truncation and reduce modulo 10^Digits.
+  Example implementation:
+  core/.../HotpGenerator
+end note
+
+Client -> Verifier: ③ Submit (account_id, HOTP)
+
+== Verify HOTP on server ==
+
+Verifier -> Verifier: ④ Load stored (K, C_server) for account_id
+alt HOTP matches within window
+  Verifier -> Verifier: ⑤ Compute candidate HOTP values\nfor C_server .. C_server + window\n   and find match at C_match
+  note right of Verifier
+    Verification logic is responsible for
+    searching within the configured counter window
+    and advancing the stored counter.
+    Example implementation:
+    core/.../HotpValidator
+    application/.../HotpEvaluationApplicationService
+  end note
+  Verifier -> Verifier: ⑥ Advance stored counter to C_match + 1
+  Verifier --> Client: ⑦ Authentication success
+else No match in window
+  Verifier --> Client: ⑥ Authentication failure
+end alt
+
+@enduml

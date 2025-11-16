@@ -64,6 +64,7 @@ _Last updated:_ 2025-11-13
     - [ ] `docs/2-how-to/use-eudiw-from-java.md` and other EUDIW how-to guides (REST/CLI/UI) use the same types, method names, and semantics as the application services and fixtures.  
     - [ ] Telemetry documentation (e.g., `docs/3-reference/eudiw-openid4vp-telemetry-snapshot.md` or equivalent) matches the actual `oid4vp.*` events emitted by the application (`TelemetryContracts` adapters for Generate/Validate).  
     - [ ] Operator UI docs describe the HAIP/Baseline toggles, DCQL preview panel, Trusted Authorities labels, and trace dock integration in a way that matches the UI JS tests and actual behaviour.  
+    - [ ] Verify that the EUDIW OpenID4VP protocol reference page and diagrams (`docs/3-reference/protocols/eudiw-openid4vp.md` and `docs/3-reference/protocols/diagrams/eudiw-openid4vp-*.puml`/`*.png`) accurately describe the current authorization request, wallet response, and validation flows, including Trusted Authorities behaviour and core/application entry points; update them in the same increment when behaviour changes.  
 
   - **Tests & quality coverage**
     - [ ] Generate/Validate behaviour is covered by tests across layers:  

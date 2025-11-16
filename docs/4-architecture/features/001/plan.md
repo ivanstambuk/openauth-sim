@@ -60,6 +60,7 @@ shared fixtures so operators can manage HOTP credentials alongside OCRA. Success
   - **Fixtures & docs**
     - [ ] Check that `docs/hotp_validation_vectors.json` and any HOTP fixtures remain in sync with loader code and tests.  
     - [ ] Confirm how-to guides and README references for HOTP still point to the correct commands/endpoints and fixture usage.  
+    - [ ] Verify that the HOTP protocol reference page and diagrams (`docs/3-reference/protocols/hotp.md` and `docs/3-reference/protocols/diagrams/hotp-*.puml`/`*.png`) accurately describe the current HOTP flows, parameters, and core/application entry points; update them in the same increment when behaviour changes.  
     - [ ] Update roadmap/knowledge map entries to reference HOTP flows if they changed since the last gate.  
 
   - **Drift capture & remediation**

@@ -1,0 +1,43 @@
+@startuml
+title TOTP authentication (basic)
+
+participant "OTP client" as Client
+participant "Verifier" as Verifier
+
+== Generate TOTP on client ==
+
+Client -> Client: ① Read K, X, T0, Digits, Algorithm
+Client -> Client: ② T = floor((currentTime - T0) / X)
+Client -> Client: ③ TOTP = Truncate(HMAC(K, T))
+note right of Client
+  TOTP generation follows RFC 6238 §4:
+  T = floor((currentUnixTime - T0) / X)
+  HOTP(K, T) is computed using the
+  HOTP algorithm from RFC 4226 §5.
+  Example implementation:
+  core/.../TotpGenerator
+end note
+
+Client -> Verifier: ④ Submit (account_id, TOTP)
+
+== Verify TOTP on server ==
+
+Verifier -> Verifier: ⑤ Load stored (K, X, T0, Digits, Algorithm) for account_id
+Verifier -> Verifier: ⑥ Compute current T_server from server time
+
+alt TOTP matches within drift window
+  Verifier -> Verifier: ⑦ For i in [-window, window]:\n  candidate = TOTP(K, T_server + i)\n  Find match at T_match
+  note right of Verifier
+    Verification logic is responsible for
+    searching within the configured time-step
+    drift window.
+    Example implementation:
+    core/.../TotpValidator
+    application/.../TotpEvaluationApplicationService
+  end note
+  Verifier --> Client: ⑧ Authentication success
+else No match in drift window
+  Verifier --> Client: ⑧ Authentication failure
+end alt
+
+@enduml

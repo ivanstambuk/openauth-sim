@@ -1,0 +1,38 @@
+@startuml
+title WebAuthn registration / credential creation
+
+actor "User" as User
+participant "Relying party (RP)" as RP
+participant "Client (browser)" as Client
+participant "Authenticator" as Auth
+
+== Initiate registration ==
+
+User -> RP: Start registration (username, etc.)
+RP -> RP: Generate challenge and\nPublicKeyCredentialCreationOptions
+RP -> Client: ① send create() options\n(rp.id, user.id, challenge, params)
+
+== Create credential on authenticator ==
+
+Client -> Auth: ② makeCredential(options)
+Auth -> Auth: Verify user presence/verification\naccording to policy
+Auth -> Auth: ③ Generate new key pair\nand attestation object
+Auth --> Client: ④ attestationObject,\nclientDataJSON
+
+== Complete registration ==
+
+Client -> RP: ⑤ Return attestationObject\nand clientDataJSON
+RP -> RP: Verify challenge, origin,\nRP ID and params
+RP -> RP: Verify attestation statement\naccording to trust policy
+note right of RP
+  Attestation verification uses\n
+  authenticator metadata and trust\n
+  anchors where available.\n
+  Example implementations:\n
+  core/.../WebAuthnAttestationVerifier\n
+  application/.../WebAuthnAttestationVerificationApplicationService
+end note
+RP -> RP: Store credentialId, public key,\nuser handle, and metadata
+RP --> User: Registration success
+
+@enduml

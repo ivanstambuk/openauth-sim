@@ -1,0 +1,41 @@
+@startuml
+title EMV/CAP Respond mode (challenge-based)
+
+actor "Cardholder" as User
+participant "CAP reader" as Reader
+participant "Card" as Card
+participant "Issuer backend" as Issuer
+
+== Issuer challenge ==
+
+Issuer -> User: ① Display challenge\n(e.g., short numeric value)
+User -> Reader: ② Insert card, select Respond,\nenter PIN and challenge
+
+== EMV/CAP calculation ==
+
+Reader -> Card: ③ EMV commands\nincluding challenge-derived input
+Card -> Card: ④ Verify PIN and compute\napplication cryptogram
+Card --> Reader: ⑤ Cryptogram and\nEMV response data
+
+Reader -> Reader: ⑥ Derive CAP code\nfrom cryptogram, challenge, mode
+note right of Reader
+  Respond mode mixes the issuer
+  challenge into the CAP input.
+  Example engine:
+  core/.../EmvCapEngine
+end note
+Reader --> User: ⑦ Display CAP code
+
+== Online verification ==
+
+User -> Issuer: ⑧ Enter CAP code and\nchallenge via issuer channel
+Issuer -> Issuer: ⑨ Rebuild EMV/CAP input\nusing challenge and card data
+Issuer -> Issuer: ⑩ Validate CAP code\nagainst expected result
+
+alt Code valid and risk checks pass
+  Issuer --> User: ⑪ Authentication success
+else Code invalid or risk checks fail
+  Issuer --> User: ⑪ Authentication failure
+end alt
+
+@enduml

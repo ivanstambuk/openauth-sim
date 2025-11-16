@@ -1,0 +1,29 @@
+@startuml
+!include sequence-classic-theme.puml
+title OCRA secret and suite provisioning
+
+actor "Secret issuer" as Issuer
+participant "Verifier" as Verifier
+participant "OCRA client" as Client
+
+note over Issuer
+  Provisioning establishes a shared secret K,
+  an OCRA suite string, and data inputs
+  for a subject.
+  See RFC 6287 §5.1–§5.2 for suite and
+  data input definitions.
+end note
+
+Issuer -> Issuer: ① Generate secret K and OCRA suite
+Issuer -> Verifier: ② Store (account_id, K, Suite, DataInput)
+note right of Verifier
+  Persist the OCRA secret and suite
+  bound to the subject's account.
+  Example implementation:
+  core-ocra/.../OcraCredentialPersistenceAdapter
+end note
+
+Issuer -> Client: ③ Deliver K and Suite over secure channel
+Client -> Client: ④ Store K and Suite locally,\nready to compute responses from challenges
+
+@enduml

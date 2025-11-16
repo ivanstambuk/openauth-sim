@@ -1,0 +1,25 @@
+@startuml
+title EUDIW OpenID4VP validation with Trusted Authorities
+
+actor "Verifier" as Verifier
+participant "Trusted Authority catalogue" as TA
+
+== Receive wallet response ==
+
+Verifier -> Verifier: ① Parse vp_token and\npresentation_submission
+Verifier -> Verifier: ② Extract issuer metadata\nand key material from presentations
+
+== Evaluate Trusted Authorities ==
+
+Verifier -> TA: ③ Look up issuers and\ntrust anchors for presented credentials
+TA --> Verifier: ④ Trusted Authority matches\nand metadata (or mismatch)
+
+Verifier -> Verifier: ⑤ Verify signatures,\ncheck claims and constraints
+
+alt Trusted Authority match and validation success
+  Verifier --> Verifier: ⑥ Mark request as\nvalidated and authorised
+else Trusted Authority mismatch or validation error
+  Verifier --> Verifier: ⑦ Produce error result\n(e.g., problem details)
+end alt
+
+@enduml

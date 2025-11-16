@@ -1,0 +1,27 @@
+@startuml
+title HOTP counter state (verifier perspective)
+
+[*] --> Initialised
+
+state Initialised {
+  [*] --> InSync
+
+  state InSync {
+    InSync --> InSync : Successful verification\nAdvance counter
+    InSync --> Ahead : Client counter ahead\n(no match at stored C)
+  }
+
+  state Ahead {
+    Ahead --> InSync : Match within window\nResynchronise to C_match + 1
+    Ahead --> Locked : Too many failed attempts\nor policy violation
+  }
+
+  state Locked {
+    Locked --> InSync : Manual reset\nor administrative unlock
+  }
+}
+
+Initialised --> Locked : Misconfiguration\nor provisioning error
+
+@enduml
+

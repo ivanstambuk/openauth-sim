@@ -1,0 +1,26 @@
+@startuml
+title HOTP secret provisioning
+
+actor "Secret issuer" as Issuer
+participant "Verifier" as Verifier
+participant "OTP client" as Client
+
+note over Issuer
+  Provisioning establishes a shared secret K
+  and initial counter C for a subject.
+  See RFC 4226 §4 for key and counter usage.
+end note
+
+Issuer -> Issuer: ① Generate secret K and initial counter C
+Issuer -> Verifier: ② Store (account_id, K, C)
+note right of Verifier
+  Persist the HOTP secret and counter
+  bound to the subject's account.
+  Example implementation:
+  core/.../HotpPersistenceDefaults
+end note
+
+Issuer -> Client: ③ Deliver K and C over secure channel
+Client -> Client: ④ Store K and C locally,\nready to generate HOTP values
+
+@enduml

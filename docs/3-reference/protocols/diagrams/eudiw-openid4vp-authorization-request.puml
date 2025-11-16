@@ -1,0 +1,32 @@
+@startuml
+title EUDIW OpenID4VP authorization request (cross-device)
+
+actor "Verifier" as Verifier
+participant "Wallet" as Wallet
+actor "Holder" as Holder
+
+== Construct authorization request ==
+
+Verifier -> Verifier: ① Build presentation_definition\nand authorization request parameters
+note right of Verifier
+  The verifier expresses requirements\n
+  via presentation_definition and\n
+  trust policies. Nonce and state\n
+  protect against replay and CSRF.
+end note
+
+Verifier -> Verifier: ② Generate nonce, state,\nand request_uri
+Verifier --> Holder: ③ Display QR code / link\ncontaining request_uri or request-by-value URL
+
+== Wallet obtains request ==
+
+Holder -> Wallet: ④ Scan QR / open link
+Wallet -> Verifier: ⑤ Fetch request object\n(using request_uri, if applicable)
+Wallet -> Wallet: ⑥ Parse presentation_definition\nand check capabilities
+
+== Holder consent ==
+
+Wallet -> Holder: ⑦ Prompt for consent\nand credential selection
+Holder -> Wallet: ⑧ Confirm sharing\nof selected credentials
+
+@enduml

@@ -1,0 +1,45 @@
+@startuml
+title EMV/CAP – from cryptogram to CAP code
+
+actor "Cardholder" as User
+participant "CAP reader" as Reader
+participant "Card" as Card
+participant "Issuer backend" as Issuer
+
+== Personalisation (one-time) ==
+
+Issuer -> Issuer: Derive application key\nfrom issuer master key and card data
+Issuer -> Card: Provision application\ncryptogram key and parameters
+
+== Online CAP calculation ==
+
+User -> Reader: Insert card, select mode,\nenter PIN and inputs (challenge/amount/...)
+Reader -> Card: EMV command sequence\naccording to CDOL1 (ATC, UN, amount, ...)
+Card -> Card: Compute EMV cryptogram\nusing application key and EMV data
+Card --> Reader: Cryptogram, ATC,\nEMV response data
+
+Reader -> Reader: Build CAP block from\ncryptogram, ATC, and selected fields
+Reader -> Reader: Decimalise and truncate\nCAP block to short numeric code
+note right of Reader
+  The CAP engine applies issuer- and
+  scheme-specific rules to build a CAP
+  block from the cryptogram and EMV data,
+  then decimalises and truncates it to
+  the CAP code shown to the cardholder.
+end note
+Reader --> User: Display CAP code
+
+== Issuer validation ==
+
+User -> Issuer: Submit CAP code and\ncontext (mode, card, transaction)
+Issuer -> Issuer: Rebuild EMV input\n(ATC, UN, amounts, currency, ...)
+Issuer -> Issuer: Recompute cryptogram\nand CAP block using issuer keys
+
+alt Codes match and risk checks pass
+  Issuer --> User: Authentication /\ntransaction approved
+else Code mismatch or risk controls fail
+  Issuer --> User: Authentication /\ntransaction rejected
+end alt
+
+@enduml
+

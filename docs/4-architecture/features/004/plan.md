@@ -55,6 +55,7 @@ Unify all assertion evaluation, replay, and attestation generation/verification 
     - [ ] Verify fixtures (`docs/webauthn_w3c_vectors.json`, `docs/webauthn_assertion_vectors.json`, `docs/webauthn_attestation/*`) remain in sync with loader code and tests.  
     - [ ] Confirm telemetry events (assertion/attestation) match documented event names and field redactions.  
     - [ ] Check that the FIDO2 operator console flows (stored/inline assertions, attestation panels, trust-anchor summaries) behave as specified and are covered by Selenium/JS tests.  
+    - [ ] Verify that the FIDO2/WebAuthn protocol reference page and diagrams (`docs/3-reference/protocols/fido2-webauthn.md` and `docs/3-reference/protocols/diagrams/fido2-webauthn-*.puml`/`*.png`) accurately describe the current registration/authentication/attestation flows, parameters, and core/application entry points; update them in the same increment when behaviour changes.  
 
   - **Drift capture & remediation**
     - [ ] Any high-/medium-impact drift (spec vs code mismatch, missing tests, broken UI fixtures, outdated OpenAPI snapshots) is:  

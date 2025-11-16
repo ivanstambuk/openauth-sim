@@ -1,0 +1,39 @@
+@startuml
+title HOTP counter resynchronisation window
+
+participant "OTP client" as Client
+participant "Verifier" as Verifier
+
+== Client advances counter without successful auth ==
+
+Client -> Client: ① Increment local counter C_client multiple times
+... time passes ...
+
+== Authentication attempt with drifted counter ==
+
+Client -> Client: ② HOTP_client = HOTP(K, C_client)
+Client -> Verifier: ③ Submit (account_id, HOTP_client)
+
+Verifier -> Verifier: ④ Load stored (K, C_server)
+Verifier -> Verifier: ⑤ For i in [0, window]:\n  candidate = HOTP(K, C_server + i)
+
+alt Match found within window
+  Verifier -> Verifier: ⑥ Identify C_match = C_server + i\n   and advance stored counter to C_match + 1
+  note right of Verifier
+    Resynchronisation accepts a value
+    within the configured window and
+    updates the stored counter so
+    future authentications use the
+    new baseline.
+  end note
+  Verifier --> Client: ⑦ Authentication success
+else No match within window
+  note right of Verifier
+    Implementations typically apply
+    throttling or lockout policies
+    after repeated failures.
+  end note
+  Verifier --> Client: ⑥ Authentication failure
+end alt
+
+@enduml

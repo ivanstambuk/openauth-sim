@@ -1,0 +1,30 @@
+' Shared sequence-diagram theme for protocol docs
+' White canvas, red lifelines/arrows, yellow notes,
+' matching the HOTP provisioning diagrams.
+
+skinparam BackgroundColor #FFFFFF
+skinparam Shadowing true
+
+skinparam DefaultFontName "SansSerif"
+skinparam DefaultFontSize 13
+skinparam DefaultFontStyle plain
+
+skinparam dpi 150
+
+skinparam sequence {
+  ArrowColor #A80036
+  LifeLineBorderColor #A80036
+  LifeLineBackgroundColor #FFFFFF
+}
+
+skinparam Note {
+  BackgroundColor #FBFB77
+  BorderColor #A80036
+}
+
+skinparam ParticipantBorderColor #A80036
+skinparam ParticipantBackgroundColor #FEFECE
+
+skinparam ActorBorderColor #A80036
+skinparam ActorBackgroundColor #FFFFFF
+skinparam SequenceActorBorderThickness 2

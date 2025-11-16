@@ -1,0 +1,48 @@
+@startuml
+title OCRA transaction signing
+
+participant "Verifier" as Verifier
+participant "OCRA client" as Client
+
+== Present transaction details ==
+
+Verifier -> Verifier: ① Build transaction payload\n(amount, destination, reference, ...)
+Verifier -> Verifier: ② Derive session payload S\n(e.g., hash(transaction payload))
+note right of Verifier
+  Mapping from business-level details\n
+  to the session payload S is a\n
+  deployment decision, but both\n
+  sides must derive S consistently.
+end note
+
+Verifier -> Client: ③ Display transaction details\nand challenge (optional Q)
+
+== User verification and response ==
+
+Client -> Client: ④ User verifies transaction details
+Client -> Client: ⑤ Read K, Suite, inputs (Q, S, optional C/P/T)
+Client -> Client: ⑥ OTP = OCRA(K, Suite, C, Q, P, S, T)
+note right of Client
+  The OCRA client binds the response
+  to the transaction payload S as
+  defined in the suite.
+  Example implementation:
+  core-ocra/.../OcraResponseCalculator
+end note
+
+Client -> Verifier: ⑦ Submit (account_id, Q, S, OTP)
+
+== Verification and decision ==
+
+Verifier -> Verifier: ⑧ Rebuild S from transaction payload
+Verifier -> Verifier: ⑨ Recompute expected OTP\nusing stored K, Suite, and inputs
+
+alt OTP matches and checks pass
+  Verifier -> Verifier: ⑩ Approve transaction
+  Verifier --> Client: ⑪ Transaction approved
+else OTP mismatch or checks fail
+  Verifier -> Verifier: ⑩ Reject transaction
+  Verifier --> Client: ⑪ Transaction rejected
+end alt
+
+@enduml

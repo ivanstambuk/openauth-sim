@@ -1,0 +1,54 @@
+@startuml
+title OCRA challenge-response authentication (basic)
+
+participant "Verifier" as Verifier
+participant "OCRA client" as Client
+
+== Challenge construction ==
+
+Verifier -> Verifier: ① Select or generate challenge Q\naccording to suite's question format
+note right of Verifier
+  Challenge format (length and character set)
+  is dictated by the OCRA suite.
+  Example helpers:
+  core-ocra/.../OcraChallengeFormat
+end note
+
+Verifier -> Client: ② Present challenge Q to user
+
+== Response calculation on client ==
+
+Client -> Client: ③ Read secret K, Suite, and inputs (C, Q, P, S, T)
+Client -> Client: ④ OTP = OCRA(K, Suite, C, Q, P, S, T)
+note right of Client
+  OCRA combines the configured inputs
+  (counter, question, PIN, session, timestamp)
+  according to the suite, then applies
+  an HOTP-like function.
+  Example implementation:
+  core-ocra/.../OcraResponseCalculator
+end note
+
+Client -> Verifier: ⑤ Submit (account_id, SuiteId, Q, OTP, optional inputs)
+
+== Verification on server ==
+
+Verifier -> Verifier: ⑥ Load stored (K, Suite, DataInput) for account_id
+Verifier -> Verifier: ⑦ Reconstruct inputs (C, Q, P, S, T)\nfrom request and policy
+
+alt OTP matches and replay checks pass
+  Verifier -> Verifier: ⑧ Accept response and update\nany counters or session state
+  note right of Verifier
+    Replay and policy checks use the
+    data input components and
+    verifier-specific rules.
+    Example implementations:
+    core-ocra/.../OcraReplayVerifier
+    application/.../OcraEvaluationApplicationService
+  end note
+  Verifier --> Client: ⑨ Authentication or approval success
+else OTP mismatch or policy failure
+  Verifier --> Client: ⑧ Authentication or approval failure
+end alt
+
+@enduml

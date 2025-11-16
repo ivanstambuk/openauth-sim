@@ -43,7 +43,7 @@ publishing tooling.
 
 ## Implementation Drift Gate
 
-- Summary: Use this gate to ensure the docs/automation surface (operator guides, README, external-dependency reference, roadmap/knowledge map, session logs, DeepWiki steering, `qualityGate` and CI wiring) stays aligned with FR-010-01..11 and NFR-010-01..05, and that every change to documentation or automation is reflected consistently across artefacts and logged in `_current-session.md`.
+- Summary: Use this gate to ensure the docs/automation surface (operator guides, protocol reference pages, README, external-dependency reference, roadmap/knowledge map, session logs, DeepWiki steering, `qualityGate` and CI wiring) stays aligned with FR-010-01..12 and NFR-010-01..05, and that every change to documentation or automation is reflected consistently across artefacts and logged in `_current-session.md`.
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
@@ -54,8 +54,9 @@ publishing tooling.
       - `./gradlew --no-daemon qualityGate` (with `-Ppit.skip=true` only when explicitly allowed by the spec/plan).  
 
   - **Spec ↔ docs/automation mapping**
-    - [ ] For FR-010-01..FR-010-11 and NFR-010-01..05, confirm the spec’s expectations are reflected in:  
+    - [ ] For FR-010-01..FR-010-12 and NFR-010-01..05, confirm the spec’s expectations are reflected in:  
       - Operator how-to guides (Java/CLI/REST, and any other documented surfaces).  
+      - Protocol reference docs and diagrams under `docs/3-reference/protocols/` (HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW OpenID4VP).  
       - `README.md` and `docs/2-how-to/README.md` landing pages.  
       - External dependency matrix reference (`docs/3-reference/external-dependencies-by-facade-and-scenario.md`).  
       - Roadmap (`docs/4-architecture/roadmap.md`) and knowledge map (`docs/4-architecture/knowledge-map.md`).  
