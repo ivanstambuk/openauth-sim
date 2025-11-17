@@ -40,7 +40,7 @@ jobs:
 
       - name: Publish standalone artifact to Maven Central Portal
         run: |
-          ./gradlew --no-daemon \
+          ./gradlew --no-daemon --no-configuration-cache \
             :standalone:publishStandalonePublicationToProjectLocalRepository \
             :standalone:zipMavenCentralPortalPublication \
             :standalone:releaseMavenCentralPortalPublication
