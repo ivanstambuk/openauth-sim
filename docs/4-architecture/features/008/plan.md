@@ -1,7 +1,7 @@
 # Feature 008 Plan – EUDIW SIOPv2 Wallet Simulator
 
-_Linked specification:_ `docs/4-architecture/features/008/spec.md`  
-_Linked tasks:_ `docs/4-architecture/features/008/tasks.md`  
+_Linked specification:_ [docs/4-architecture/features/008/spec.md](docs/4-architecture/features/008/spec.md)  
+_Linked tasks:_ [docs/4-architecture/features/008/tasks.md](docs/4-architecture/features/008/tasks.md)  
 _Status:_ Placeholder  
 _Last updated:_ 2025-11-11
 
@@ -33,9 +33,9 @@ and exposes operator-friendly surfaces across CLI/REST/UI.
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
-    - [ ] `docs/4-architecture/features/008/{spec,plan,tasks}.md` updated from placeholder to active status with full FR/NFR/Scenario coverage.  
-    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 008.  
-    - [ ] The following commands have been run in the increment and logged in `docs/_current-session.md`:  
+    - [ ] ``docs/4-architecture/features/008`/{spec,plan,tasks}.md` updated from placeholder to active status with full FR/NFR/Scenario coverage.  
+    - [ ] [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) has no `Open` entries for Feature 008.  
+    - [ ] The following commands have been run in the increment and logged in [docs/_current-session.md](docs/_current-session.md):  
       - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`  
       - `./gradlew --no-daemon spotbugsMain spotbugsTest`  
       - Selenium/Node consent harnesses and any OpenAPI snapshot updates relevant to SIOPv2.  
@@ -45,12 +45,12 @@ and exposes operator-friendly surfaces across CLI/REST/UI.
     - [ ] Ensure Scenario Tracking includes code/test pointers for SIOPv2 consent and presentation flows.  
 
   - **Drift capture & remediation**
-    - [ ] High-/medium-impact drift is logged in `docs/4-architecture/open-questions.md` and captured as tasks in `docs/4-architecture/features/008/tasks.md`.  
+    - [ ] High-/medium-impact drift is logged in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) and captured as tasks in [docs/4-architecture/features/008/tasks.md](docs/4-architecture/features/008/tasks.md).  
     - [ ] Low-impact drift is fixed directly with a short note in this section or the plan’s verification log.  
 
   - **Gate output**
     - [ ] This section is updated with the gate run date, key commands, and “matches vs gaps” summary.  
-    - [ ] `docs/_current-session.md` logs that the Feature 008 Implementation Drift Gate was executed (date, commands, reference back to this section).  
+    - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the Feature 008 Implementation Drift Gate was executed (date, commands, reference back to this section).  
 
 ## Increment Map
 _Target duration: ≤90 minutes per entry._
@@ -72,7 +72,7 @@ _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, `./gradlew
 | S-008-04 | Documentation + telemetry | Pending |
 
 ## Analysis Gate
-- Confirm the placeholder specification (Feature 008) is complete before implementation begins and log any open questions in `docs/4-architecture/open-questions.md`.
+- Confirm the placeholder specification (Feature 008) is complete before implementation begins and log any open questions in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md).
 - Re-run the checklist once consent UI increments are scoped so the plan/tasks/spec stay in sync.
 
 ## Exit Criteria

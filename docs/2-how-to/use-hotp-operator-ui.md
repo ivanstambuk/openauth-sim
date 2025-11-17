@@ -6,8 +6,8 @@ _Last updated: 2025-11-01_
 The operator console embedded in the REST API now provides HOTP evaluation and replay tooling alongside the existing OCRA flows. This guide walks through evaluating stored credentials, running inline checks, replaying observed OTPs without mutating counters, and interpreting telemetry identifiers.
 
 ## Prerequisites
-- Run the REST API (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`) so the operator console is reachable at `http://localhost:8080/ui/console`.
-- Ensure the simulator can access a MapDB credential store (defaults to `data/credentials.db`). Use the CLI to import HOTP credentials if none exist.
+- Run the REST API (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`) so the operator console is reachable at `http://localhost:8080/ui/console`.
+- Ensure the simulator can access a MapDB credential store (defaults to [data/credentials.db](data/credentials.db)). Use the CLI to import HOTP credentials if none exist.
 - The operator console now exposes a **Seed sample credentials** button in stored mode; use it to add the canonical SHA-1/6 and SHA-256/8 demo records before running drills. The CLI and REST endpoints remain available for bulk imports or cleanup.
 
 ## Turn on Verbose Tracing
@@ -22,7 +22,7 @@ The operator console embedded in the REST API now provides HOTP evaluation and r
 4. Reseeding is idempotent; the console reports when no new credentials were added so repeated drills stay predictable.
 
 ## Reference Vectors
-- HOTP demo data now ships with an RFC 4226 catalogue at `docs/hotp_validation_vectors.json`. The file enumerates counters 0–9 for both six- and eight-digit SHA-1 sequences and includes metadata fields (`vectorId`, `secretEncoding`, `algorithm`, `digits`, `counter`, `otp`, optional `label`/`notes`).
+- HOTP demo data now ships with an RFC 4226 catalogue at [docs/hotp_validation_vectors.json](docs/hotp_validation_vectors.json). The file enumerates counters 0–9 for both six- and eight-digit SHA-1 sequences and includes metadata fields (`vectorId`, `secretEncoding`, `algorithm`, `digits`, `counter`, `otp`, optional `label`/`notes`).
 - Core, CLI, REST, and operator UI fixtures load from this catalogue so sample data stays consistent. Inline presets pull the `vectorId`s `rfc4226_sha1_digits6_counter5` and `rfc4226_sha1_digits8_counter5`; stored-mode seeding uses the counter `0` variant.
 - When adding new presets, extend the JSON catalogue first and reference the new `vectorId` from CLI/REST/JS helpers instead of hard-coding secrets or OTP values.
 

@@ -21,6 +21,7 @@ public final class TelemetryContracts {
     private static final TotpTelemetryAdapter TOTP_REPLAY_ADAPTER = new TotpTelemetryAdapter("totp.replay");
     private static final TotpTelemetryAdapter TOTP_SEEDING_ADAPTER = new TotpTelemetryAdapter("totp.seed");
     private static final TotpTelemetryAdapter TOTP_SAMPLE_ADAPTER = new TotpTelemetryAdapter("totp.sample");
+    private static final TotpTelemetryAdapter TOTP_HELPER_ADAPTER = new TotpTelemetryAdapter("totp.helper.lookup");
     private static final Fido2TelemetryAdapter FIDO2_EVALUATION_ADAPTER = new Fido2TelemetryAdapter("fido2.evaluate");
     private static final Fido2TelemetryAdapter FIDO2_REPLAY_ADAPTER = new Fido2TelemetryAdapter("fido2.replay");
     private static final Fido2TelemetryAdapter FIDO2_ATTEST_ADAPTER = new Fido2TelemetryAdapter("fido2.attest");
@@ -95,6 +96,11 @@ public final class TelemetryContracts {
     /** Returns the shared adapter for TOTP stored sample telemetry. */
     public static TotpTelemetryAdapter totpSampleAdapter() {
         return TOTP_SAMPLE_ADAPTER;
+    }
+
+    /** Returns the shared adapter for TOTP helper lookups. */
+    public static TotpTelemetryAdapter totpHelperAdapter() {
+        return TOTP_HELPER_ADAPTER;
     }
 
     /** Returns the shared adapter for FIDO2/WebAuthn evaluation telemetry. */

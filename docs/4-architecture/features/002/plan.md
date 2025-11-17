@@ -1,6 +1,6 @@
 # Feature Plan 002 – TOTP Simulator & Tooling
 
-_Linked specification:_ `docs/4-architecture/features/002/spec.md`  
+_Linked specification:_ [docs/4-architecture/features/002/spec.md](docs/4-architecture/features/002/spec.md)  
 _Status:_ Complete  
 _Last updated:_ 2025-11-13
 
@@ -21,7 +21,7 @@ parity and deterministic fixtures. Success requires:
 - Telemetry adapters under `TelemetryContracts`.
 - CLI Picocli commands, REST controllers (`/api/v1/totp/...`).
 - Operator console templates/JS (Feature 017 shell).
-- Fixture catalogue `docs/totp_validation_vectors.json`.
+- Fixture catalogue [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json).
 
 ## Assumptions & Risks
 - **Assumptions:** Schema-v1 stores accept TOTP metadata; CLI/REST telemetry infrastructure ready. 
@@ -35,9 +35,9 @@ parity and deterministic fixtures. Success requires:
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
-    - [ ] `docs/4-architecture/features/002/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
-    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 002.  
-    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+    - [ ] ``docs/4-architecture/features/002`/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) has no `Open` entries for Feature 002.  
+    - [ ] The following commands have been run in this increment and logged in [docs/_current-session.md](docs/_current-session.md):  
       - `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
       - Any TOTP-specific OpenAPI snapshot updates when REST contracts change.  
 
@@ -52,24 +52,24 @@ parity and deterministic fixtures. Success requires:
 
   - **Native Java API & how-to**
     - [ ] Confirm `TotpEvaluationApplicationService` and its DTOs (EvaluationCommand/EvaluationResult) behave as described in the Feature 002 spec and Feature 014 pattern.  
-    - [ ] Verify Javadoc for `TotpEvaluationApplicationService` and key DTOs labels it as a Native Java API seam, references Feature 002/014 FRs and ADR‑0007, and points to `docs/2-how-to/use-totp-from-java.md`.  
+    - [ ] Verify Javadoc for `TotpEvaluationApplicationService` and key DTOs labels it as a Native Java API seam, references Feature 002/014 FRs and ADR‑0007, and points to [docs/2-how-to/use-totp-from-java.md](docs/2-how-to/use-totp-from-java.md).  
     - [ ] Ensure `use-totp-from-java.md` uses the same types/methods, covers stored and inline flows (including out-of-window failures), and reflects the behaviour tested in `TotpNativeJavaApiUsageTest`.  
 
   - **Fixtures & docs**
-    - [ ] Check that `docs/totp_validation_vectors.json` and any TOTP fixtures remain in sync with loader code and tests.  
+    - [ ] Check that [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json) and any TOTP fixtures remain in sync with loader code and tests.  
     - [ ] Confirm how-to guides and README references for TOTP still point to the correct commands/endpoints and fixture usage.  
-    - [ ] Verify that the TOTP protocol reference page and diagrams (`docs/3-reference/protocols/totp.md` and `docs/3-reference/protocols/diagrams/totp-*.puml`/`*.png`) accurately describe the current TOTP flows, parameters, and core/application entry points; update them in the same increment when behaviour changes.  
+    - [ ] Verify that the TOTP protocol reference page and diagrams ([docs/3-reference/protocols/totp.md](docs/3-reference/protocols/totp.md) and `docs/3-reference/protocols/diagrams/totp-*.puml`/`*.png`) accurately describe the current TOTP flows, parameters, and core/application entry points; update them in the same increment when behaviour changes.  
     - [ ] Update roadmap/knowledge map entries to reference TOTP flows if they changed since the last gate.  
 
   - **Drift capture & remediation**
     - [ ] Any high-/medium-impact drift (spec vs code mismatch, missing tests for documented flows, outdated fixtures) is:  
-      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 002.  
-      - Captured as explicit tasks in `docs/4-architecture/features/002/tasks.md`.  
+      - Logged as an `Open` entry in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) for Feature 002.  
+      - Captured as explicit tasks in [docs/4-architecture/features/002/tasks.md](docs/4-architecture/features/002/tasks.md).  
     - [ ] Low-impact drift (typos, minor doc misalignments, small fixture tweaks) is corrected directly, with a brief note added in this section or the plan’s verification log.  
 
   - **Gate output**
     - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
-    - [ ] `docs/_current-session.md` logs that the TOTP Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
+    - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the TOTP Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ## Increment Map
 1. **I1 – Core domain & persistence (S-002-01)**
@@ -89,7 +89,7 @@ parity and deterministic fixtures. Success requires:
    - Commands: `./gradlew --no-daemon :rest-api:test --tests "*TotpOperatorUi*"`, Selenium suites, `./gradlew spotlessApply check`.
 
 5. **I5 – Fixtures & documentation (S-002-05)**
-   - Publish `docs/totp_validation_vectors.json`, update loaders/tests/docs/roadmap/knowledge map.
+   - Publish [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json), update loaders/tests/docs/roadmap/knowledge map.
    - Commands: `./gradlew --no-daemon spotlessApply check` and targeted module tests as needed.
 
 ## Scenario Tracking

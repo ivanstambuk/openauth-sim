@@ -1,7 +1,7 @@
 # Feature 009 – Operator Console Infrastructure Plan
 
-_Linked specification:_ `docs/4-architecture/features/009/spec.md`  
-_Linked tasks:_ `docs/4-architecture/features/009/tasks.md`  
+_Linked specification:_ [docs/4-architecture/features/009/spec.md](docs/4-architecture/features/009/spec.md)  
+_Linked tasks:_ [docs/4-architecture/features/009/tasks.md](docs/4-architecture/features/009/tasks.md)  
 _Status:_ Complete  
 _Last updated:_ 2025-11-13  
 _Owners:_ Ivan (project owner)  
@@ -15,7 +15,7 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 - Maintain the console tab shell, query-param routing, and stored credential seeding controls shared across all simulator protocols.
 - Keep architectural additions (Protocol Info drawer, preset label harmonisation, validation helper, verbose traces/tiers, Base32 inline secrets, preview windows) current as new requirements land.
 - Document and verify the console JS modularisation plus Node/Gradle harness that powers deterministic protocol suites.
-- Synchronise documentation artefacts (roadmap, knowledge map, session log (docs/_current-session.md), `_current-session.md`, operator how-tos) with the active console ownership.
+- Synchronise documentation artefacts (roadmap, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), `_current-session.md`, operator how-tos) with the active console ownership.
 
 ## Dependencies & Interfaces
 | Dependency | Notes |
@@ -37,9 +37,9 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
-    - [ ] `docs/4-architecture/features/009/{spec,plan,tasks}.md` updated to the current date, with console scope (tabs, presets, validation helper, traces, Base32, preview windows, JS harness) fully captured.  
-    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 009.  
-    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+    - [ ] ``docs/4-architecture/features/009`/{spec,plan,tasks}.md` updated to the current date, with console scope (tabs, presets, validation helper, traces, Base32, preview windows, JS harness) fully captured.  
+    - [ ] [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) has no `Open` entries for Feature 009.  
+    - [ ] The following commands have been run in this increment and logged in [docs/_current-session.md](docs/_current-session.md):  
       - `./gradlew --no-daemon spotlessApply check` (includes JVM tests and Node-based `operatorConsoleJsTest`).  
       - Any focused UI/REST test targets referenced in this plan/tasks when console behaviour changes.  
 
@@ -50,7 +50,7 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
     - [ ] Ensure the Scenario Tracking table reflects current console scope and, where needed, augment it with links to specific tests/files.  
 
   - **Tab shell, info drawer, presets**
-    - [ ] `/ui/console` tab order and labels (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW/… as per spec) match the Feature 009 spec and roadmap.  
+    - [ ] /ui/console tab order and labels (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW/… as per spec) match the Feature 009 spec and roadmap.  
     - [ ] Protocol Info drawer behaviour (open/close, per-protocol content, preference persistence) matches spec and how-to docs.  
     - [ ] Preset dropdowns across protocols show correct labels and seed the correct stored/inline data; tests verify preset consistency.  
 
@@ -71,13 +71,13 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 
   - **Drift capture & remediation**
     - [ ] Any high-/medium-impact drift (e.g., console behaviour not matching spec, missing trace tiers, outdated presets) is:  
-      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 009.  
-      - Captured as explicit tasks in `docs/4-architecture/features/009/tasks.md`.  
+      - Logged as an `Open` entry in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) for Feature 009.  
+      - Captured as explicit tasks in [docs/4-architecture/features/009/tasks.md](docs/4-architecture/features/009/tasks.md).  
     - [ ] Low-impact drift (typos, minor UI text mismatches, small doc changes) is corrected directly, with a brief note added in this section or the plan’s verification log.  
 
   - **Gate output**
     - [ ] This section is updated with the latest drift gate run date, listing key commands executed and a concise “matches vs gaps” summary plus remediation notes.  
-    - [ ] `docs/_current-session.md` logs that the Feature 009 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
+    - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the Feature 009 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks now describe the steady-state operator console (tabs, info drawer, presets, validation helper, verbose traces + tiers, Base32 inline secrets, preview windows, JS harness, documentation duties). No migration references remain, and roadmap/knowledge map/session log all cite Feature 009 as the sole console authority (covers FR-009-01..10, S-009-01..10, FR-009-10).
@@ -88,7 +88,7 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 ## Scenario Tracking
 | Scenario | Description |
 |----------|-------------|
-| S-009-01 | `/ui/console` renders ordered tabs (hotp → eudi-siopv2), maintains query-param history, and surfaces stored credential seeding controls plus placeholder messaging. |
+| S-009-01 | /ui/console renders ordered tabs (hotp → eudi-siopv2), maintains query-param history, and surfaces stored credential seeding controls plus placeholder messaging. |
 | S-009-02 | Protocol Info drawer opens via the tablist trigger, swaps schema-based content per protocol, persists preferences, and exposes embeddable docs. |
 | S-009-03 | Preset dropdowns across HOTP/TOTP/OCRA/FIDO2 display `<scenario – attributes>` labels and seeded/stored catalogues stay in sync. |
 | S-009-04 | Validation helper reveals the result card and message for invalid OTP/OCRA/WebAuthn responses. |
@@ -97,12 +97,12 @@ and JS harness tests) under Feature 009 so future batches can evolve concrete 
 | S-009-07 | Inline shared secrets accept Base32 or hex inputs with CLI/UI helpers enforcing mutual exclusivity. |
 | S-009-08 | Evaluation preview windows render ordered Delta tables, CLI/REST flags map offsets, and helper text remains concise in the UI. |
 | S-009-09 | Console JS modules run inside the `operatorConsoleJsTest` harness with protocol-filtering support and deterministic fixtures. |
-| S-009-10 | Documentation (roadmap, knowledge map, session log (docs/_current-session.md), `_current-session.md`, how-tos) captures the consolidated console scope. |
+| S-009-10 | Documentation (roadmap, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), `_current-session.md`, how-tos) captures the consolidated console scope. |
 
 ## Analysis Gate
-Run `docs/5-operations/analysis-gate-checklist.md` whenever console scope changes to confirm spec/plan/tasks alignment and ensure `_current-session.md` captures the verification commands.
+Run [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) whenever console scope changes to confirm spec/plan/tasks alignment and ensure `_current-session.md` captures the verification commands.
 
 ## Exit Criteria
 - The Feature 009 spec/plan/tasks document the entire operator console scope (tabs, info drawer, presets, verbose diagnostics, Base32, preview windows, JS harness).
-- Documentation (roadmap, knowledge map, session log (docs/_current-session.md), `_current-session.md`, how-tos) references Feature 009 as the operator-console authority.
+- Documentation (roadmap, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), `_current-session.md`, how-tos) references Feature 009 as the operator-console authority.
 - The console verification suites (JVM, Node, PMD/Spotless) remain green once the phase concludes.

@@ -6,6 +6,6 @@ OpenAuth Simulator emulates credential issuance, storage, and verification flows
 - **Scope (2025-09-27):** persistence API in `core` module with MapDB + Caffeine cache; CLI/REST/UI modules are stubs.
 - **Out of scope:** production SLAs, multi-tenant controls, hardware attestation, long-term backwards compatibility.
 
-Protocol-specific overviews (HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW OpenID4VP) live under `docs/3-reference/protocols/` and include sequence diagrams plus links back into the `core` and `application` modules.
+Protocol-specific overviews (HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW OpenID4VP) live under ``docs/3-reference/protocols`/` and include sequence diagrams plus links back into the `core` and `application` modules.
 
 See [docs/6-decisions/ADR-0001-core-storage.md](../6-decisions/ADR-0001-core-storage.md) for the storage choice rationale.

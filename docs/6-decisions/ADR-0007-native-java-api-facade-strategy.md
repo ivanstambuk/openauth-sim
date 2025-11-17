@@ -2,14 +2,14 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 001 (`docs/4-architecture/features/001/spec.md`), Feature 002 (`docs/4-architecture/features/002/spec.md`), Feature 003 (`docs/4-architecture/features/003/spec.md`), Feature 004 (`docs/4-architecture/features/004/spec.md`), Feature 005 (`docs/4-architecture/features/005/spec.md`), Feature 006 (`docs/4-architecture/features/006/spec.md`), Feature 010 (`docs/4-architecture/features/010/spec.md`)
+- **Related features/specs:** Feature 001 ([docs/4-architecture/features/001/spec.md](docs/4-architecture/features/001/spec.md)), Feature 002 ([docs/4-architecture/features/002/spec.md](docs/4-architecture/features/002/spec.md)), Feature 003 ([docs/4-architecture/features/003/spec.md](docs/4-architecture/features/003/spec.md)), Feature 004 ([docs/4-architecture/features/004/spec.md](docs/4-architecture/features/004/spec.md)), Feature 005 ([docs/4-architecture/features/005/spec.md](docs/4-architecture/features/005/spec.md)), Feature 006 ([docs/4-architecture/features/006/spec.md](docs/4-architecture/features/006/spec.md)), Feature 010 ([docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md))
 - **Related open questions:** (resolved) Native Java API facade governance (Feature 010)
 
 ## Context
 
 OpenAuth Simulator currently exposes three well-documented facades for most protocols: CLI commands, REST API endpoints, and an
 operator console web UI. Feature 003 already documents an OCRA Native Java API via `OcraCredentialFactory` +
-`OcraResponseCalculator` and `docs/2-how-to/use-ocra-from-java.md`, but other protocols (HOTP, TOTP, FIDO2/WebAuthn, EMV/CAP,
+`OcraResponseCalculator` and [docs/2-how-to/use-ocra-from-java.md](docs/2-how-to/use-ocra-from-java.md), but other protocols (HOTP, TOTP, FIDO2/WebAuthn, EMV/CAP,
 EUDIW) do not yet have an equally formalised Java surface. At the same time, the project constitution and governance docs
 refer to “programmatic” or “Native Java” as a facade alongside CLI/REST/UI, and DeepWiki/README now describe four
 consumption surfaces.
@@ -36,7 +36,7 @@ cross-protocol Java SDK:
   protocols should mirror its approach by providing:
   - A stable entry type (e.g., `*ApplicationService` or equivalent) with explicit input/output DTOs.
   - Supporting helpers for constructing descriptors or requests.
-  - At least one `docs/2-how-to/*-from-java.md` guide demonstrating end-to-end usage.
+  - At least one ``docs/2-how-to`/*-from-java.md` guide demonstrating end-to-end usage.
 - Governance for these Native Java seams will be centralised in a future cross-cutting feature (e.g., Feature 014 –
   Native Java API Facade) that documents:
   - Naming/location conventions for public Java APIs.
@@ -90,14 +90,14 @@ future Feature 014 spec.
 ## Operational Impact
 
 - Runbooks and how-to guides must treat Native Java as a supported consumption surface:
-  - `docs/2-how-to/*-from-java.md` guides should be referenced from CLI/REST/UI docs where appropriate.
+  - ``docs/2-how-to`/*-from-java.md` guides should be referenced from CLI/REST/UI docs where appropriate.
   - DeepWiki’s “Native Java API” page will point to per-protocol guides and Javadoc once published.
 - Build/CI pipelines may need additional Javadoc generation and publication steps once Feature 014 is defined; this ADR
   does not mandate a specific publication mechanism but expects it to be captured there.
 
 ## Links
 
-- Related spec sections: `docs/2-how-to/use-ocra-from-java.md`, `docs/4-architecture/features/010/spec.md`
+- Related spec sections: [docs/2-how-to/use-ocra-from-java.md](docs/2-how-to/use-ocra-from-java.md), [docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md)
 - Related ADRs: ADR-0004 (Documentation & Aggregated Quality Gate Workflow), ADR-0005 (Operator Console and UI Contracts)
 - Related issues / PRs: (to be linked from future Native Java API increments per protocol)
 

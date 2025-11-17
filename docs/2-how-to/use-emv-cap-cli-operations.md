@@ -10,7 +10,7 @@ The CLI uses the same `includeTrace` toggle as the REST API and operator UI. The
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointing at a JDK 17 install.
 - Gradle dependencies resolved (`./gradlew spotlessApply check` should already pass).
-- Optional: run the REST API (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`) when you want to inspect responses through Swagger UI or seed credentials over HTTP—the CLI shares the same MapDB database.
+- Optional: run the REST API (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`) when you want to inspect responses through Swagger UI or seed credentials over HTTP—the CLI shares the same MapDB database.
 - `jq` (optional) for pretty-printing JSON output.
 
 Run Picocli commands from the repository root. Set `GRADLE_USER_HOME=$PWD/.gradle` to keep Gradle caches within the workspace.
@@ -23,7 +23,7 @@ Load the curated CAP credentials and transcripts so stored-mode evaluations succ
 The command prints sanitized telemetry (for example `{"event":"cli.emv.cap.seed","status":"success",...}`) listing which credential IDs were created. Subsequent runs are idempotent; the command reports `already_seeded` when presets exist.
 
 ## Evaluate a stored Identify preset
-Preset identifiers align with the JSON fixtures under `docs/test-vectors/emv-cap/`. Use `identify-baseline` after seeding:
+Preset identifiers align with the JSON fixtures under ``docs/test-vectors/emv-cap`/`. Use `identify-baseline` after seeding:
 ```bash
 ./gradlew --quiet :cli:run --args=$'emv cap evaluate --preset-id identify-baseline'
 ```

@@ -5,8 +5,8 @@
 | Status | In progress |
 | Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/006/plan.md` |
-| Linked tasks | `docs/4-architecture/features/006/tasks.md` |
+| Linked plan | [docs/4-architecture/features/006/plan.md](docs/4-architecture/features/006/plan.md) |
+| Linked tasks | [docs/4-architecture/features/006/tasks.md](docs/4-architecture/features/006/tasks.md) |
 | Roadmap entry | #6 – EUDIW OpenID4VP Simulator |
 
 ## Overview
@@ -433,11 +433,11 @@ Command help must reference the REST endpoints for cross-facade parity and highl
 
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-006-01 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/*.json` | SD-JWT VC cleartext claims, disclosures, KB-JWT payloads, metadata driving Generate mode. |
-| FX-006-02 | `docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc/*.json` | ISO/IEC 18013-5 DeviceResponse payloads plus diagnostic CBOR text for deterministic tests. |
-| FX-006-03 | `docs/test-vectors/eudiw/openid4vp/trust/**/*` | Trusted Authority anchors, policies, and snapshots (friendly labels + AKI metadata). |
-| FX-006-04 | `docs/test-vectors/eudiw/openid4vp/stored/presentations/*.json` | Stored VP Tokens mapped to presets for Replay mode. |
-| FX-006-05 | `docs/trust/snapshots/<timestamp>/manifest.json` + `docs/test-vectors/eudiw/openid4vp/fixtures/*/provenance.json` + `presentations/seed` payloads | Fixture dataset provenance for ingestion, including source hashes, LOTL/Member TL sequences, and ingest timestamps surfaced via telemetry + REST metadata. |
+| FX-006-01 | ``docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc`/*.json` | SD-JWT VC cleartext claims, disclosures, KB-JWT payloads, metadata driving Generate mode. |
+| FX-006-02 | ``docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/mdoc`/*.json` | ISO/IEC 18013-5 DeviceResponse payloads plus diagnostic CBOR text for deterministic tests. |
+| FX-006-03 | ``docs/test-vectors/eudiw/openid4vp/trust`/**/*` | Trusted Authority anchors, policies, and snapshots (friendly labels + AKI metadata). |
+| FX-006-04 | ``docs/test-vectors/eudiw/openid4vp/stored/presentations`/*.json` | Stored VP Tokens mapped to presets for Replay mode. |
+| FX-006-05 | ``docs/trust/snapshots`/<timestamp>/manifest.json` + ``docs/test-vectors/eudiw/openid4vp/fixtures`/*/provenance.json` + `presentations/seed` payloads | Fixture dataset provenance for ingestion, including source hashes, LOTL/Member TL sequences, and ingest timestamps surfaced via telemetry + REST metadata. |
 
 ### UI States
 
@@ -473,11 +473,11 @@ Validation flows (S5) inherit this policy: they must trigger the same telemetry 
 - Update roadmap entry #40 with simulator milestones and Trusted Authority ingestion guardrails.
 - Refresh knowledge map relationships for `application.eudi.openid4vp`, TrustedAuthorityEvaluator, and fixture ingestion services.
 - Maintain how-to guides for REST, CLI, and operator UI (`docs/2-how-to/use-eudiw-*`).
-- Append telemetry snapshot reference (`docs/3-reference/eudiw-openid4vp-telemetry-snapshot.md`).
+- Append telemetry snapshot reference ([docs/3-reference/eudiw-openid4vp-telemetry-snapshot.md](docs/3-reference/eudiw-openid4vp-telemetry-snapshot.md)).
 
 ## Fixtures & Sample Data
 - Refer to Interface & Contract Catalogue → Fixtures & Sample Data for canonical IDs/paths.
-- Directory layout under `docs/test-vectors/eudiw/openid4vp/`:
+- Directory layout under ``docs/test-vectors/eudiw/openid4vp`/`:
 
   - `keys/` stores synthetic issuer/holder key material (JWKs, PEM cert chains) referenced by fixtures.
   - `fixtures/synthetic/sdjwt-vc/<fixture-id>/` (cleartext claim JSON, salted digest map, optional compact SD-JWT, disclosures, KB-JWT body, metadata).
@@ -572,8 +572,8 @@ ui_states:
 ### Native Java API
 | ID | Entry point | Description | Notes |
 |----|-------------|-------------|-------|
-| NJ-006-01 | `io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService` | Application-level wallet simulation service used as the Native Java API seam for generating HAIP/Baseline VP Tokens from presets or inline SD-JWT/mdoc payloads. | Mirrors CLI/REST wallet simulation semantics; callers construct `SimulateRequest` records and consume `SimulationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-eudiw-from-java.md`. |
-| NJ-006-02 | `io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService` | Application-level validation service used as the Native Java API seam for validating VP Tokens/DeviceResponses and Trusted Authorities decisions. | Mirrors CLI/REST validate semantics; callers construct `ValidateRequest` records and consume `ValidationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-eudiw-from-java.md`. |
+| NJ-006-01 | `io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService` | Application-level wallet simulation service used as the Native Java API seam for generating HAIP/Baseline VP Tokens from presets or inline SD-JWT/mdoc payloads. | Mirrors CLI/REST wallet simulation semantics; callers construct `SimulateRequest` records and consume `SimulationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in [docs/2-how-to/use-eudiw-from-java.md](docs/2-how-to/use-eudiw-from-java.md). |
+| NJ-006-02 | `io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService` | Application-level validation service used as the Native Java API seam for validating VP Tokens/DeviceResponses and Trusted Authorities decisions. | Mirrors CLI/REST validate semantics; callers construct `ValidateRequest` records and consume `ValidationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in [docs/2-how-to/use-eudiw-from-java.md](docs/2-how-to/use-eudiw-from-java.md). |
 
 ## Appendix
 
@@ -584,7 +584,7 @@ ui_states:
   - `rest-api`: REST controllers for request creation, wallet simulation, and telemetry streams; integrate with existing problem-details handling and OpenAPI snapshots.
   - `cli`: commands to create requests, render ASCII QR codes, drive simulated responses, and validate VP Tokens.
   - `ui`: upgrade the EUDIW tab to render request metadata, ASCII QR preview, simulation actions, and trace inspection, reusing the global verbose dock and trace payload contract.
-- Fixtures under `docs/test-vectors/eudiw/openid4vp/` capture credential payloads, disclosures, DeviceResponse blobs, trust metadata, deterministic seeds, synthetic issuer/holder keys (stored under `keys/`), and stored presentation batches consumed by the seeding workflow.
+- Fixtures under ``docs/test-vectors/eudiw/openid4vp`/` capture credential payloads, disclosures, DeviceResponse blobs, trust metadata, deterministic seeds, synthetic issuer/holder keys (stored under `keys/`), and stored presentation batches consumed by the seeding workflow.
 - Telemetry passes through `TelemetryContracts` with new `oid4vp.*` event families, ensuring PII redaction (hash or count metrics only) while allowing correlation via request identifiers.
 
 ### Dependency Considerations

@@ -1,7 +1,7 @@
 # Feature 007 Plan – EUDIW ISO/IEC 18013-5 (mdoc PID) Simulator
 
-_Linked specification:_ `docs/4-architecture/features/007/spec.md`  
-_Linked tasks:_ `docs/4-architecture/features/007/tasks.md`  
+_Linked specification:_ [docs/4-architecture/features/007/spec.md](docs/4-architecture/features/007/spec.md)  
+_Linked tasks:_ [docs/4-architecture/features/007/tasks.md](docs/4-architecture/features/007/tasks.md)  
 _Status:_ Placeholder  
 _Last updated:_ 2025-11-11
 
@@ -31,9 +31,9 @@ exercise HAIP-compliant workflows without external wallets.
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
-    - [ ] `docs/4-architecture/features/007/{spec,plan,tasks}.md` updated from placeholder to active status with full FR/NFR/Scenario coverage.  
-    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 007.  
-    - [ ] The following commands have been run in the increment and logged in `docs/_current-session.md`:  
+    - [ ] ``docs/4-architecture/features/007`/{spec,plan,tasks}.md` updated from placeholder to active status with full FR/NFR/Scenario coverage.  
+    - [ ] [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) has no `Open` entries for Feature 007.  
+    - [ ] The following commands have been run in the increment and logged in [docs/_current-session.md](docs/_current-session.md):  
       - `./gradlew --no-daemon :core:test :application:test :rest-api:test :ui:test spotlessApply check` (with EUDIW/mdoc-focused tests enabled).  
 
   - **Spec ↔ code/test mapping (once implemented)**
@@ -41,12 +41,12 @@ exercise HAIP-compliant workflows without external wallets.
     - [ ] Ensure Scenario Tracking in this plan lists Scenario IDs with increment/task and code/test pointers.  
 
   - **Drift capture & remediation**
-    - [ ] Any high-/medium-impact drift discovered during the gate is logged as `Open` in `docs/4-architecture/open-questions.md` and captured as tasks in `docs/4-architecture/features/007/tasks.md`.  
+    - [ ] Any high-/medium-impact drift discovered during the gate is logged as `Open` in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) and captured as tasks in [docs/4-architecture/features/007/tasks.md](docs/4-architecture/features/007/tasks.md).  
     - [ ] Low-impact drift is fixed directly in spec/plan/tasks/docs, with a short note added to this section or the plan’s verification log.  
 
   - **Gate output**
     - [ ] This section is updated with the gate run date, key commands, and “matches vs gaps” summary.  
-    - [ ] `docs/_current-session.md` logs that the Feature 007 Implementation Drift Gate was executed (date, commands, reference back to this section).  
+    - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the Feature 007 Implementation Drift Gate was executed (date, commands, reference back to this section).  
 
 
 ## Increment Map
@@ -69,7 +69,7 @@ _Verification commands:_ `./gradlew --no-daemon spotlessApply check`, `./gradlew
 
 ## Analysis Gate
 - Confirm spec completeness before implementation.
-- Record open questions in `docs/4-architecture/open-questions.md`.
+- Record open questions in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md).
 
 ## Exit Criteria
 - CLI/REST/UI + docs/fixtures/telemetry all reference Feature 007.

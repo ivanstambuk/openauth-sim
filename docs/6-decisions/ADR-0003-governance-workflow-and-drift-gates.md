@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 011 (`docs/4-architecture/features/011/spec.md`), Constitution (`docs/6-decisions/project-constitution.md`)
+- **Related features/specs:** Feature 011 ([docs/4-architecture/features/011/spec.md](docs/4-architecture/features/011/spec.md)), Constitution ([docs/6-decisions/project-constitution.md](docs/6-decisions/project-constitution.md))
 - **Related open questions:** (none currently)
 
 ## Context
@@ -29,12 +29,12 @@ Adopt a governance workflow centred on Feature 011 and the constitution:
   1. Update the relevant spec sections first (Feature 011 spec, constitution, AGENTS/runbooks) to reflect resolved
      clarifications and policy changes.
   2. Refresh the Feature 011 plan/tasks to describe intended work, tests, and verification commands.
-  3. Run the Clarification Gate by ensuring high/medium-impact questions are captured in `docs/4-architecture/open-questions.md`
+  3. Run the Clarification Gate by ensuring high/medium-impact questions are captured in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md)
      and resolved answers are encoded back into spec sections.
   4. Execute tests and quality gates (including `./gradlew --no-daemon spotlessApply check` and `qualityGate` when needed).
   5. Run the Implementation Drift Gate, cross-checking spec/plan/tasks/code/hooks/docs and recording findings in the Feature 011 plan.
   6. Log all governance commands and outcomes in `_current-session.md` and session logs (hook guard, hook runs, Gradle tasks).
-- Use the analysis gate checklist (`docs/5-operations/analysis-gate-checklist.md`) as the operational wrapper around this
+- Use the analysis gate checklist ([docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md)) as the operational wrapper around this
   loop for governance changes.
 
 Feature 011’s spec/plan/tasks describe this loop explicitly and link back to this ADR and the constitution.
@@ -77,12 +77,12 @@ Feature 011’s spec/plan/tasks describe this loop explicitly and link back to t
   - Use Analysis and Implementation Drift Gates for governance changes and log executions.
   - Keep Feature 011’s plan/tasks updated with verification commands and drift reports.
   - Ensure session reset/runbook procedures reference this workflow when new agents join or sessions restart.
-- The workflow clarifies when to run `git config core.hooksPath`, `githooks/pre-commit`, `githooks/commit-msg`,
+- The workflow clarifies when to run `git config core.hooksPath`, [githooks/pre-commit](githooks/pre-commit), [githooks/commit-msg](githooks/commit-msg),
   `./gradlew --no-daemon spotlessApply check`, and `qualityGate` during governance work.
 
 ## Links
 
-- Related spec sections: `docs/4-architecture/features/011/spec.md#overview`, `#goals`, `#functional-requirements`,
+- Related spec sections: `[docs/4-architecture/features/011/spec.md](docs/4-architecture/features/011/spec.md)#overview`, `#goals`, `#functional-requirements`,
   `#non-functional-requirements`, `#test-strategy`
 - Related ADRs: ADR-0002 (Governance Formatter and Managed Hooks)
 - Related issues / PRs: (to be linked from future governance updates)

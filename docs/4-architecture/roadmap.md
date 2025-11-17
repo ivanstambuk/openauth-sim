@@ -1,16 +1,16 @@
 # Implementation Roadmap
 
-_Last updated: 2025-11-15_
+_Last updated: 2025-11-16_
 
-This roadmap mirrors the feature catalogue (001–013) plus the reserved placeholder slots for the next wave of work. Each feature row below maps directly to `docs/4-architecture/features/<NNN>/{spec,plan,tasks}.md`, keeping the roadmap aligned with the source documents instead of duplicating legacy numbering or migration callouts.
+This roadmap mirrors the feature catalogue (001–013) plus the reserved placeholder slots for the next wave of work. Each feature row below maps directly to ``docs/4-architecture/features`/<NNN>/{spec,plan,tasks}.md`, keeping the roadmap aligned with the source documents instead of duplicating legacy numbering or migration callouts.
 
 ## Guiding Principles
 
 - Specifications drive every increment; update the spec before refreshing plan/tasks or writing code.
 - Keep increments small and verifiable (≤90 minutes of planned effort) with `./gradlew spotlessApply check` after each slice.
-- Preserve traceability by logging hook guard + verification commands in `docs/_current-session.md`.
+- Preserve traceability by logging hook guard + verification commands in [docs/_current-session.md](docs/_current-session.md).
 
-## Features (001–013)
+## Features (001–015)
 
 | ID | Name | Status | Scope Snapshot | References |
 |----|------|--------|----------------|------------|
@@ -24,16 +24,17 @@ This roadmap mirrors the feature catalogue (001–013) plus the reserved placeho
 | 008 | EUDIW SIOPv2 Wallet Simulator | Placeholder | Deterministic SIOPv2 wallet experience for mixed SD-JWT + mdoc payloads across REST/CLI/UI. | [spec](features/008/spec.md) · [plan](features/008/plan.md) · [tasks](features/008/tasks.md) |
 | 009 | Operator Console Infrastructure | Complete | Consolidates all operator-console UI work (tabs, verbose trace dock, fixture presets) under one governance hub. | [spec](features/009/spec.md) · [plan](features/009/plan.md) · [tasks](features/009/tasks.md) |
 | 010 | Documentation & Knowledge Automation | Complete | Centralises docs/how-to automation, knowledge map upkeep, and documentation quality gates. | [spec](features/010/spec.md) · [plan](features/010/plan.md) · [tasks](features/010/tasks.md) |
-| 011 | Governance & Workflow Automation | Complete | Owns AGENTS.md, constitution alignment, managed hooks, gitlint policy, and analysis-gate guidance. | [spec](features/011/spec.md) · [plan](features/011/plan.md) · [tasks](features/011/tasks.md) |
+| 011 | Governance & Workflow Automation | Complete | Owns [AGENTS.md](AGENTS.md), constitution alignment, managed hooks, gitlint policy, and analysis-gate guidance. | [spec](features/011/spec.md) · [plan](features/011/plan.md) · [tasks](features/011/tasks.md) |
 | 012 | Core Cryptography & Persistence | Complete | Shared persistence defaults, cache tuning, telemetry contracts, maintenance helpers, and encryption guidance. | [spec](features/012/spec.md) · [plan](features/012/plan.md) · [tasks](features/012/tasks.md) |
 | 013 | Toolchain & Quality Platform | Complete | Aggregates CLI exit harnesses, reflection policy enforcement, quality gates, and Gradle/Spotless automation. | [spec](features/013/spec.md) · [plan](features/013/plan.md) · [tasks](features/013/tasks.md) |
 | 014 | Native Java API Facade | Complete | Cross-cutting Native Java facade governance and per-protocol API pattern for HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW, referencing ADR-0007 and seeding backlog work in features 001, 002, 004, 005, and 006. | [spec](features/014/spec.md) · [plan](features/014/plan.md) · [tasks](features/014/tasks.md) |
+| 015 | MCP Agent Facade | In progress | Elevates MCP to an official agent-facing facade with helper tool catalogue, session APIs, telemetry, and governance hooks for AI integrations. | [spec](features/015/spec.md) · [plan](features/015/plan.md) · [tasks](features/015/tasks.md) |
 
 ## Placeholder Queue (014+)
 
 The next wave of features keeps their numbering reserved so new specs can slot in without another renumbering effort.
 
-- **Features 015–018 – Credential expansion backlog.** These slots cover future credential families (for example, additional OTP profiles, passkey portability, or EMV follow-ons). When one of these efforts graduates from ideation, create `docs/4-architecture/features/<NNN>/` directly from the templates and capture the clarifications there; until then, record open questions or research stubs in `docs/4-architecture/open-questions.md` rather than a parking-lot directory.
+- **Features 016–018 – Credential expansion backlog.** These slots cover future credential families (for example, additional OTP profiles, passkey portability, or EMV follow-ons). When one of these efforts graduates from ideation, create ``docs/4-architecture/features`/<NNN>/` directly from the templates and capture the clarifications there; until then, record open questions or research stubs in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) rather than a parking-lot directory.
 - **Features 019–022 – Next-gen simulator research.** Reserved for protocol simulators that extend beyond the current OTP/WebAuthn/EUDIW footprint. Seed notes via the same spec/plan/tasks pipeline once owners prioritise an item so the numbering remains contiguous without separate holding folders.
 - **Features 023+ – OCRA/legacy deep dives.** Historic artefacts that still require parity checks now live only in Git history; reintroduce them by authoring fresh specs under the next free feature ID instead of restoring the retired `ocra-simulator/` staging area.
 

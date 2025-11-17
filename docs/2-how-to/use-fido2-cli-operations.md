@@ -8,9 +8,9 @@ The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
 - Build dependencies installed via Gradle (`./gradlew spotlessApply check` should already pass).
-- Optional but recommended: start the REST API (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`) so you can seed sample credentials through `POST /api/v1/webauthn/credentials/seed` or the operator console. The CLI opens the same MapDB file (`data/credentials.db` by default) that the REST/UI layers use; pass `--database` if you need to point at a legacy file such as `data/fido2-credentials.db`.
+- Optional but recommended: start the REST API (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`) so you can seed sample credentials through `POST /api/v1/webauthn/credentials/seed` or the operator console. The CLI opens the same MapDB file ([data/credentials.db](data/credentials.db) by default) that the REST/UI layers use; pass `--database` if you need to point at a legacy file such as data/fido2-credentials.db.
 - Base64url utilities (`base64url`-style encodings) for supplying raw credential material when you are not using presets.
-- (Optional) `jq` or similar tooling if you want to explore the assertion fixtures in `docs/webauthn_assertion_vectors.json` and the attestation fixtures in `docs/webauthn_attestation/*.json`.
+- (Optional) `jq` or similar tooling if you want to explore the assertion fixtures in [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json) and the attestation fixtures in ``docs/webauthn_attestation`/*.json`.
 
 Run CLI commands from the repository root. Set `GRADLE_USER_HOME=$PWD/.gradle` if you prefer to isolate Gradle caches in the workspace.
 
@@ -119,7 +119,7 @@ Replay output reports whether the supplied assertion matches the stored credenti
 - When the authenticator omits extensions, the step still appears with `extensions.present = false` so scripts can rely on a stable structure. Because the trace contains raw assertion material, enable `--verbose` only in controlled environments and clear captured data once you finish troubleshooting.
 
 ## Generate WebAuthn Attestations
-Attestation generation accepts fixture identifiers from the JSON bundles in `docs/webauthn_attestation/`. Provide the challenge straight from the dataset and pass the authenticator private keys as JWK or PEM/PKCS#8; the CLI normalises either representation before invoking the generator. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied. Preset runs are the default (`--input-source preset`), so you only need to provide the preset metadata and signing mode.
+Attestation generation accepts fixture identifiers from the JSON bundles in ``docs/webauthn_attestation`/`. Provide the challenge straight from the dataset and pass the authenticator private keys as JWK or PEM/PKCS#8; the CLI normalises either representation before invoking the generator. The command emits sanitized telemetry that records the format, signing mode, certificate-chain count, and whether custom roots were supplied. Preset runs are the default (`--input-source preset`), so you only need to provide the preset metadata and signing mode.
 
 ```bash
 vector=$(jq -r '.[0]' docs/webauthn_attestation/packed.json)
@@ -197,7 +197,7 @@ Stored mode pulls the attestation payload, challenge, and relying-party metadata
 > 2025-10-28 – The curated seed catalogue now includes the synthetic `synthetic-packed-ps256` preset so PS256 credentials hydrate with a deterministic cross-origin challenge without manual input.
 
 ## Browse the JSON Vector Catalogue
-The `vectors` subcommand prints the full assertion catalogue (`docs/webauthn_assertion_vectors.json`) followed by the attestation datasets from `docs/webauthn_attestation/*.json` so every facade stays in sync:
+The `vectors` subcommand prints the full assertion catalogue ([docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json)) followed by the attestation datasets from ``docs/webauthn_attestation`/*.json` so every facade stays in sync:
 
 ```bash
 ./gradlew --quiet :cli:run --args='fido2 vectors'
@@ -224,7 +224,7 @@ Use these `vectorId` values with `fido2 replay` (verification) and for advanced 
 Pair this guide with the REST and operator UI how-tos to mirror the same vectors across every facade.
 
 ## Inspect JWK Material
-Each vector in `docs/webauthn_assertion_vectors.json` carries a `keyPairJwk` payload (public + private components) alongside the COSE public key. Extract it for documentation or interoperability testing:
+Each vector in [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json) carries a `keyPairJwk` payload (public + private components) alongside the COSE public key. Extract it for documentation or interoperability testing:
 ```bash
 python - <<'PYJ'
 import json

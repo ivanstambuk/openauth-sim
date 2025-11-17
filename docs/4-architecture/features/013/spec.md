@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/013/plan.md` |
-| Linked tasks | `docs/4-architecture/features/013/tasks.md` |
+| Linked plan | [docs/4-architecture/features/013/plan.md](docs/4-architecture/features/013/plan.md) |
+| Linked tasks | [docs/4-architecture/features/013/tasks.md](docs/4-architecture/features/013/tasks.md) |
 | Roadmap entry | #13 – Toolchain & Quality Platform |
 
 ## Overview
@@ -30,6 +30,7 @@ quality gates, verification commands, and governance rules that keep the simulat
 - Shipping new runtime behaviour or modifying quality thresholds beyond what the legacy specs already enforce.
 - Reintroducing deprecated entry points, telemetry fallbacks, or reflection-based seams.
 - Relaxing SpotBugs/PMD detectors or the Jacoco coverage buffer without a follow-up governance feature.
+- Designing or shipping new AI/agent-specific integration surfaces (for example Model Context Protocol servers or documentation JSON-LD metadata) in this iteration; those are tracked as future-tooling backlog items once documentation-facing LLM surfaces (Feature 010 FR-010-13) are stable.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
@@ -39,11 +40,11 @@ quality gates, verification commands, and governance rules that keep the simulat
 | FR-013-03 | Reflection usage removed; ArchUnit + Gradle `reflectionScan` enforce policy; spec/plan/tasks/AGENTS mention the guardrail. | `rg -n "java.lang.reflect"` returns no project-owned matches; ArchUnit/`reflectionScan` run in `qualityGate`. | `./gradlew reflectionScan :core-architecture-tests:test`. | Reflection reintroduced or documentation missing. | None. | Spec.
 | FR-013-04 | Java 17 enhancements (sealed CLI hierarchy, sealed REST request variants, text-block OpenAPI examples) ship without changing external contracts. | CLI/REST tests cover sealed hierarchies; OpenAPI snapshots unchanged; `qualityGate` passes. | `./gradlew :cli:test :rest-api:test qualityGate`. | Behavioural regressions or snapshot diffs occur. | None. | Spec.
 | FR-013-05 | Architecture harmonization retains shared OCRA application services, persistence factory, telemetry adapter, DTO normalization, and `core` split enforced via ArchUnit. | Facades depend on application services only; ArchUnit tests guard module boundaries; documentation describes architecture. | `./gradlew :application:test :core-architecture-tests:test`. | Facades bypass application layer or telemetry diverges. | Telemetry remains via adapters. | Spec.
-| FR-013-06 | SpotBugs dead-state detectors (`URF_*`, `UUF_*`, `UWF_*`, `NP_UNWRITTEN_*`) enforced via shared include filter; violations remediated or justified. | `config/spotbugs/dead-state-include.xml` referenced by all SpotBugs tasks; `./gradlew spotbugsMain spotbugsTest` red→green history recorded. | SpotBugs logs show zero dead-state findings; suppressions documented. | Builds fail or suppressions lack rationale. | None. | Spec.
-| FR-013-07 | PMD 7 upgrade + rule hardening (error-prone/best-practice/design, Law-of-Demeter with whitelist, NonSerializableClass, NonExhaustiveSwitch) captured with remediation plan and commands. | `config/pmd/ruleset.xml` + whitelist committed; `pmdMain pmdTest` run green; plan references whitelist entries. | `./gradlew pmdMain pmdTest`. | PMD fails or documentation missing. | Optional `quality.pmd.run` logs if enabled. | Spec.
-| FR-013-08 | Gradle wrapper upgraded to 9.1.0 with plugin bumps (e.g., PIT 1.19.0-rc.2); warning-mode sweeps before/after upgrade documented; configuration cache validated. | `gradle/wrapper/gradle-wrapper.properties` pin 9.1; `./gradlew --warning-mode=all clean check` passes; `./gradlew --configuration-cache help` stored in logs. | Wrapper diff + commands recorded in `_current-session.md`. | Build fails or warnings unresolved. | None. | Spec.
+| FR-013-06 | SpotBugs dead-state detectors (`URF_*`, `UUF_*`, `UWF_*`, `NP_UNWRITTEN_*`) enforced via shared include filter; violations remediated or justified. | [config/spotbugs/dead-state-include.xml](config/spotbugs/dead-state-include.xml) referenced by all SpotBugs tasks; `./gradlew spotbugsMain spotbugsTest` red→green history recorded. | SpotBugs logs show zero dead-state findings; suppressions documented. | Builds fail or suppressions lack rationale. | None. | Spec.
+| FR-013-07 | PMD 7 upgrade + rule hardening (error-prone/best-practice/design, Law-of-Demeter with whitelist, NonSerializableClass, NonExhaustiveSwitch) captured with remediation plan and commands. | [config/pmd/ruleset.xml](config/pmd/ruleset.xml) + whitelist committed; `pmdMain pmdTest` run green; plan references whitelist entries. | `./gradlew pmdMain pmdTest`. | PMD fails or documentation missing. | Optional `quality.pmd.run` logs if enabled. | Spec.
+| FR-013-08 | Gradle wrapper upgraded to 9.1.0 with plugin bumps (e.g., PIT 1.19.0-rc.2); warning-mode sweeps before/after upgrade documented; configuration cache validated. | [gradle/wrapper/gradle-wrapper.properties](gradle/wrapper/gradle-wrapper.properties) pin 9.1; `./gradlew --warning-mode=all clean check` passes; `./gradlew --configuration-cache help` stored in logs. | Wrapper diff + commands recorded in `_current-session.md`. | Build fails or warnings unresolved. | None. | Spec.
 | FR-013-09 | Legacy CLI/JS entry points (legacy telemetry fallbacks, router shims, old presets) removed; docs/tests reference canonical adapters/routes only. | CLI/REST/UI telemetry uses `TelemetryContracts`; router state keys canonical; docs highlight change. | `rg "legacyEmit"` returns none; Selenium/REST tests confirm canonical routing. | Old entry points linger, causing drift. | Telemetry unaffected (only canonical). | Spec.
-| FR-013-10 | Roadmap, knowledge map, session log (docs/_current-session.md), and `_current-session.md` capture every toolchain change plus the commands executed (`qualityGate`, `spotbugsMain`, `pmdMain pmdTest`, `gradlew wrapper`, CLI tests). | Logs updated per increment; tasks reference command list. | Manual review before closing tasks. | Auditors cannot trace toolchain updates. | None. | Spec.
+| FR-013-10 | Roadmap, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), and `_current-session.md` capture every toolchain change plus the commands executed (`qualityGate`, `spotbugsMain`, `pmdMain pmdTest`, `gradlew wrapper`, CLI tests). | Logs updated per increment; tasks reference command list. | Manual review before closing tasks. | Auditors cannot trace toolchain updates. | None. | Spec.
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -108,7 +109,7 @@ quality gates, verification commands, and governance rules that keep the simulat
 | S-013-05 | SpotBugs + PMD detectors configured, running, and documented with remediation guidance. |
 | S-013-06 | Gradle wrapper/plugin upgrades validated with warning-mode sweeps + configuration cache checks. |
 | S-013-07 | Legacy entry points removed; telemetry/router states rely on canonical adapters only. |
-| S-013-08 | Roadmap/knowledge map/session log (docs/_current-session.md)/session logs capture commands + follow-ups for every toolchain change. |
+| S-013-08 | Roadmap/knowledge map/session log ([docs/_current-session.md](docs/_current-session.md))/session logs capture commands + follow-ups for every toolchain change. |
 
 ## Test Strategy
 - **CLI Tooling:** `./gradlew --no-daemon :cli:test --tests "*OcraCliLauncherTest"` and Maintenance CLI forked JVM tests;
@@ -158,16 +159,16 @@ quality gates, verification commands, and governance rules that keep the simulat
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-013-01 | `config/spotbugs/dead-state-include.xml` | Defines include/exclude filters referenced by SpotBugs runs.
-| FX-013-02 | `config/pmd/ruleset.xml` + `config/pmd/law-of-demeter-excludes.txt` | Law-of-Demeter + unused-field/method PMD rules.
-| FX-013-03 | `docs/4-architecture/features/013/plan.md` | Hotspot tables, command lists, and wrapper/pit notes referenced in docs.
-| FX-013-04 | `gradle/wrapper/gradle-wrapper.properties`, `gradle/libs.versions.toml` | Gradle 9/ plugin version state captured for verification.
+| FX-013-01 | [config/spotbugs/dead-state-include.xml](config/spotbugs/dead-state-include.xml) | Defines include/exclude filters referenced by SpotBugs runs.
+| FX-013-02 | [config/pmd/ruleset.xml](config/pmd/ruleset.xml) + `config/pmd/law-of-demeter-excludes.txt` | Law-of-Demeter + unused-field/method PMD rules.
+| FX-013-03 | [docs/4-architecture/features/013/plan.md](docs/4-architecture/features/013/plan.md) | Hotspot tables, command lists, and wrapper/pit notes referenced in docs.
+| FX-013-04 | [gradle/wrapper/gradle-wrapper.properties](gradle/wrapper/gradle-wrapper.properties), [gradle/libs.versions.toml](gradle/libs.versions.toml) | Gradle 9/ plugin version state captured for verification.
 
 ### UI States
 | ID | State | Trigger / Expected outcome |
 |----|-------|---------------------------|
 | UI-013-01 | Toolchain dashboard view | Quality gate, SpotBugs, PMD, reflection metrics rendered for reviewers; triggered via documentation/perf review sessions.
-| UI-013-02 | Gradle wrapper upgrade modal | Displays plugin change log + verification commands when `/tools/gradle/wrapper` is invoked or docs request regeneration.
+| UI-013-02 | Gradle wrapper upgrade modal | Displays plugin change log + verification commands when /tools/gradle/wrapper is invoked or docs request regeneration.
 
 ## Telemetry & Observability
 
@@ -178,15 +179,15 @@ Toolchain telemetry flows through `TelemetryContracts` adapters so CLI/REST/UI d
 - `telemetry.toolchain.wrapperUpgrade` logs `gradleVersion`, `pluginVersions`, `warningFlags`, and `result` when wrapper regeneration or `--warning-mode=all clean check` sweeps run.
 
 ## Documentation Deliverables
-- Update roadmap/knowledge map/session log (docs/_current-session.md) with toolchain status, wrapper upgrades, and verification commands.
-- Ensure AGENTS.md references reflection policy, sealed hierarchies, SpotBugs/PMD expectations, and CLI/Gradle command lists.
+- Update roadmap/knowledge map/session log ([docs/_current-session.md](docs/_current-session.md)) with toolchain status, wrapper upgrades, and verification commands.
+- Ensure [AGENTS.md](AGENTS.md) references reflection policy, sealed hierarchies, SpotBugs/PMD expectations, and CLI/Gradle command lists.
 - Maintain hotspot reports, whitelist files, and wrapper/plugin version notes inside plan/tasks for future auditors.
 
 ## Fixtures & Sample Data
-- `config/spotbugs/dead-state-include.xml` defines include/exclude filters referenced by SpotBugs runs.
-- `config/pmd/ruleset.xml` plus `config/pmd/law-of-demeter-excludes.txt` capture the PMD rule set and exceptions used by CI.
-- `docs/4-architecture/features/013/plan.md` hosts hotspot tables, command lists, and wrapper/PIT notes referenced by the documentation.
-- `gradle/wrapper/gradle-wrapper.properties` and `gradle/libs.versions.toml` document Gradle/ plugin versions for upgrade tracking.
+- [config/spotbugs/dead-state-include.xml](config/spotbugs/dead-state-include.xml) defines include/exclude filters referenced by SpotBugs runs.
+- [config/pmd/ruleset.xml](config/pmd/ruleset.xml) plus `config/pmd/law-of-demeter-excludes.txt` capture the PMD rule set and exceptions used by CI.
+- [docs/4-architecture/features/013/plan.md](docs/4-architecture/features/013/plan.md) hosts hotspot tables, command lists, and wrapper/PIT notes referenced by the documentation.
+- [gradle/wrapper/gradle-wrapper.properties](gradle/wrapper/gradle-wrapper.properties) and [gradle/libs.versions.toml](gradle/libs.versions.toml) document Gradle/ plugin versions for upgrade tracking.
 
 ## Spec DSL
 ```

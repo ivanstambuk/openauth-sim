@@ -5,7 +5,7 @@ This guide is for operators who manage the simulator from the command line. It c
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it per the project constitution).
 - Repository cloned locally with Gradle available.
-- Ensure the default MapDB database path (`data/credentials.db`) is writable. Override with `--database` when needed; rename legacy filenames (for example `data/ocra-credentials.db`) or pass them explicitly because automatic detection has been removed.
+- Ensure the default MapDB database path ([data/credentials.db](data/credentials.db)) is writable. Override with `--database` when needed; rename legacy filenames (for example data/ocra-credentials.db) or pass them explicitly because automatic detection has been removed.
 
 Warm up the CLI module once so dependencies compile:
 ```bash
@@ -27,9 +27,9 @@ Invoke commands via the Gradle helper:
 ```bash
 ./gradlew :cli:runOcraCli --args="[--database <path>] <command> [options]"
 ```
-If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to `data/credentials.db` (shared with REST/UI facades). Provide an explicit `--database` when you need to retain a legacy file name.
+If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to [data/credentials.db](data/credentials.db) (shared with REST/UI facades). Provide an explicit `--database` when you need to retain a legacy file name.
 
-All commands emit structured telemetry lines (see `docs/3-reference/cli-ocra-telemetry-snapshot.md`) with `sanitized=true`.
+All commands emit structured telemetry lines (see [docs/3-reference/cli-ocra-telemetry-snapshot.md](docs/3-reference/cli-ocra-telemetry-snapshot.md)) with `sanitized=true`.
 
 ## 1. Import a Credential Descriptor
 Seed the database with a reusable credential:
@@ -93,7 +93,7 @@ Supply the suite and secret directly when no stored credential exists.
 Inline verification shares exit codes with the stored path.
 
 ### 4.3 Audit interpretation
-Every run emits `event=cli.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) so you can correlate findings without exposing secrets. Example lines live in `docs/3-reference/cli-ocra-telemetry-snapshot.md`. Capture the `telemetryId`, `credentialSource`, and `reasonCode` fields when recording audits—`match` confirms the OTP is legitimate, `strict_mismatch` proves an exact replay failed, and `validation_failure` means the operator-provided context was incomplete.
+Every run emits `event=cli.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) so you can correlate findings without exposing secrets. Example lines live in [docs/3-reference/cli-ocra-telemetry-snapshot.md](docs/3-reference/cli-ocra-telemetry-snapshot.md). Capture the `telemetryId`, `credentialSource`, and `reasonCode` fields when recording audits—`match` confirms the OTP is legitimate, `strict_mismatch` proves an exact replay failed, and `validation_failure` means the operator-provided context was incomplete.
 
 ### 4.4 Failure scenarios
 - Supply the wrong OTP to rehearse incident handling. The command exits with status `2` and prints `reasonCode=strict_mismatch`.

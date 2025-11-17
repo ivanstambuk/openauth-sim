@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 009 (`docs/4-architecture/features/009/spec.md`), Feature 010 (`docs/4-architecture/features/010/spec.md`)
+- **Related features/specs:** Feature 009 ([docs/4-architecture/features/009/spec.md](docs/4-architecture/features/009/spec.md)), Feature 010 ([docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md))
 - **Related open questions:** (none currently)
 
 ## Context
@@ -11,7 +11,7 @@ The OpenAuth Simulator exposes multi-protocol operator flows (HOTP, TOTP, OCRA, 
 EUDIW wallets). Historically, operator UIs evolved per protocol, leading to inconsistent tab structures, deep links,
 preset labels, verbose trace handling, and JavaScript testing approaches.
 
-Feature 009 consolidates the operator console at `/ui/console` and describes a shared layout: deterministic tab order,
+Feature 009 consolidates the operator console at /ui/console and describes a shared layout: deterministic tab order,
 canonical entry point, query-parameter-based routing, a Protocol Info drawer, harmonised preset labels, Base32/hex helpers,
 preview windows, and a modular JS harness. These decisions are architectural and span multiple protocols and modules
 (`rest-api`, `application`, `cli`, docs), so they require a dedicated ADR.
@@ -20,7 +20,7 @@ preview windows, and a modular JS harness. These decisions are architectural and
 
 Adopt a unified operator console and shared UI contracts as follows:
 - Console entry and routing:
-  - `/ui/console` is the single operator-console entry point for HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, and future EUDIW
+  - /ui/console is the single operator-console entry point for HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, and future EUDIW
     protocols; legacy `/ui/ocra/*` views redirect or return 404 to avoid drift.
   - Tab order is fixed to: HOTP → TOTP → OCRA → FIDO2/WebAuthn → EMV/CAP → EUDIW OpenID4VP → EUDIW ISO/IEC 18013-5 → EUDIW
     SIOPv2, with placeholder panels kept until each protocol ships.
@@ -53,8 +53,7 @@ architectural reasoning and cross-module impact.
 - Legacy `/ui/ocra/*` routes are phased out or redirected, reducing maintenance overhead and UX drift.
 
 ### Negative
-- Changes to console layout, tab order, or shared helpers now require coordinated updates to templates, JS harness, tests,
-  and this ADR.
+- Changes to console layout, tab order, or shared helpers now require coordinated updates to templates, JS harness, tests, and this ADR.
 - Placeholder panels must be maintained for not-yet-implemented protocols, which can introduce extra bookkeeping.
 
 ## Alternatives Considered
@@ -62,10 +61,10 @@ architectural reasoning and cross-module impact.
 - **A – Per-protocol consoles**
   - Pros: Maximum flexibility for each protocol; easier to prototype in isolation.
   - Cons: Leads to divergent UX, inconsistent deep links, and duplicated JavaScript/testing infrastructure.
-- **B – Multiple console entry points (e.g., `/ui/ocra`, `/ui/fido2`)**
+- **B – Multiple console entry points (e.g., /ui/ocra, /ui/fido2)**
   - Pros: Keep existing URLs; can gradually migrate protocols.
   - Cons: Encourages drift and makes it harder to know which entry point is canonical; complicates documentation.
-- **C – Unified console at `/ui/console` with shared contracts (chosen)**
+- **C – Unified console at /ui/console with shared contracts (chosen)**
   - Pros: Centralises UX decisions; keeps specs, docs, and tests focused on one shell; easier to apply cross-cutting changes.
 
 ## Security / Privacy Impact
@@ -77,14 +76,14 @@ architectural reasoning and cross-module impact.
 ## Operational Impact
 
 - Operators and maintainers must:
-  - Treat `/ui/console` as the single operator entry point when documenting or testing flows.
+  - Treat /ui/console as the single operator entry point when documenting or testing flows.
   - Use the shared UI patterns (Info drawer, presets, validation helper, trace tiers, Base32 helpers, preview tables) when
     extending the console or authoring documentation.
   - Keep Selenium, Node, and JVM integration tests aligned with the contracts defined in Feature 009 and this ADR.
 
 ## Links
 
-- Related spec sections: `docs/4-architecture/features/009/spec.md#overview`, `#functional-requirements`,
+- Related spec sections: `[docs/4-architecture/features/009/spec.md](docs/4-architecture/features/009/spec.md)#overview`, `#functional-requirements`,
   `#ui--interaction-mock-ups`, `#telemetry--observability`
 - Related ADRs: ADR-0004 (Documentation & Aggregated Quality Gate Workflow)
 - Related issues / PRs: (to be linked from future console/UI updates)

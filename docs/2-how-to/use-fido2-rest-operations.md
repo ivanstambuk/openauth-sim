@@ -32,7 +32,7 @@ Endpoints are now available at `http://localhost:8080`. The OpenAPI contract liv
 - YAML: `http://localhost:8080/v3/api-docs.yaml`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
-Snapshot copies are stored under `docs/3-reference/rest-openapi.json` and `.yaml`. Regenerate them after API changes with:
+Snapshot copies are stored under [docs/3-reference/rest-openapi.json](docs/3-reference/rest-openapi.json) and `.yaml`. Regenerate them after API changes with:
 ```bash
 OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest
 ```
@@ -66,7 +66,7 @@ The action is idempotent—subsequent calls report `addedCount: 0` once every cu
 | `packed-es384` | ES384 | W3C §16 `packed` fixture with compact P-384 JWK private key |
 | `packed-es512` | ES512 | W3C §16 `packed` fixture with compact P-521 JWK private key |
 | `packed-rs256` | RS256 | W3C §16 `packed` fixture with deterministic RSA-2048 key material |
-| `synthetic-ps256-uv0_up1` | PS256 | Synthetic JSON vector seeded from `docs/webauthn_assertion_vectors.json` (spec omits private key) |
+| `synthetic-ps256-uv0_up1` | PS256 | Synthetic JSON vector seeded from [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json) (spec omits private key) |
 | `packed-ed25519` | Ed25519 | W3C §16 `packed` fixture with Ed25519 JWK private key |
 
 The CLI, REST, and operator console all rely on this catalogue, so preset behaviour stays consistent across facades.
@@ -238,6 +238,6 @@ Stored mode rejects inline trust anchors—persisted credentials already include
 - Replay requests emit `event=rest.fido2.replay` and surface `match`, `credentialSource`, and `reason` fields (`mismatch`, `signature_invalid`, etc.).
 - Attestation replays emit `event=rest.fido2.attestReplay`; expect `inputSource`, `storedCredentialId` (for stored mode), anchor hints (`anchorProvided`, `anchorTrusted`, `anchorSource`), and the outcome reason (`match`, `stored_attestation_required`, ...). Enable the verbose flag when you need the full trace.
 - HTTP 422 responses always include a `telemetryId` for correlation plus a `reasonCode` such as `credential_not_found`, `origin_mismatch`, `signature_counter_regressed`, or `invalid_payload`. HTTP 500 responses strip secret material and default to `reasonCode=webauthn_evaluation_failed` / `webauthn_replay_failed`.
-- Need fresh payloads? Call `/api/v1/webauthn/credentials/{credentialId}/sample` after seeding (swap `{credentialId}` with any generator preset key), or read from `docs/webauthn_assertion_vectors.json` if you want inline-only vectors that are not part of the curated seed set.
+- Need fresh payloads? Call `/api/v1/webauthn/credentials/{credentialId}/sample` after seeding (swap `{credentialId}` with any generator preset key), or read from [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json) if you want inline-only vectors that are not part of the curated seed set.
 
 Tie this REST workflow with the CLI (`use-fido2-cli-operations.md`) and operator UI (`use-fido2-operator-ui.md`) guides to reproduce the same vectors across every facade.

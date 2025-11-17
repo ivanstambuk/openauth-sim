@@ -1,0 +1,128 @@
+{
+  "@context": "https://schema.org",
+  "entities": [
+    {
+      "id": "openauth-simulator",
+      "data": {
+        "@type": "SoftwareApplication",
+        "name": "OpenAuth Simulator",
+        "applicationCategory": "SecurityApplication",
+        "operatingSystem": "Linux · macOS · Windows",
+        "description": "Deterministic HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP simulators with CLI, REST, UI, Native Java, and MCP facades for IAM testing.",
+        "url": "https://github.com/ivanstambuk/openauth-sim",
+        "softwareVersion": "0.1.0-SNAPSHOT",
+        "license": "https://github.com/ivanstambuk/openauth-sim/blob/main/LICENSE"
+      }
+    },
+    {
+      "id": "hotp-from-java",
+      "data": {
+        "@type": "HowTo",
+        "name": "Use HOTP from Java",
+        "description": "Step-by-step HOTP evaluation via the Native Java facade (HotpEvaluationApplicationService) with stored presets and inline inputs.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-hotp-from-java.md",
+        "maintainer": "https://github.com/ivanstambuk"
+      }
+    },
+    {
+      "id": "totp-from-java",
+      "data": {
+        "@type": "HowTo",
+        "name": "Use TOTP from Java",
+        "description": "RFC 6238-compliant TOTP evaluation instructions covering stored credentials, inline execution, and validation window tuning.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-totp-from-java.md"
+      }
+    },
+    {
+      "id": "ocra-from-java",
+      "data": {
+        "@type": "HowTo",
+        "name": "Use OCRA from Java",
+        "description": "Guidance for exercising deterministic OCRA challenges and responses from in-process Java tests and tools.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-ocra-from-java.md"
+      }
+    },
+    {
+      "id": "emv-cap-from-java",
+      "data": {
+        "@type": "HowTo",
+        "name": "Use EMV/CAP from Java",
+        "description": "Demonstrates Identify, Respond, and Sign flows through EmvCapEvaluationApplicationService with fixture-backed traces.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-emv-cap-from-java.md"
+      }
+    },
+    {
+      "id": "fido2-from-java",
+      "data": {
+        "@type": "HowTo",
+        "name": "Use FIDO2/WebAuthn from Java",
+        "description": "Explains how to evaluate WebAuthn assertions via WebAuthnEvaluationApplicationService with deterministic fixtures.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-fido2-from-java.md"
+      }
+    },
+    {
+      "id": "eudiw-openid4vp-from-java",
+      "data": {
+        "@type": "HowTo",
+        "name": "Use EUDIW OpenID4VP from Java",
+        "description": "Covers wallet simulation and validation helpers for HAIP-aligned OpenID4VP flows.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-eudiw-from-java.md"
+      }
+    },
+    {
+      "id": "readme-llm",
+      "data": {
+        "@type": "TechArticle",
+        "name": "ReadMe.LLM",
+        "description": "LLM-oriented overview describing Native Java seams, canonical entry points, and context-packing guidance.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/ReadMe.LLM"
+      }
+    },
+    {
+      "id": "llms-manifest",
+      "data": {
+        "@type": "TechArticle",
+        "name": "llms.txt",
+        "description": "Manifest of high-signal simulator specs and docs for LLM context windows.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/llms.txt"
+      }
+    },
+    {
+      "id": "mcp-proxy",
+      "data": {
+        "@type": "SoftwareApplication",
+        "name": "OpenAuth Simulator MCP Proxy",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux · macOS · Windows",
+        "description": "REST-backed Model Context Protocol proxy exposing simulator tools (hotp/totp/ocra/emv/fido2/eudiw) for agent workflows.",
+        "url": "https://github.com/ivanstambuk/openauth-sim/tree/main/tools/mcp-server"
+      }
+    }
+  ],
+  "snippets": [
+    {
+      "id": "readme",
+      "name": "README snippet",
+      "entityRefs": [
+        "openauth-simulator",
+        "mcp-proxy",
+        "hotp-from-java",
+        "totp-from-java",
+        "ocra-from-java",
+        "emv-cap-from-java",
+        "fido2-from-java",
+        "eudiw-openid4vp-from-java"
+      ]
+    },
+    {
+      "id": "readme-llm",
+      "name": "ReadMe.LLM snippet",
+      "entityRefs": [
+        "openauth-simulator",
+        "readme-llm",
+        "llms-manifest",
+        "mcp-proxy"
+      ]
+    }
+  ]
+}

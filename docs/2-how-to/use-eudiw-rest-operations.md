@@ -6,8 +6,8 @@ _Last updated: 2025-11-08_
 The Feature 040 REST endpoints expose the same request, wallet, validation, and (future) ingestion flows as the CLI/UI. All routes live under `/api/v1/eudiw/openid4vp` and emit sanitized telemetry (`oid4vp.request.created`, `oid4vp.wallet.responded`, `oid4vp.response.*`, `oid4vp.fixtures.ingested`). This guide walks through each endpoint with fixture-backed examples.
 
 ## Prerequisites
-- Start the REST application: `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`.
-- Ensure `docs/test-vectors/eudiw/openid4vp/` is intact; it provides the `pid-haip-baseline` preset used below.
+- Start the REST application: `./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`.
+- Ensure ``docs/test-vectors/eudiw/openid4vp`/` is intact; it provides the `pid-haip-baseline` preset used below.
 - Optional: run `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` to view the current schema (`docs/3-reference/rest-openapi.(json|yaml)`).
 - `jq` (optional) for formatting responses.
 
@@ -120,7 +120,7 @@ curl -s -H "Content-Type: application/json" \
 Validation failures raise RFC 7807 problem details (for example `invalid_scope` when the Trusted Authority filter is unmet). The response still includes sanitized telemetry in the `details` object.
 
 ## 4. Seed presentations (`POST /presentations/seed`)
-`/presentations/seed` now drives `OpenId4VpFixtureIngestionService`, so every call returns the fixture summaries plus the provenance pulled from `docs/trust/snapshots/<timestamp>/`.
+`/presentations/seed` now drives `OpenId4VpFixtureIngestionService`, so every call returns the fixture summaries plus the provenance pulled from ``docs/trust/snapshots`/<timestamp>/`.
 ```bash
 curl -s -H "Content-Type: application/json" \
   http://localhost:8080/api/v1/eudiw/openid4vp/presentations/seed \
@@ -188,4 +188,4 @@ Notes:
 - Trusted Authority mismatches return `invalid_scope` with a `violations[]` array describing which policy failed. Inspect the response trace (via `?verbose=true`) to confirm which policies were evaluated.
 - Baseline mode bypasses HAIP encryption. Use HAIP mode to exercise the `direct_post.jwt` encryption path (`DirectPostJwtEncryptionService`) and collect latency metrics via `telemetry.fields.durationMs`.
 
-See `docs/2-how-to/use-eudiw-cli-operations.md` and `docs/2-how-to/use-eudiw-operator-ui.md` for companion workflows.
+See [docs/2-how-to/use-eudiw-cli-operations.md](docs/2-how-to/use-eudiw-cli-operations.md) and [docs/2-how-to/use-eudiw-operator-ui.md](docs/2-how-to/use-eudiw-operator-ui.md) for companion workflows.

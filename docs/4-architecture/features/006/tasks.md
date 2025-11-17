@@ -138,7 +138,7 @@ _Last updated:_ 2025-11-13
 - [x] T-006-19 – Deep-link & flag consolidation (FR-040-31/FR-040-32, S-040-01, S-040-03).
   _Intent:_ Treat `protocol=eudiw` as the canonical alias, hydrate `tab`/`mode` on load, sync history/back-forward, and consolidate verbose trace builders across REST/CLI/UI.
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/eudi/openid4vp/console.test.js`
+  - `node --test [rest-api/src/test/javascript/eudi/openid4vp/console.test.js](rest-api/src/test/javascript/eudi/openid4vp/console.test.js)`
   - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.eudi.openid4vp.Oid4vpRestContractTest"`
@@ -171,9 +171,9 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :core:test --tests "*FixtureDatasets*"`
   - `./gradlew --no-daemon :application:test --tests "*OpenId4VpFixtureIngestionServiceTest*"`
   - `./gradlew --no-daemon :rest-api:test --tests "*Oid4vpRestContractTest*"`
-  - `node --test rest-api/src/test/javascript/eudi/openid4vp/console.test.js`
+  - `node --test [rest-api/src/test/javascript/eudi/openid4vp/console.test.js](rest-api/src/test/javascript/eudi/openid4vp/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`
-  _Notes:_ Captured EU LOTL seq 373 (DE 149, SI 78) snapshots under `docs/trust/snapshots/2025-11-15/`, updated fixture provenance/trust snapshots/DCQL presets/stored presentations, wired `presentations/seed` through `OpenId4VpFixtureIngestionService`, refreshed how-to + telemetry snapshot, and reran the Gradle/Node/Selenium suites above (spotless/quality gate to follow during drift gate).
+  _Notes:_ Captured EU LOTL seq 373 (DE 149, SI 78) snapshots under ``docs/trust/snapshots/2025-11-15`/`, updated fixture provenance/trust snapshots/DCQL presets/stored presentations, wired `presentations/seed` through `OpenId4VpFixtureIngestionService`, refreshed how-to + telemetry snapshot, and reran the Gradle/Node/Selenium suites above (spotless/quality gate to follow during drift gate).
 
 ## Verification Log (Optional)
 - 2025-11-08 – `./gradlew --no-daemon :application:test :cli:test :core:test :rest-api:test :ui:test`  
@@ -186,9 +186,9 @@ _Last updated:_ 2025-11-13
 - [ ] T-006-27 – Reinstate JaCoCo branch threshold ≥0.70 after new coverage lands (temporary drop to 0.60 on 2025-11-06).
 - [x] T-006-28 – Design EUDIW Native Java API seam (FR-014-01/02, S-014-02) by identifying application-level entry points for authorization, wallet simulation, and validation flows that follow Feature 014/ADR-0007.  
   _Intent:_ Designate `OpenId4VpWalletSimulationService` and `OpenId4VpValidationService` as the Native Java API seams for wallet simulation and validation, document them in the Feature 006 Interface & Contract catalogue, and link them explicitly to Feature 014 and ADR-0007.  
-- [x] T-006-29 – Author `docs/2-how-to/use-eudiw-from-java.md` and supporting tests (FR-014-03/04, S-014-01/02), treating the chosen entry points as façade seams.  
+- [x] T-006-29 – Author [docs/2-how-to/use-eudiw-from-java.md](docs/2-how-to/use-eudiw-from-java.md) and supporting tests (FR-014-03/04, S-014-01/02), treating the chosen entry points as façade seams.  
   _Intent:_ Provide a Native Java how-to guide for EUDIW OpenID4VP that mirrors the REST/CLI/operator UI flows, references fixture presets (`pid-haip-baseline`, `pid-mdoc`) and Trusted Authority policies, and treats the wallet/validation services as façade seams governed by Feature 014/ADR-0007.  
   _Verification commands:_  
   - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.eudi.openid4vp.OpenId4VpNativeJavaApiUsageTest"`  
   - `./gradlew --no-daemon spotlessApply check`  
-  _Notes:_ 2025-11-15 – Refined `docs/2-how-to/use-eudiw-from-java.md` with fixture and TrustedAuthorityEvaluator examples, kept usage tests light (`OpenId4VpNativeJavaApiUsageTest`), and aligned references with Feature 006/014 and ADR-0007.
+  _Notes:_ 2025-11-15 – Refined [docs/2-how-to/use-eudiw-from-java.md](docs/2-how-to/use-eudiw-from-java.md) with fixture and TrustedAuthorityEvaluator examples, kept usage tests light (`OpenId4VpNativeJavaApiUsageTest`), and aligned references with Feature 006/014 and ADR-0007.

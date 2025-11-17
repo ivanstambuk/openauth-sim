@@ -1,7 +1,7 @@
 # Feature 012 – Core Cryptography & Persistence Plan
 
-_Linked specification:_ `docs/4-architecture/features/012/spec.md`  
-_Linked tasks:_ `docs/4-architecture/features/012/tasks.md`  
+_Linked specification:_ [docs/4-architecture/features/012/spec.md](docs/4-architecture/features/012/spec.md)  
+_Linked tasks:_ [docs/4-architecture/features/012/tasks.md](docs/4-architecture/features/012/tasks.md)  
 _Status:_ Complete  
 _Last updated:_ 2025-11-13  
 _Owners:_ Ivan (project owner)  
@@ -22,10 +22,10 @@ _Out of scope:_ Shipping new persistence code or changing credential-store behav
 ## Dependencies & Interfaces
 | Dependency | Notes |
 |------------|-------|
-| `docs/test-vectors/ocra/`, `data/credentials.db` | Fixtures referenced by cache tuning + maintenance docs. |
-| `docs/4-architecture/knowledge-map.md`, `docs/architecture-graph.json`, `docs/4-architecture/roadmap.md` | Must highlight Feature 012 ownership. |
+| `docs/test-vectors/ocra/`, [data/credentials.db](data/credentials.db) | Fixtures referenced by cache tuning + maintenance docs. |
+| [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md), [docs/architecture-graph.json](docs/architecture-graph.json), [docs/4-architecture/roadmap.md](docs/4-architecture/roadmap.md) | Must highlight Feature 012 ownership. |
 | `_current-session.md` | Receives log entries + command lists for each increment. |
-| `docs/2-how-to/configure-persistence-profiles.md` and related how-tos | Need updates referencing profiles, defaults, maintenance helpers, and manual migration steps. |
+| [docs/2-how-to/configure-persistence-profiles.md](docs/2-how-to/configure-persistence-profiles.md) and related how-tos | Need updates referencing profiles, defaults, maintenance helpers, and manual migration steps. |
 
 ## Assumptions & Risks
 - `./gradlew --no-daemon spotlessApply check` remains the lint gate for documentation.
@@ -40,15 +40,15 @@ _Out of scope:_ Shipping new persistence code or changing credential-store behav
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
-    - [ ] `docs/4-architecture/features/012/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
-    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 012.  
-    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+    - [ ] ``docs/4-architecture/features/012`/{spec,plan,tasks}.md` updated to the current date; all clarifications encoded in normative sections.  
+    - [ ] [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) has no `Open` entries for Feature 012.  
+    - [ ] The following commands have been run in this increment and logged in [docs/_current-session.md](docs/_current-session.md):  
       - `./gradlew --no-daemon :infra-persistence:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
       - `./gradlew --no-daemon :core:test --tests "*MapDbCredentialStoreTest*"` (or the equivalent once encryption tests move to `infra-persistence`).  
 
   - **Spec ↔ docs/implementation mapping**
     - [ ] For FR-012-01..08 and NFR-012-01..05, confirm:  
-      - Deployment profiles, cache tuning, and persistence defaults are described in `docs/2-how-to/configure-persistence-profiles.md` and match the actual configuration in `infra-persistence`/`application`.  
+      - Deployment profiles, cache tuning, and persistence defaults are described in [docs/2-how-to/configure-persistence-profiles.md](docs/2-how-to/configure-persistence-profiles.md) and match the actual configuration in `infra-persistence`/`application`.  
       - Telemetry contracts for persistence operations are documented and implemented via `TelemetryContracts`.  
       - Maintenance helpers/CLI flows (compact/verify, migrations) exist and match the how-to docs.  
       - Optional encryption guidance aligns with tests and any existing flags/configuration.  
@@ -61,13 +61,13 @@ _Out of scope:_ Shipping new persistence code or changing credential-store behav
 
   - **Drift capture & remediation**
     - [ ] Any high-/medium-impact drift (e.g., docs promising encryption/perf behaviour that code does not implement, missing maintenance commands, inconsistent defaults) is:  
-      - Logged as an `Open` entry in `docs/4-architecture/open-questions.md` for Feature 012.  
-      - Captured as explicit tasks in `docs/4-architecture/features/012/tasks.md`.  
+      - Logged as an `Open` entry in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) for Feature 012.  
+      - Captured as explicit tasks in [docs/4-architecture/features/012/tasks.md](docs/4-architecture/features/012/tasks.md).  
     - [ ] Low-impact drift (typos, wording tweaks, small example corrections) is fixed directly, with a brief note added in this section or the plan’s verification log.  
 
   - **Gate output**
     - [ ] This section is updated with the latest drift gate run date, key commands executed, and a concise “matches vs gaps” summary plus remediation notes.  
-    - [ ] `docs/_current-session.md` logs that the Feature 012 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
+    - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the Feature 012 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
 - **Scope review:** Spec/plan/tasks describe persistence profiles, telemetry contracts, maintenance helpers, optional encryption, unified `credentials.db` defaults, IDE remediation, and documentation logging without legacy references. Roadmap + knowledge map cite Feature 012 as the persistence authority (FR-012-01..08, NFR-012-01..05, S-012-01..08).
@@ -101,7 +101,7 @@ _Verification commands:_ `./gradlew --no-daemon :infra-persistence:test :applica
 | S-012-08 | Cross-cutting docs + session logs updated for persistence scope. | P3-I3/P3-I4 |
 
 ## Analysis Gate
-Run `docs/5-operations/analysis-gate-checklist.md` whenever persistence docs or automation scope changes land and record the execution in `_current-session.md`.
+Run [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) whenever persistence docs or automation scope changes land and record the execution in `_current-session.md`.
 
 - 2025-11-11 – Analysis gate rerun after updating roadmap/knowledge map/architecture graph/persistence how-to docs to cite Feature 012.
   - Spec/plan/tasks coverage confirmed; no open questions.

@@ -14,5 +14,5 @@ This aggregation task runs both `:core:javadoc` and `:application:javadoc`:
 - Core helpers and domain types: `core/build/docs/javadoc`.
 - Application-level Native Java facades and telemetry adapters: `application/build/docs/javadoc`.
 
-Publishing a trimmed index or curated HTML snapshots into `docs/3-reference/native-java-api/` remains
+Publishing a trimmed index or curated HTML snapshots into ``docs/3-reference/native-java-api`/` remains
 manual for now and will be wired into CI in a future increment.

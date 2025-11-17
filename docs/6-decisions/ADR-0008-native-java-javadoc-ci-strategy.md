@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 010 (`docs/4-architecture/features/010/spec.md`), Feature 014 (`docs/4-architecture/features/014/spec.md`)
+- **Related features/specs:** Feature 010 ([docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md)), Feature 014 ([docs/4-architecture/features/014/spec.md](docs/4-architecture/features/014/spec.md))
 - **Related open questions:** none (discussion resolved inline during Feature 010/014 implementation)
 
 ## Context
@@ -12,14 +12,13 @@ generate and validate Javadoc for the Native Java API seams. We introduced:
 
 - `:core:javadoc` – standard Javadoc for the `core` module.
 - `:application:javadoc` – standard Javadoc for the `application` module.
-- `:application:nativeJavaApiJavadoc` – an aggregation task that depends on `:core:javadoc` and `:application:javadoc`
-  and serves as the Native Java Javadoc entry point.
+- `:application:nativeJavaApiJavadoc` – an aggregation task that depends on `:core:javadoc` and `:application:javadoc` and serves as the Native Java Javadoc entry point.
 
 This aggregation task is now wired into the root Gradle `check` lifecycle:
 
 - `tasks.named("check") { dependsOn(architectureTest, jacocoCoverageVerification, ":application:nativeJavaApiJavadoc") }`
 - The managed quality gate (`qualityGate`) depends on `check`.
-- GitHub CI (`.github/workflows/ci.yml`) invokes `./gradlew --no-daemon qualityGate`.
+- GitHub CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) invokes `./gradlew --no-daemon qualityGate`.
 - The pre-commit hook runs `./gradlew --no-daemon spotlessApply check` as part of its pipeline.
 
 As a result, any Javadoc failures (e.g., broken `@link` references, malformed tags, doclint errors if enabled) already
@@ -72,8 +71,7 @@ will be scoped to publishing/hosting only, reusing the same underlying Gradle Ja
   generation, keeping the pipeline simpler and easier to maintain.
 - **Aligned with Maven publishing.** When we later configure `maven-publish`, the same Javadoc tasks can be used to
   build `-javadoc.jar` artifacts without special GitHub logic.
-- **Early error detection.** Because Javadoc now runs as part of `check`, broken `@link` references, malformed tags,
-  or doclint problems are caught both locally (pre-commit) and in GitHub CI builds.
+- **Early error detection.** Because Javadoc now runs as part of `check`, broken `@link` references, malformed tags, or doclint problems are caught both locally (pre-commit) and in GitHub CI builds.
 - **Public hygiene.** The Feature 014 policy + `core-architecture-tests` guard ensure public Javadoc never leaks internal
   Feature/FR/NFR/T identifiers, keeping published docs consumer-friendly while architecture artefacts retain full
   traceability.
@@ -142,10 +140,10 @@ will be scoped to publishing/hosting only, reusing the same underlying Gradle Ja
 ## Links
 
 - Related spec sections:
-  - Feature 010 – Documentation & Knowledge Automation (`docs/4-architecture/features/010/spec.md`)
-  - Feature 014 – Native Java API Facade (`docs/4-architecture/features/014/spec.md`)
+  - Feature 010 – Documentation & Knowledge Automation ([docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md))
+  - Feature 014 – Native Java API Facade ([docs/4-architecture/features/014/spec.md](docs/4-architecture/features/014/spec.md))
 - Related ADRs:
   - ADR-0004 – Documentation & Aggregated Quality Gate Workflow
   - ADR-0007 – Native Java API Facade Strategy
 - Related CI configuration:
-  - `.github/workflows/ci.yml` (`./gradlew --no-daemon qualityGate`)
+  - [.github/workflows/ci.yml](.github/workflows/ci.yml) (`./gradlew --no-daemon qualityGate`)

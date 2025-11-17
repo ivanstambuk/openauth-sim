@@ -16,7 +16,7 @@ Native Java usage for EUDIW OpenID4VP is governed by:
 - OpenAuth Simulator on your classpath (at minimum: `core`, `core-shared`, `core-ocra`, and
   `application`).
 - For realistic simulations, ensure the EUDIW OpenID4VP fixtures under
-  `docs/test-vectors/eudiw/openid4vp/` are available; they include presets such as
+  ``docs/test-vectors/eudiw/openid4vp`/` are available; they include presets such as
   `pid-haip-baseline` (SD-JWT VC PID) and `pid-mdoc` (ISO/IEC 18013-5 mdoc PID) that the REST/CLI
   and operator UI guides use in their examples.
 

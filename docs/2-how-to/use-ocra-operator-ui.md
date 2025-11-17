@@ -9,8 +9,8 @@ templates. It mirrors the REST contract so operators can swap between the UI, CL
 calls with consistent telemetry.
 
 ## Prerequisites
-- The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or run `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi` from the repo root).
-- Point both the REST app and CLI at the same credential database (default `data/credentials.db`). You can override this path via the `openauth.sim.persistence.database-path` property; rename legacy files like `data/ocra-credentials.db` or point the property directly at them before launching.
+- The `rest-api` Spring Boot application is running (launch the `RestApiApplication` class from your IDE or run `./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi` from the repo root).
+- Point both the REST app and CLI at the same credential database (default [data/credentials.db](data/credentials.db)). You can override this path via the `openauth.sim.persistence.database-path` property; rename legacy files like data/ocra-credentials.db or point the property directly at them before launching.
 - Your browser can reach the service host (default `http://localhost:8080`).
 - OCRA credentials already exist if you plan to use stored flows (evaluation presets or replay).
 
@@ -39,7 +39,7 @@ The mode toggle is keyboard-accessible and announces which section is visible. J
 ## Running Replays (Replay Mode)
 1. Click the **Replay** toggle inside the OCRA panel. The evaluation form hides while the replay fields become visible in-place.
 2. Replay mode exposes two subsections: **Stored credential replay** (default) and **Inline replay**. The radio buttons drive the same async wiring HtmlUnit exercises in the Selenium suite, so keyboard users receive focus and `aria-live` announcements when sections change.
-3. Successful replays trigger a telemetry POST to `/ui/console/replay/telemetry` with `origin=ui`, `mode`, outcome, sanitized fingerprint, and credential source so downstream observability matches the REST facade.
+3. Successful replays trigger a telemetry POST to /ui/console/replay/telemetry with `origin=ui`, `mode`, outcome, sanitized fingerprint, and credential source so downstream observability matches the REST facade.
 
 ### Stored Credential Replays
 - Pick a credential from the dropdown. The UI fetches the credential inventory from `/api/v1/ocra/credentials` and caches it for the active session.

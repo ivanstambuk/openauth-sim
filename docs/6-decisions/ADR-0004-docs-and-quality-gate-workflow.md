@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 010 (`docs/4-architecture/features/010/spec.md`), Feature 011 (`docs/4-architecture/features/011/spec.md`)
+- **Related features/specs:** Feature 010 ([docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md)), Feature 011 ([docs/4-architecture/features/011/spec.md](docs/4-architecture/features/011/spec.md))
 - **Related open questions:** (none currently)
 
 ## Context
@@ -22,8 +22,8 @@ surface. Feature 010 must provide a repeatable path for:
 
 Adopt Feature 010 as the authoritative owner of documentation and quality gate workflow for the OCRA stack:
 - Documentation workflow:
-  - Operator-facing guides live under `docs/2-how-to/` (`use-ocra-from-java`, `use-ocra-cli-operations`,
-    `use-ocra-rest-operations`) and are referenced from `README.md` and roadmap/knowledge map entries.
+  - Operator-facing guides live under ``docs/2-how-to`/` (`use-ocra-from-java`, `use-ocra-cli-operations`,
+    `use-ocra-rest-operations`) and are referenced from [README.md](README.md) and roadmap/knowledge map entries.
   - Documentation changes must be driven from the Feature 010 spec/plan/tasks and logged in `_current-session.md` with
     commands executed and deltas summarised.
   - Roadmap, knowledge map, architecture graph, session quick reference, and session logs remain synchronised with
@@ -82,7 +82,7 @@ quality gate workflow.
 
 ## Links
 
-- Related spec sections: `docs/4-architecture/features/010/spec.md#overview`, `#goals`, `#functional-requirements`,
+- Related spec sections: `[docs/4-architecture/features/010/spec.md](docs/4-architecture/features/010/spec.md)#overview`, `#goals`, `#functional-requirements`,
   `#documentation-deliverables`
 - Related ADRs: ADR-0002 (Governance Formatter and Managed Hooks), ADR-0003 (Governance Workflow and Drift Gates)
 - Related issues / PRs: (to be linked from future documentation/automation updates)

@@ -6,8 +6,8 @@ _Last updated: 2025-10-27_
 The operator console bundled with the REST API now includes a FIDO2/WebAuthn panel alongside the existing HOTP, TOTP, and OCRA tooling. This guide shows you how to seed demo credentials, generate WebAuthn assertions from stored or inline inputs, replay submissions without mutating counters, and interpret the sanitized telemetry that surfaces after each action.
 
 ## Prerequisites
-- Start the REST API locally (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`). The console lives at `http://localhost:8080/ui/console`.
-- Ensure the simulator can open its MapDB store (`data/credentials.db` by default). If you have not seeded any WebAuthn credentials, the UI provides a **Seed sample credential** button that pulls curated entries from `docs/webauthn_assertion_vectors.json`. Configure the REST property explicitly if you need to point at a legacy file such as `data/fido2-credentials.db`.
+- Start the REST API locally (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`). The console lives at `http://localhost:8080/ui/console`.
+- Ensure the simulator can open its MapDB store ([data/credentials.db](data/credentials.db) by default). If you have not seeded any WebAuthn credentials, the UI provides a **Seed sample credential** button that pulls curated entries from [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json). Configure the REST property explicitly if you need to point at a legacy file such as data/fido2-credentials.db.
 - Use a modern browser with JavaScript enabled. The panel relies on client-side scripts for preset loading, telemetry updates, and query-parameter deep links.
 
 ## Enable Verbose Tracing
@@ -67,4 +67,4 @@ Inline replay follows the same shape: switch the mode selector to **Inline**, lo
 ## Related Resources
 - [Use the FIDO2/WebAuthn CLI](use-fido2-cli-operations.md) for headless verification and replay workflows powered by the same JSON vectors.
 - [Operate the FIDO2/WebAuthn REST API](use-fido2-rest-operations.md) to script evaluations or consume the endpoints from automated test suites.
-- `docs/webauthn_assertion_vectors.json` for the canonical synthetic assertion data used across CLI, REST, and UI presets.
+- [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json) for the canonical synthetic assertion data used across CLI, REST, and UI presets.

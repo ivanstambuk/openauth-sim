@@ -5,11 +5,11 @@
 | Status | Draft |
 | Last updated | YYYY-MM-DD |
 | Owners | <Name(s)> |
-| Linked plan | `docs/4-architecture/features/<NNN>/plan.md` |
-| Linked tasks | `docs/4-architecture/features/<NNN>/tasks.md` |
+| Linked plan | ``docs/4-architecture/features`/<NNN>/plan.md` |
+| Linked tasks | ``docs/4-architecture/features`/<NNN>/tasks.md` |
 | Roadmap entry | #<workstream number> |
 
-> Guardrail: This specification is the single normative source of truth for the feature. Track high- and medium-impact questions in `docs/4-architecture/open-questions.md`, encode resolved answers directly in the Requirements/NFR/Behaviour/UI/Telemetry sections below (no per-feature `## Clarifications` sections), and use ADRs under `docs/6-decisions/` for architecturally significant clarifications (referencing their IDs from the relevant spec sections).
+> Guardrail: This specification is the single normative source of truth for the feature. Track high- and medium-impact questions in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md), encode resolved answers directly in the Requirements/NFR/Behaviour/UI/Telemetry sections below (no per-feature `## Clarifications` sections), and use ADRs under ``docs/6-decisions`/` for architecturally significant clarifications (referencing their IDs from the relevant spec sections).
 
 ## Overview
 Summarise the problem, affected modules (core/application/CLI/REST/UI), and the user impact in 2–3 sentences. Call out any constitutional constraints (spec-first, telemetry, persistence) that drive this work.
@@ -37,7 +37,7 @@ List quality, performance, security, accessibility, or governance expectations i
 | NFR-<NNN>-02 | … | … | … | … | … |
 
 ## UI / Interaction Mock-ups (required for UI-facing work)
-Embed ASCII sketches illustrating layouts or state changes. Reference the guideline in `docs/4-architecture/spec-guidelines/ui-ascii-mockups.md` when completing this section. Remove it if the feature has no UI impact.
+Embed ASCII sketches illustrating layouts or state changes. Reference the guideline in [docs/4-architecture/spec-guidelines/ui-ascii-mockups.md](docs/4-architecture/spec-guidelines/ui-ascii-mockups.md) when completing this section. Remove it if the feature has no UI impact.
 
 ```
 <ASCII mock-up>
@@ -99,7 +99,7 @@ Detail event names, required fields, redaction rules, and verbose-trace addition
 Enumerate roadmap/knowledge-map/how-to/ADR updates triggered by this feature.
 
 ## Fixtures & Sample Data
-List any fixture files that must be added or updated (e.g., docs/test-vectors/<protocol>/…).
+List any fixture files that must be added or updated (e.g., `docs/test-vectors`/<protocol>/…).
 
 ## Spec DSL
 Provide a machine-readable summary that mirrors the catalogue above so tooling can parse it. Use YAML/JSON-style keys and reuse the IDs already defined.

@@ -19,10 +19,10 @@ _Last updated:_ 2025-11-15
   _Notes:_ 2025-11-15 – Features 001, 002, 004, and 005 plans/tasks now include Native Java alignment notes and tasks (HOTP/TOTP/FIDO2/EMV/CAP seams + `*-from-java` guides), while Feature 006 tracks EUDIW Native Java API alignment as completed (T-006-28/29) with usage tests and `use-eudiw-from-java.md`; Feature 003’s spec/plan have been annotated to mark OCRA’s existing Native Java API as the reference pattern for Feature 014/ADR-0007.\  
 \  
 - [x] T-014-03 – Plan Javadoc and `*-from-java` alignment (FR-014-02/04).  
-  _Intent:_ Decide how Javadoc for Native Java entry points will be generated/published and how `docs/2-how-to/*-from-java.md` guides will stay aligned with those APIs.  
+  _Intent:_ Decide how Javadoc for Native Java entry points will be generated/published and how ``docs/2-how-to`/*-from-java.md` guides will stay aligned with those APIs.  
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`  
-  _Notes:_ 2025-11-15 – Updated the Feature 014 spec and plan to standardise on `:core:javadoc` and `:application:javadoc` for documentation, define a future aggregation task (for example, `:application:nativeJavaApiJavadoc`) owned by Feature 010 that exports a small Native Java API reference into `docs/3-reference/native-java-api/`, and clarified that `*-from-java` guides act as runbooks linking back to that reference rather than duplicating full API docs.
+  _Notes:_ 2025-11-15 – Updated the Feature 014 spec and plan to standardise on `:core:javadoc` and `:application:javadoc` for documentation, define a future aggregation task (for example, `:application:nativeJavaApiJavadoc`) owned by Feature 010 that exports a small Native Java API reference into ``docs/3-reference/native-java-api`/`, and clarified that `*-from-java` guides act as runbooks linking back to that reference rather than duplicating full API docs.
 
 ## Verification Log
 - 2025-11-15 – `./gradlew --no-daemon :application:nativeJavaApiJavadoc` and `./gradlew --no-daemon spotlessApply check` (Feature 014 Native Java + Javadoc drift gate: verified seams, guides, usage tests, and Javadoc CI wiring as captured in the plan’s Implementation Drift Gate section).

@@ -1,0 +1,60 @@
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "OpenAuth Simulator",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "Linux \u00b7 macOS \u00b7 Windows",
+            "description": "Deterministic HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP simulators with CLI, REST, UI, Native Java, and MCP facades for IAM testing.",
+            "url": "https://github.com/ivanstambuk/openauth-sim",
+            "softwareVersion": "0.1.0-SNAPSHOT",
+            "license": "https://github.com/ivanstambuk/openauth-sim/blob/main/LICENSE"
+        },
+        {
+            "@type": "SoftwareApplication",
+            "name": "OpenAuth Simulator MCP Proxy",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Linux \u00b7 macOS \u00b7 Windows",
+            "description": "REST-backed Model Context Protocol proxy exposing simulator tools (hotp/totp/ocra/emv/fido2/eudiw) for agent workflows.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/tree/main/tools/mcp-server"
+        },
+        {
+            "@type": "HowTo",
+            "name": "Use HOTP from Java",
+            "description": "Step-by-step HOTP evaluation via the Native Java facade (HotpEvaluationApplicationService) with stored presets and inline inputs.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-hotp-from-java.md",
+            "maintainer": "https://github.com/ivanstambuk"
+        },
+        {
+            "@type": "HowTo",
+            "name": "Use TOTP from Java",
+            "description": "RFC 6238-compliant TOTP evaluation instructions covering stored credentials, inline execution, and validation window tuning.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-totp-from-java.md"
+        },
+        {
+            "@type": "HowTo",
+            "name": "Use OCRA from Java",
+            "description": "Guidance for exercising deterministic OCRA challenges and responses from in-process Java tests and tools.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-ocra-from-java.md"
+        },
+        {
+            "@type": "HowTo",
+            "name": "Use EMV/CAP from Java",
+            "description": "Demonstrates Identify, Respond, and Sign flows through EmvCapEvaluationApplicationService with fixture-backed traces.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-emv-cap-from-java.md"
+        },
+        {
+            "@type": "HowTo",
+            "name": "Use FIDO2/WebAuthn from Java",
+            "description": "Explains how to evaluate WebAuthn assertions via WebAuthnEvaluationApplicationService with deterministic fixtures.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-fido2-from-java.md"
+        },
+        {
+            "@type": "HowTo",
+            "name": "Use EUDIW OpenID4VP from Java",
+            "description": "Covers wallet simulation and validation helpers for HAIP-aligned OpenID4VP flows.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/docs/2-how-to/use-eudiw-from-java.md"
+        }
+    ]
+}

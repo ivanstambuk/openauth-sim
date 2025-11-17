@@ -18,7 +18,7 @@ Upcoming tasks:
 
 ## Templates
 
-Use the shared templates under `docs/templates/` whenever you add or modify documentation artifacts:
+Use the shared templates under ``docs/templates`/` whenever you add or modify documentation artifacts:
 
 - `feature-spec-template.md` – canonical schema for feature specifications (metadata table, clarifications, requirements, mock-ups, test strategy).
 - `feature-plan-template.md` – increment planner with drift-gate notes, scope alignment, and ≤90-minute slices.
@@ -29,7 +29,7 @@ Use the shared templates under `docs/templates/` whenever you add or modify docu
 
 ## Feature Artifact Layout
 
-Every feature owns a dedicated directory under `docs/4-architecture/features/<NNN>/` (three-digit feature id). Each folder contains:
+Every feature owns a dedicated directory under ``docs/4-architecture/features`/<NNN>/` (three-digit feature id). Each folder contains:
 
 - `spec.md` – the authoritative specification.
 - `plan.md` – the implementation plan aligned with the roadmap slice.

@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/001/plan.md` |
-| Linked tasks | `docs/4-architecture/features/001/tasks.md` |
+| Linked plan | [docs/4-architecture/features/001/plan.md](docs/4-architecture/features/001/plan.md) |
+| Linked tasks | [docs/4-architecture/features/001/tasks.md](docs/4-architecture/features/001/tasks.md) |
 | Roadmap entry | #1 – HOTP Simulator & Tooling |
 
 ## Overview
@@ -33,7 +33,7 @@ core → application → CLI/REST → operator console; issuance remains out of 
 | FR-001-03 | Add CLI commands for HOTP import/list/evaluate with telemetry parity. | Picocli tests assert sanitized output, telemetry frames, exit codes. | Invalid inputs raise descriptive errors. | CLI command fails or telemetry missing. | `hotp.evaluate` CLI path. | Spec. |
 | FR-001-04 | Expose REST endpoints for HOTP evaluation (stored + inline) and replay, updating OpenAPI snapshots. | MockMvc/OpenAPI tests cover POST `/api/v1/hotp/evaluate` + `/replay`. | Stored replay leaves counters unchanged. | REST tests fail or counters mutate. | `hotp.evaluate`/`hotp.replay`. | Spec. |
 | FR-001-05 | Add operator UI HOTP stored/inline evaluation plus replay flows with telemetry parity. | Selenium tests run stored + inline flows, seeding control, replay UI. | Accessibility checks ensure keyboard focus + aria semantics. | UI missing flows or telemetry inconsistent. | relies on REST telemetry events. | Spec. |
-| FR-001-06 | Provide deterministic HOTP fixture catalogue (`docs/hotp_validation_vectors.json`) and shared loader consumed by core/CLI/REST/UI. | Loader feeds tests/presets; docs reference vector IDs. | Missing vector results cause failing tests/docs warnings. | CLI/REST/ UI fixtures inconsistent. | n/a | Spec. |
+| FR-001-06 | Provide deterministic HOTP fixture catalogue ([docs/hotp_validation_vectors.json](docs/hotp_validation_vectors.json)) and shared loader consumed by core/CLI/REST/UI. | Loader feeds tests/presets; docs reference vector IDs. | Missing vector results cause failing tests/docs warnings. | CLI/REST/ UI fixtures inconsistent. | n/a | Spec. |
 | FR-001-07 | Update documentation (how-to, roadmap, knowledge map) to reflect HOTP availability, seeding, replay, and telemetry. | Docs mention HOTP flows, seeding controls, fixture catalogue. | Spotless/doc lint passes. | Documentation gaps flagged during review. | n/a | Spec. |
 
 ## Non-Functional Requirements
@@ -96,7 +96,7 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 ### Native Java API
 | ID | Entry point | Description | Notes |
 |----|-------------|-------------|-------|
-| NJ-001-01 | `io.openauth.sim.application.hotp.HotpEvaluationApplicationService` | Application-level HOTP evaluation service used as the Native Java API seam for stored and inline requests. | Mirrors CLI/REST evaluation semantics; callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-hotp-from-java.md`. |
+| NJ-001-01 | `io.openauth.sim.application.hotp.HotpEvaluationApplicationService` | Application-level HOTP evaluation service used as the Native Java API seam for stored and inline requests. | Mirrors CLI/REST evaluation semantics; callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in [docs/2-how-to/use-hotp-from-java.md](docs/2-how-to/use-hotp-from-java.md). |
 
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
@@ -108,7 +108,7 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-001-01 | `docs/hotp_validation_vectors.json` | Canonical vectors for tests/presets. |
+| FX-001-01 | [docs/hotp_validation_vectors.json](docs/hotp_validation_vectors.json) | Canonical vectors for tests/presets. |
 | FX-001-02 | `core/src/test/resources/hotp/*.json` | Loader inputs for unit tests. |
 | FX-001-03 | `rest-api/src/test/resources/hotp/sample-requests/*.json` | REST test payloads. |
 
@@ -127,7 +127,7 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 
 ## Documentation Deliverables
 - Update operator/CLI/REST how-to guides with HOTP usage, seeding, replay.
-- Publish a Native Java how-to guide (`docs/2-how-to/use-hotp-from-java.md`) that treats `HotpEvaluationApplicationService` as the façade seam and references Feature 014/ADR-0007.
+- Publish a Native Java how-to guide ([docs/2-how-to/use-hotp-from-java.md](docs/2-how-to/use-hotp-from-java.md)) that treats `HotpEvaluationApplicationService` as the façade seam and references Feature 014/ADR-0007.
 - Refresh roadmap/knowledge map.
 
 ## Fixtures & Sample Data

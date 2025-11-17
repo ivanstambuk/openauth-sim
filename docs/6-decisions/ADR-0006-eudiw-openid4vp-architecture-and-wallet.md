@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 006 (`docs/4-architecture/features/006/spec.md`), Feature 007 (`docs/4-architecture/features/007/spec.md`), Feature 008 (`docs/4-architecture/features/008/spec.md`)
+- **Related features/specs:** Feature 006 ([docs/4-architecture/features/006/spec.md](docs/4-architecture/features/006/spec.md)), Feature 007 ([docs/4-architecture/features/007/spec.md](docs/4-architecture/features/007/spec.md)), Feature 008 ([docs/4-architecture/features/008/spec.md](docs/4-architecture/features/008/spec.md))
 - **Related open questions:** (none currently)
 
 ## Context
@@ -24,7 +24,7 @@ Adopt the following partitioning and shared-asset model for EUDIW/OpenID4VP:
   - Remains the source of truth for presentation validation rules and error semantics.
 - Feature 007 – Fixtures and Trusted Authorities:
   - Owns EUDIW test vectors, SD-JWT/mdoc fixtures, and Trusted Authority snapshots shared across verifier and wallet flows.
-  - Provides reusable fixture bundles under `docs/test-vectors/eudiw/**` and records provenance metadata.
+  - Provides reusable fixture bundles under ``docs/test-vectors/eudiw`/**` and records provenance metadata.
 - Feature 008 – Wallet simulator:
   - Owns the SIOPv2 wallet simulator for cross-device OpenID4VP flows, focusing on consent UX, presentation composition, and
     telemetry; implementation is placeholder as of 2025-11-15 but this feature remains the home for wallet requirements.
@@ -74,7 +74,7 @@ for historical reference; Feature 010 is now the canonical owner for documentati
 
 ## Links
 
-- Related spec sections: `docs/4-architecture/features/006/spec.md`, `docs/4-architecture/features/007/spec.md`,
-  `docs/4-architecture/features/008/spec.md#overview`, `#goals`
+- Related spec sections: [docs/4-architecture/features/006/spec.md](docs/4-architecture/features/006/spec.md), [docs/4-architecture/features/007/spec.md](docs/4-architecture/features/007/spec.md),
+  `[docs/4-architecture/features/008/spec.md](docs/4-architecture/features/008/spec.md)#overview`, `#goals`
 - Related ADRs: ADR-0004 (Documentation & Aggregated Quality Gate Workflow), ADR-0005 (Operator Console Layout and Shared UI Contracts)
 - Related issues / PRs: (to be linked from future EUDIW wallet/verifier updates)

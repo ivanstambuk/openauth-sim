@@ -6,7 +6,7 @@ This guide explains how to add the Protocol Info drawer/modal to a vanilla web a
 
 ## 1. Include the assets
 
-Copy or serve the assets from `rest-api/src/main/resources/static/ui/`:
+Copy or serve the assets from ``rest-api/src/main/resources/static/ui`/`:
 
 ```html
 <link rel="stylesheet" href="/ui/protocol-info.css" />
@@ -178,7 +178,7 @@ The controller watches `matchMedia('(prefers-reduced-motion: reduce)')` and skip
 
 ## 6. Demo and quick-start files
 
-Open `rest-api/src/main/resources/static/ui/protocol-info-demo.html` in a browser to exercise the component without running the Spring Boot application. The demo wires the embeddable assets, JSON payload, and host callback discussed above.
+Open [rest-api/src/main/resources/static/ui/protocol-info-demo.html](rest-api/src/main/resources/static/ui/protocol-info-demo.html) in a browser to exercise the component without running the Spring Boot application. The demo wires the embeddable assets, JSON payload, and host callback discussed above.
 
 ## 7. Integration checklist
 

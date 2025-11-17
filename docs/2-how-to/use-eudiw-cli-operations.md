@@ -99,4 +99,4 @@ The inline file must be a JSON object with `vp_token`, `presentation_submission`
 - `validate` enforces mutual exclusivity between `--preset` and `--vp-token`. Provide one or the other to avoid `Provide either --preset or --vp-token` errors.
 
 ## Looking ahead: fixture ingestion
-The ingestion primitives (FixtureDatasets + ingestion service) live in the application layer and emit `oid4vp.fixtures.ingested`. Once the CLI wiring lands, expect a `eudiw fixtures ingest --source <SYNTHETIC|CONFORMANCE>` command mirroring the REST endpoint. For now, updating `docs/test-vectors/eudiw/openid4vp/fixtures/*/` and restarting the REST app refreshes presets automatically.
+The ingestion primitives (FixtureDatasets + ingestion service) live in the application layer and emit `oid4vp.fixtures.ingested`. Once the CLI wiring lands, expect a `eudiw fixtures ingest --source <SYNTHETIC|CONFORMANCE>` command mirroring the REST endpoint. For now, updating ``docs/test-vectors/eudiw/openid4vp/fixtures`/*/` and restarting the REST app refreshes presets automatically.

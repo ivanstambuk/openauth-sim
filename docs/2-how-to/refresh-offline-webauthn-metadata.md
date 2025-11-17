@@ -4,22 +4,22 @@ _Status: Draft_
 _Last updated: 2025-10-17_
 
 The simulator ships a deterministic subset of the FIDO Metadata Service (MDS) under
-`docs/webauthn_attestation/mds/`. Each JSON file represents a catalogue bundle that can be
+``docs/webauthn_attestation/mds`/`. Each JSON file represents a catalogue bundle that can be
 refreshed or extended without contacting the live MDS service. This guide explains how to add new
 entries, validate them, and propagate the changes across the CLI, REST API, and operator console so
 trust anchors stay aligned.
 
 ## Directory Layout
 
-- `docs/webauthn_attestation/mds/` – Offline bundles split per use-case. `offline-sample.json`
+- ``docs/webauthn_attestation/mds`/` – Offline bundles split per use-case. `offline-sample.json`
   covers the W3C packed attestation vectors and their issuing certificates, while
   `curated-mds-v3.json` carries the hand-picked FIDO MDS v3 production entries (Ledger packed,
   YubiKey U2F, WinMagic TPM, IDmelon Android Key).
-- `docs/webauthn_attestation/*.json` – Attestation payload fixtures referenced by CLI/REST/UI
+- ``docs/webauthn_attestation`/*.json` – Attestation payload fixtures referenced by CLI/REST/UI
   tooling (`vector_id` values referenced by the metadata catalogue).
-- `application/src/main/java/.../WebAuthnMetadataCatalogue.java` – Loader that hydrates the offline
+- application/src/main/java/.../WebAuthnMetadataCatalogue.java – Loader that hydrates the offline
   bundles.
-- `application/src/main/java/.../WebAuthnTrustAnchorResolver.java` – Resolver that merges metadata
+- application/src/main/java/.../WebAuthnTrustAnchorResolver.java – Resolver that merges metadata
   anchors with operator-provided PEM inputs and emits telemetry suitable for downstream facades.
 
 ## Workflow Overview
@@ -33,7 +33,7 @@ trust anchors stay aligned.
    - `attestation_root_certificates` – list of rooted anchors (`label`, `fingerprint_sha256`,
      `certificate_pem`).
 
-2. **Edit the bundle** – Add or update entries in `docs/webauthn_attestation/mds/<file>.json`.
+2. **Edit the bundle** – Add or update entries in ``docs/webauthn_attestation/mds`/<file>.json`.
    Keep certificate PEM blocks compact (64-character wrapping) and ensure fingerprints are lowercase
    SHA-256 digests with no separators.
 
@@ -76,7 +76,7 @@ trust anchors stay aligned.
 - **Operator Console** – The Attestation panel automatically references the refreshed catalogue.
   The result card displays the anchor source (“Metadata” or “Metadata + Manual”) and highlights any
   resolver warnings. To refresh the UI without restarting the simulator, redeploy the REST API
-  application (or rerun `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`
+  application (or rerun `./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`
   in development).
 
 ## Troubleshooting
@@ -87,12 +87,12 @@ trust anchors stay aligned.
 - **Duplicate entry IDs** – The catalogue loader rejects duplicates and fails fast during
   `:application:test`. Ensure each `entry_id` (and `vector_id` Source mapping) is unique.
 - **Out-of-sync attestation fixtures** – If a metadata entry references a `vector_id` that does not
-  exist in `docs/webauthn_attestation/`, the loader throws during tests. Add or update the fixture
+  exist in ``docs/webauthn_attestation`/`, the loader throws during tests. Add or update the fixture
   first, rerun tests, and then refresh the metadata bundle.
 
 ## Follow-up Checklist
 
-- [ ] Add/adjust metadata JSON under `docs/webauthn_attestation/mds/`.
+- [ ] Add/adjust metadata JSON under ``docs/webauthn_attestation/mds`/`.
 - [ ] Run targeted Gradle tests (`:application:test`, `:cli:test`, `:rest-api:test`).
 - [ ] Update feature plan/task documents with the refresh details.
 - [ ] Verify CLI/REST/UI telemetry shows the new metadata entry identifiers.

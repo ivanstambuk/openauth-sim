@@ -5,8 +5,8 @@
 | Status | Placeholder (awaiting implementation) |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/007/plan.md` |
-| Linked tasks | `docs/4-architecture/features/007/tasks.md` |
+| Linked plan | [docs/4-architecture/features/007/plan.md](docs/4-architecture/features/007/plan.md) |
+| Linked tasks | [docs/4-architecture/features/007/tasks.md](docs/4-architecture/features/007/tasks.md) |
 | Roadmap entry | #7 – EUDIW mdoc PID Simulator |
 
 ## Overview
@@ -125,8 +125,8 @@ Operator console tabs mirror the existing EUDIW layout: Evaluate drives determin
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-007-01 | `docs/test-vectors/eudiw/mdoc/pid-inline.json` | Inline PID sample claims + namespaces. |
-| FX-007-02 | `docs/test-vectors/eudiw/mdoc/pid-stored.json` | Stored preset metadata for MapDB seeding. |
+| FX-007-01 | docs/test-vectors/eudiw/mdoc/pid-inline.json | Inline PID sample claims + namespaces. |
+| FX-007-02 | docs/test-vectors/eudiw/mdoc/pid-stored.json | Stored preset metadata for MapDB seeding. |
 
 ### UI States
 | ID | State | Trigger / Expected outcome |

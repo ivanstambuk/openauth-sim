@@ -1,6 +1,6 @@
 # Feature Plan 003 – OCRA Simulator & Replay
 
-_Linked specification:_ `docs/4-architecture/features/003/spec.md`  
+_Linked specification:_ [docs/4-architecture/features/003/spec.md](docs/4-architecture/features/003/spec.md)  
 _Status:_ Complete  
 _Last updated:_ 2025-11-13
 
@@ -45,9 +45,9 @@ facades, replay workflows, and operator-console panels aligned after renumbering
   - Summary: When (re)validating Feature 003, use this gate to confirm that the OCRA spec, plan, tasks, code/tests, and documentation remain aligned across core, application, CLI, REST, UI, and the Native Java API; ensure no undocumented flows or untested branches have crept in since the last review.
 
   - **Preconditions**
-    - [ ] `docs/4-architecture/features/003/{spec,plan,tasks}.md` updated to the current date with all clarifications folded into normative sections (no legacy “Clarifications” appendices).  
-    - [ ] `docs/4-architecture/open-questions.md` has no `Open` entries for Feature 003.  
-    - [ ] The following commands have been run in this increment and logged in `docs/_current-session.md`:  
+    - [ ] ``docs/4-architecture/features/003`/{spec,plan,tasks}.md` updated to the current date with all clarifications folded into normative sections (no legacy “Clarifications” appendices).  
+    - [ ] [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) has no `Open` entries for Feature 003.  
+    - [ ] The following commands have been run in this increment and logged in [docs/_current-session.md](docs/_current-session.md):  
       - `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`  
       - Any OCRA-focused quality checks captured in Feature 013 (e.g., Jacoco/SpotBugs for OCRA packages) when relevant.  
 
@@ -60,7 +60,7 @@ facades, replay workflows, and operator-console panels aligned after renumbering
 
   - **Seam inventory & contract check (facades + Native Java)**
     - [ ] Confirm the following OCRA surfaces behave as specified and stay consistent with each other:  
-      - Native Java API (as documented in `docs/2-how-to/use-ocra-from-java.md` and Feature 014).  
+      - Native Java API (as documented in [docs/2-how-to/use-ocra-from-java.md](docs/2-how-to/use-ocra-from-java.md) and Feature 014).  
       - CLI (`ocra` commands for evaluate/verify/replay).  
       - REST endpoints (`/api/v1/ocra/evaluate`, `/api/v1/ocra/verify`).  
       - Operator console OCRA panels (stored/inline/replay).  
@@ -77,7 +77,7 @@ facades, replay workflows, and operator-console panels aligned after renumbering
     - [ ] Check that OCRA how-to guides (CLI/REST/UI/Native Java) reference the correct commands/endpoints and use request/response examples that match current DTOs and JSON payloads.  
     - [ ] Verify telemetry documentation (e.g., OCRA telemetry snapshots) matches actual `ocra.*` events emitted by the application and facades (hashed fields, status/reason codes).  
     - [ ] Re-run and validate OpenAPI snapshots for OCRA endpoints when behaviour changes (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`), and confirm the spec still matches the generated contract.  
-    - [ ] Verify that the OCRA protocol reference page and diagrams (`docs/3-reference/protocols/ocra.md` and `docs/3-reference/protocols/diagrams/ocra-*.puml`/`*.png`) accurately describe the current OCRA suite, inputs, flows, and core/application entry points; update them in the same increment when behaviour changes.  
+    - [ ] Verify that the OCRA protocol reference page and diagrams ([docs/3-reference/protocols/ocra.md](docs/3-reference/protocols/ocra.md) and `docs/3-reference/protocols/diagrams/ocra-*.puml`/`*.png`) accurately describe the current OCRA suite, inputs, flows, and core/application entry points; update them in the same increment when behaviour changes.  
 
   - **UI & replay behaviour**
     - [ ] Confirm operator console OCRA flows (stored/inline/replay) match REST/CLI semantics for:  
@@ -88,13 +88,13 @@ facades, replay workflows, and operator-console panels aligned after renumbering
 
   - **Drift capture & remediation**
     - [ ] Any high-/medium-impact drift (e.g., spec vs code mismatch, missing tests for a documented flow, telemetry discrepancies) is:  
-      - Logged as an `Open` row in `docs/4-architecture/open-questions.md` for Feature 003.  
-      - Captured as explicit tasks in `docs/4-architecture/features/003/tasks.md` (and, if cross-cutting, in related cross-feature plans).  
+      - Logged as an `Open` row in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) for Feature 003.  
+      - Captured as explicit tasks in [docs/4-architecture/features/003/tasks.md](docs/4-architecture/features/003/tasks.md) (and, if cross-cutting, in related cross-feature plans).  
     - [ ] Low-impact drift (typos, minor doc tweaks, small test naming mismatches) is corrected directly in spec/plan/tasks/docs, with a short note added to this section or the plan’s verification log.  
 
   - **Gate output**
     - [ ] This section is updated with the date of the latest drift gate run, the key commands executed, and a short summary of “matches vs gaps” plus remediation notes.  
-    - [ ] `docs/_current-session.md` logs that the OCRA Implementation Drift Gate was executed (with date, commands, and reference to this plan section).  
+    - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the OCRA Implementation Drift Gate was executed (with date, commands, and reference to this plan section).  
 
 ## Increment Map
 1. **I1 – Core domain & fixtures (S-003-01)**
@@ -117,7 +117,7 @@ facades, replay workflows, and operator-console panels aligned after renumbering
    - _Commands:_ `./gradlew --no-daemon :ui:test`, Selenium suites invoked via `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=… ./gradlew --no-daemon :rest-api:test --tests "*OperatorUi*"`.
 6. **I6 – Migration & documentation sync (S-003-05)**
    - _Goal:_ Ensure schema-v0 code stays retired, documentation/roadmap/knowledge-map references point to the new
-     Feature 003, and the session log (docs/_current-session.md) captures the renumbering.
+     Feature 003, and the session log ([docs/_current-session.md](docs/_current-session.md)) captures the renumbering.
    - _Commands:_ `./gradlew --no-daemon spotlessApply check`, doc linting as needed.
 
 ## Scenario Tracking
@@ -136,9 +136,9 @@ because the consolidated spec/plan/tasks now govern the same scope.
 ## Exit Criteria
 - All FR/NFR entries covered by passing tests (core/application/CLI/REST/UI) plus spotless.
 - Telemetry + documentation updated to reference Feature 003 instead of the retired Feature 001/003/009 IDs.
-- The session log (docs/_current-session.md) records the Batch P1 execution, commands, and verification results.
+- The session log ([docs/_current-session.md](docs/_current-session.md)) records the Batch P1 execution, commands, and verification results.
 
 ## Follow-ups / Backlog
-- Native Java API reference note – OCRA’s existing Native Java usage (see `docs/2-how-to/use-ocra-from-java.md`) acts as
+- Native Java API reference note – OCRA’s existing Native Java usage (see [docs/2-how-to/use-ocra-from-java.md](docs/2-how-to/use-ocra-from-java.md)) acts as
   the reference pattern for Feature 014 – Native Java API Facade and ADR-0007; no additional OCRA-specific backlog is
   required unless future features extend the Native Java surface.

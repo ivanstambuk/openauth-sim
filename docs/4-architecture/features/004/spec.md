@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/004/plan.md` |
-| Linked tasks | `docs/4-architecture/features/004/tasks.md` |
+| Linked plan | [docs/4-architecture/features/004/plan.md](docs/4-architecture/features/004/plan.md) |
+| Linked tasks | [docs/4-architecture/features/004/tasks.md](docs/4-architecture/features/004/tasks.md) |
 | Roadmap entry | #4 – FIDO2/WebAuthn Assertions & Attestations |
 
 ## Overview
@@ -32,7 +32,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-004-01 | Deterministic fixture and seed coverage for W3C vectors plus curated presets keeps regressions detectable. | Regression prevention requires reproducible vectors. | Core/persistence tests consume `docs/webauthn_w3c_vectors.json`, `docs/webauthn_assertion_vectors.json`, and `docs/webauthn_attestation/*` fixtures. | Fixture JSON under `docs/`, MapDB credential store. | Spec. |
+| NFR-004-01 | Deterministic fixture and seed coverage for W3C vectors plus curated presets keeps regressions detectable. | Regression prevention requires reproducible vectors. | Core/persistence tests consume [docs/webauthn_w3c_vectors.json](docs/webauthn_w3c_vectors.json), [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json), and ``docs/webauthn_attestation`/*` fixtures. | Fixture JSON under `docs/`, MapDB credential store. | Spec. |
 | NFR-004-02 | Telemetry parity and sanitisation ensure processors never log raw key material while still exposing anchors and modes. | Auditability and security controls. | Unit tests assert `TelemetryContracts` emit hashed identifiers and per-mode reason codes; telemetry tables remain stable. | `application.telemetry.TelemetryContracts`, CLI/REST telemetry bridges. | Spec. |
 | NFR-004-03 | Operator console UI keeps toggles and metadata summaries accessible (WCAG 2.1 AA) while reusing shared `secret-fields` helpers. | Accessibility and maintainability. | Selenium coverage for stored/inline evaluate panels, attestation generation, manual anchor modals, and replay cards. | `ui/`, Selenium wrappers, shared JS helpers. | Spec. |
 | NFR-004-04 | MapDB persistence schemas accommodate attestation metadata without breaking existing assertion records. | Backward compatibility. | Integration tests (`infra-persistence`, CLI seeds, REST seeded credentials) run after schema extensions. | `infra-persistence` credential store adapters, `CredentialStoreFactory`. | Spec. |
@@ -63,7 +63,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 - **Application:** `:application:test --tests "*WebAuthn*ServiceTest"` exercises persistence integrations, trust-anchor resolvers, telemetry bridging, and replay helpers.
 - **REST:** `:rest-api:test --tests "io.openauth.sim.rest.Fido2*EndpointTest" --tests "io.openauth.sim.rest.OpenApiSnapshotTest" --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` validates controllers, OpenAPI snapshots, and operator Console Selenium flows.
 - **CLI:** `:cli:test --tests "*Fido2Cli*"` ensures maintenance commands (`evaluate`, `replay`, `seed`, `attest`, `attestReplay`, `seed-attestations`) trigger the correct services and telemetry.
-- **UI (JS / Selenium):** `node --test rest-api/src/test/javascript/emv/console.test.js` plus UI Selenium suites cover the evaluation/attestation panels, preset selectors, and trust-anchor metadata rendering.
+- **UI (JS / Selenium):** `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)` plus UI Selenium suites cover the evaluation/attestation panels, preset selectors, and trust-anchor metadata rendering.
 - **Docs / Contracts:** `./gradlew --no-daemon spotlessApply check` validates formatting, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` refreshes contract artifacts, and `_current-session.md` captures the verification milestones.
 
 ## Interface & Contract Catalogue
@@ -101,7 +101,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 ### Native Java API
 | ID | Entry point | Description | Notes |
 |----|-------------|-------------|-------|
-| NJ-004-01 | `io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService` | Application-level WebAuthn assertion evaluation service used as the Native Java API seam for stored and inline flows. | Mirrors CLI/REST assertion evaluation semantics (including signature/counter checks, token binding, and verbose traces); callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-fido2-from-java.md`. |
+| NJ-004-01 | `io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService` | Application-level WebAuthn assertion evaluation service used as the Native Java API seam for stored and inline flows. | Mirrors CLI/REST assertion evaluation semantics (including signature/counter checks, token binding, and verbose traces); callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in [docs/2-how-to/use-fido2-from-java.md](docs/2-how-to/use-fido2-from-java.md). |
 
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
@@ -115,13 +115,13 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-004-01 | `docs/webauthn_w3c_vectors.json` | W3C §16 assertion vectors for deterministic verification. |
-| FX-004-02 | `docs/webauthn_assertion_vectors.json` | Synthetic assertion bundle for inline evaluation tests. |
-| FX-004-03 | `docs/webauthn_attestation/packed.json` | Packed attestation payloads used by generator tests. |
-| FX-004-04 | `docs/webauthn_attestation/fido-u2f.json` | FIDO-U2F attestation payloads. |
-| FX-004-05 | `docs/webauthn_attestation/tpm.json` | TPM attestation fixtures. |
-| FX-004-06 | `docs/webauthn_attestation/android-key.json` | Android Key attestation fixtures. |
-| FX-004-07 | `docs/webauthn_attestation/presets.json` | Preset metadata used by CLI/REST seed helpers. |
+| FX-004-01 | [docs/webauthn_w3c_vectors.json](docs/webauthn_w3c_vectors.json) | W3C §16 assertion vectors for deterministic verification. |
+| FX-004-02 | [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json) | Synthetic assertion bundle for inline evaluation tests. |
+| FX-004-03 | [docs/webauthn_attestation/packed.json](docs/webauthn_attestation/packed.json) | Packed attestation payloads used by generator tests. |
+| FX-004-04 | [docs/webauthn_attestation/fido-u2f.json](docs/webauthn_attestation/fido-u2f.json) | FIDO-U2F attestation payloads. |
+| FX-004-05 | [docs/webauthn_attestation/tpm.json](docs/webauthn_attestation/tpm.json) | TPM attestation fixtures. |
+| FX-004-06 | [docs/webauthn_attestation/android-key.json](docs/webauthn_attestation/android-key.json) | Android Key attestation fixtures. |
+| FX-004-07 | docs/webauthn_attestation/presets.json | Preset metadata used by CLI/REST seed helpers. |
 
 ### UI States
 | ID | State | Trigger / Expected outcome |
@@ -136,12 +136,12 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 Every facade emits through `application.telemetry.TelemetryContracts`, reusing the hashed `credentialIdHash`, sanitized `trustAnchorId`, and explicit `scenarioId` so audit trails remain aligned even when CLI, REST, and UI clients revisit the same events. `fido2.evaluate`, `fido2.replay`, `fido2.attest`, and `fido2.attestReplay` all populate `mode`/`anchorSource` fields and avoid logging raw key material; instrumentation tests assert these shapes before the Increment Gate closes.
 
 ## Documentation Deliverables
-- Update `docs/4-architecture/roadmap.md`, `docs/4-architecture/knowledge-map.md`, and `docs/_current-session.md` to describe the Feature 004 consolidation and the verification runs listed above.
-- Refresh operator/CLI/REST how-to guides referencing WebAuthn fixtures, trust-anchor uploads, and CLI commands (`docs/2-how-to/`, `docs/3-reference/rest-openapi.*`).
+- Update [docs/4-architecture/roadmap.md](docs/4-architecture/roadmap.md), [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md), and [docs/_current-session.md](docs/_current-session.md) to describe the Feature 004 consolidation and the verification runs listed above.
+- Refresh operator/CLI/REST how-to guides referencing WebAuthn fixtures, trust-anchor uploads, and CLI commands (``docs/2-how-to`/`, `docs/3-reference/rest-openapi.*`).
 - Regenerate OpenAPI snapshots via `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` and re-run `./gradlew --no-daemon spotlessApply check` as part of the batch gate.
 
 ## Fixtures & Sample Data
-Ensure the assertion/attestation fixtures stay under version control so CLI seeds, REST controllers, and Selenium suites read the same JSON bundles referenced above; update `docs/webauthn_whats-new.md` (or the relevant how-to) when new fixtures are introduced.
+Ensure the assertion/attestation fixtures stay under version control so CLI seeds, REST controllers, and Selenium suites read the same JSON bundles referenced above; update docs/webauthn_whats-new.md (or the relevant how-to) when new fixtures are introduced.
 
 ## Spec DSL
 ```
@@ -201,5 +201,5 @@ ui_states:
 ```
 
 ## Appendix
-- The UI/JS shared helper `ui/shared/secret-fields.js` keeps the stored/inline selectors and the attestation tab toggles in sync; verify it before touching the operator console controls.
+- The UI/JS shared helper ui/shared/secret-fields.js keeps the stored/inline selectors and the attestation tab toggles in sync; verify it before touching the operator console controls.
 - Trust-anchor ingestion via `WebAuthnMetadataCatalogue` caches offline/inlined anchors; the CLI command `maintenance fido2 attest --metadata-anchor` toggles between manual and catalog sources. Update the knowledge map if the trust-anchor catalogue location or contents change.

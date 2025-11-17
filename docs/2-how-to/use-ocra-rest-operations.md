@@ -5,7 +5,7 @@ This guide teaches operators how to interact with every OCRA REST endpoint expos
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it).
 - Repository dependencies installed via Gradle.
-- Default MapDB database (`data/credentials.db`) populated with any credentials you plan to reference. The REST service delegates persistence to `CredentialStoreFactory`, so the same file is shared with CLI/UI. If you rely on a legacy file such as `data/ocra-credentials.db`, either rename it or set `--openauth.sim.persistence.database-path` explicitly before launching. Use the CLI guide if you need to import fixtures.
+- Default MapDB database ([data/credentials.db](data/credentials.db)) populated with any credentials you plan to reference. The REST service delegates persistence to `CredentialStoreFactory`, so the same file is shared with CLI/UI. If you rely on a legacy file such as data/ocra-credentials.db, either rename it or set `--openauth.sim.persistence.database-path` explicitly before launching. Use the CLI guide if you need to import fixtures.
 
 ## 1. Start the REST Service
 From the repository root:
@@ -20,7 +20,7 @@ Once the service is running:
 - YAML: `http://localhost:8080/v3/api-docs.yaml`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
-Checked-in snapshots live at `docs/3-reference/rest-openapi.json` and `docs/3-reference/rest-openapi.yaml`. Regenerate them after contract changes:
+Checked-in snapshots live at [docs/3-reference/rest-openapi.json](docs/3-reference/rest-openapi.json) and [docs/3-reference/rest-openapi.yaml](docs/3-reference/rest-openapi.yaml). Regenerate them after contract changes:
 ```bash
 OPENAPI_SNAPSHOT_WRITE=true ./gradlew :rest-api:test --tests io.openauth.sim.rest.OpenApiSnapshotTest
 ```
@@ -149,7 +149,7 @@ The response mirrors the stored path but reports `credentialSource="inline"` in 
 Each response contains `metadata.durationMillis` so you can confirm latency stays under 150 ms (stored) or 200 ms (inline). Structured telemetry is emitted through `TelemetryContracts`, keeping logs sanitised without bespoke adapters.
 
 ### 4.4 Audit telemetry
-Verification emits `event=rest.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) and an explicit `credentialSource`. Capture the `telemetryId`, `reasonCode`, and `outcome` fields when filing audit reports. Sample log lines live in `docs/3-reference/rest-ocra-telemetry-snapshot.md`.
+Verification emits `event=rest.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) and an explicit `credentialSource`. Capture the `telemetryId`, `reasonCode`, and `outcome` fields when filing audit reports. Sample log lines live in [docs/3-reference/rest-ocra-telemetry-snapshot.md](docs/3-reference/rest-ocra-telemetry-snapshot.md).
 
 ### 4.5 Failure drills
 Issue a request with an intentionally altered counter, timestamp, or OTP to rehearse `strict_mismatch` handling. Terminate requests at the operator UI or CLI once the telemetry confirms the mismatch path is logged.
@@ -166,7 +166,7 @@ These helpers accompany the existing per-segment length metadata (`segment.*.len
 The REST service also hosts an operator UI that consumes the same endpoints via asynchronous fetch calls. Access it at `http://localhost:8080/ui/console` to validate JSON requests interactively before automating them in your tooling.
 
 ### 5.1 Replay telemetry
-The replay screen issues two network calls: a POST to `/api/v1/ocra/verify` and a follow-up POST to `/ui/console/replay/telemetry` once a response arrives. The telemetry payload mirrors the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and flows through `TelemetryContracts.ocraVerificationAdapter` with `event=ui.console.replay`. Example log line:
+The replay screen issues two network calls: a POST to `/api/v1/ocra/verify` and a follow-up POST to /ui/console/replay/telemetry once a response arrives. The telemetry payload mirrors the REST metadata (`mode`, `credentialSource`, `outcome`, `contextFingerprint`) and flows through `TelemetryContracts.ocraVerificationAdapter` with `event=ui.console.replay`. Example log line:
 ```
 2025-10-03T11:42:09.117Z INFO io.openauth.sim.rest.ui.telemetry : event=ui.console.replay status=match telemetryId=ui-replay-793aac origin=ui uiView=replay mode=stored credentialSource=stored outcome=match contextFingerprint=d8o6y8HgxWfaJQ2a1zAifg sanitized=true
 ```
@@ -180,4 +180,4 @@ Validation failures produce `status=invalid` (reason code defaults to `validatio
 ## Related Resources
 - [How to Operate the OCRA CLI](use-ocra-cli-operations.md) for seeding and maintaining credential stores.
 - [How to Drive OCRA Evaluations from Java Applications](use-ocra-from-java.md) for embedding these REST calls inside your own code.
-- REST OpenAPI snapshots at `docs/3-reference/rest-openapi.json` / `.yaml` for offline inspection.
+- REST OpenAPI snapshots at [docs/3-reference/rest-openapi.json](docs/3-reference/rest-openapi.json) / `.yaml` for offline inspection.

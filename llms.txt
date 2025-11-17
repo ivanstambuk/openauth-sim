@@ -1,0 +1,43 @@
+# llms.txt – key context files for LLMs and agents
+#
+# This manifest lists the most important files and directories for understanding and using
+# OpenAuth Simulator from AI coding assistants and agents. Prefer these paths when constructing
+# context windows or indexing the project.
+
+# Primary orientation and workflow
+README.md
+AGENTS.md
+ReadMe.LLM
+docs/4-architecture/roadmap.md
+docs/4-architecture/knowledge-map.md
+docs/architecture-graph.json
+
+# Governance and documentation automation
+docs/4-architecture/features/010/spec.md
+docs/4-architecture/features/010/plan.md
+docs/4-architecture/features/010/tasks.md
+docs/4-architecture/features/011/spec.md
+docs/4-architecture/features/011/plan.md
+docs/4-architecture/features/011/tasks.md
+
+# Native Java facade and protocol specs
+docs/4-architecture/features/001/spec.md
+docs/4-architecture/features/002/spec.md
+docs/4-architecture/features/003/spec.md
+docs/4-architecture/features/004/spec.md
+docs/4-architecture/features/005/spec.md
+docs/4-architecture/features/006/spec.md
+docs/4-architecture/features/014/spec.md
+
+# How-to guides for library and tool usage
+docs/2-how-to/use-hotp-from-java.md
+docs/2-how-to/use-totp-from-java.md
+docs/2-how-to/use-ocra-from-java.md
+docs/2-how-to/use-fido2-from-java.md
+docs/2-how-to/use-emv-cap-from-java.md
+docs/2-how-to/use-eudiw-from-java.md
+docs/2-how-to
+
+# REST/OpenAPI contracts
+docs/3-reference
+

@@ -23,7 +23,7 @@ OATH Challenge-Response Algorithm (OCRA) credentials are the first protocol slic
 - Switch the console to **Stored credential** mode to reveal the `Seed sample credentials` control; the button stays hidden for inline evaluations so the form remains uncluttered.
 - Selecting the control invokes `POST /api/v1/ocra/credentials/seed`, which appends any missing canonical presets (matching the inline autofill list) without overwriting existing records. Re-running the action simply adds suites that are still absent.
 - Successful invocations refresh the stored credential dropdown and emit `ocra.seed` telemetry with the number of credentials created; no secret material or existing entries are exposed.
-- Operators working outside the UI can call the same REST endpoint directly; see the OpenAPI snapshot in `docs/3-reference/rest-openapi.json`/`.yaml` for the response contract.
+- Operators working outside the UI can call the same REST endpoint directly; see the OpenAPI snapshot in [docs/3-reference/rest-openapi.json](docs/3-reference/rest-openapi.json)/`.yaml` for the response contract.
 
 ### Validation & Telemetry
 
@@ -42,8 +42,8 @@ OATH Challenge-Response Algorithm (OCRA) credentials are the first protocol slic
 
 ## References
 
-- `docs/4-architecture/features/003/spec.md`
-- `docs/4-architecture/features/003/plan.md`
-- `core/src/main/java/io/openauth/sim/core/credentials/ocra/OcraCredentialFactory.java`
-- `core/src/main/java/io/openauth/sim/core/store/encryption/PersistenceEncryption.java`
-- `docs/2-how-to/configure-persistence-profiles.md`
+- [docs/4-architecture/features/003/spec.md](docs/4-architecture/features/003/spec.md)
+- [docs/4-architecture/features/003/plan.md](docs/4-architecture/features/003/plan.md)
+- core/src/main/java/io/openauth/sim/core/credentials/ocra/OcraCredentialFactory.java
+- core/src/main/java/io/openauth/sim/core/store/encryption/PersistenceEncryption.java
+- [docs/2-how-to/configure-persistence-profiles.md](docs/2-how-to/configure-persistence-profiles.md)

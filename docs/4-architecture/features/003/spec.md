@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/003/plan.md` |
-| Linked tasks | `docs/4-architecture/features/003/tasks.md` |
+| Linked plan | [docs/4-architecture/features/003/plan.md](docs/4-architecture/features/003/plan.md) |
+| Linked tasks | [docs/4-architecture/features/003/tasks.md](docs/4-architecture/features/003/tasks.md) |
 | Roadmap entry | #3 – OCRA Simulator & Replay |
 
 ## Overview
@@ -43,7 +43,7 @@ keeping OCRA behaviour, telemetry, and fixtures aligned across modules.
 | FR-003-06 | CLI + REST replay (`ocra verify` / `POST /api/v1/ocra/verify`) reproduce OTPs without mutating state, hash OTP/context fields, and expose deterministic mismatch messaging. | Picocli + MockMvc tests cover stored/inline replay, timestamp/session validation, hashed telemetry, benchmark hooks. | Performance benchmark captured with host/JDK metadata; docs updated. | Counters mutate, tolerance windows added, or telemetry logs raw OTPs. | `core.ocra.verify`, `cli.ocra.verify`, `rest.ocra.verify` with `otpHash`, `contextFingerprint`. | Legacy Feature 009. |
 | FR-003-07 | Operator console evaluation + replay panels share inline presets, stored credential selectors, “Use current Unix seconds” toggles, verbose trace dock integration, and replay-only workspace referencing `/api/v1/ocra/verify`. | Selenium/UI unit tests exercise stored/inline flows, preset controls, timestamp toggles, CTA spacing, verbose trace wiring. | Accessibility checks ensure focus order + aria labels; docs capture user guidance. | UI diverges from REST contract or toggles drift. | `ui.ocra.evaluate` + `ui.ocra.replay` telemetry proxies. | Legacy Feature 016 + Feature 017 shell. |
 | FR-003-08 | Schema-v0 migration code removed; `OcraStoreMigrations.apply` enforces schema-v1 invariants and is called before every persistence operation. | Integration tests load legacy fixtures using test-only flag, verifying migrations short-circuit when already v1. | CLI/REST flows fail fast if mismatched schema encountered; documentation notes only schema-v1 supported. | Hidden schema-v0 paths remain or migrations skipped. | Telemetry logs `migrationApplied=false` for healthy stores. | Legacy Feature 018. |
-| FR-003-09 | Documentation (how-to, roadmap, knowledge map) and fixture catalogues remain synchronized with the consolidated OCRA feature, including references to `docs/test-vectors/ocra/*` and operator guides. | Spotless/doc lint runs; knowledge map entry lists Feature 003 as the OCRA source. | Drift gate catches missing doc updates; session log (`docs/_current-session.md`) logs relevant documentation commands. | References point to obsolete or incorrect paths. | n/a | Spec. |
+| FR-003-09 | Documentation (how-to, roadmap, knowledge map) and fixture catalogues remain synchronized with the consolidated OCRA feature, including references to `docs/test-vectors/ocra/*` and operator guides. | Spotless/doc lint runs; knowledge map entry lists Feature 003 as the OCRA source. | Drift gate catches missing doc updates; session log ([docs/_current-session.md](docs/_current-session.md)) logs relevant documentation commands. | References point to obsolete or incorrect paths. | n/a | Spec. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -52,7 +52,7 @@ keeping OCRA behaviour, telemetry, and fixtures aligned across modules.
 | NFR-003-02 | Performance – core calculation ≤1 ms p99 (single thread); REST `/ocra/evaluate` p95 ≤50 ms locally; replay benchmarks recorded with host metadata. | Operator responsiveness. | Microbenchmarks + MockMvc tests; benchmark appendix stored with plan. | `OcraResponseCalculator`, Spring Boot, Picocli. | Legacy Features 001/003/009. |
 | NFR-003-03 | Compatibility – Java 17, Spring Boot 3.3.x, Picocli 4.x; persistence remains schema-v1 only. | Toolchain consistency. | `./gradlew --no-daemon spotlessApply check :core:test :application:test :cli:test :rest-api:test :ui:test`. | Gradle build, CredentialStoreFactory. | Legacy specs. |
 | NFR-003-04 | Observability – Telemetry events, verbose trace toggles, and documentation stay aligned so operators can map console events to REST/CLI responses. | Troubleshooting + drift gate. | Telemetry contract tests + knowledge-map review during analysis gate. | TelemetryContracts, verbose trace dock. | Legacy Feature 016 + verbose trace guardrails. |
-| NFR-003-05 | Quality – Every increment follows Specification-Driven Development, retains scenario/task tables, and reruns `spotlessApply check` plus targeted module suites before closing. | Governance. | Logged commands in `_current-session.md`; session log (docs/_current-session.md) entries. | Gradle, runbooks. | Constitution + migration directive. |
+| NFR-003-05 | Quality – Every increment follows Specification-Driven Development, retains scenario/task tables, and reruns `spotlessApply check` plus targeted module suites before closing. | Governance. | Logged commands in `_current-session.md`; session log ([docs/_current-session.md](docs/_current-session.md)) entries. | Gradle, runbooks. | Constitution + migration directive. |
 
 ## UI / Interaction Mock-ups
 Operator console Evaluate/Replay panels mirror the shared two-column layout (form on the left, result/trace on the right) so operators can swap between stored and inline descriptors without reloading the page.
@@ -163,11 +163,11 @@ Operator console Evaluate/Replay panels mirror the shared two-column layout (for
 ## Documentation Deliverables
 - Update OpenAPI bundles under `docs/3-reference/rest-openapi.*` whenever request/response fields change.
 - Keep operator/CLI/REST how-to guides (Feature 010 ownership) referencing the consolidated OCRA flow, including preset labels and Unix-seconds helpers.
-- Refresh `docs/4-architecture/knowledge-map.md`, `docs/architecture-graph.json`, and `_current-session.md` entries when OCRA modules or telemetry contracts evolve.
+- Refresh [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md), [docs/architecture-graph.json](docs/architecture-graph.json), and `_current-session.md` entries when OCRA modules or telemetry contracts evolve.
 - Ensure roadmap + feature plan/task files link back to this spec when increments close to satisfy SDD traceability.
 
 ### Native Java API (reference)
-- OCRA’s existing Native Java API (documented in `docs/2-how-to/use-ocra-from-java.md`) acts as the reference pattern
+- OCRA’s existing Native Java API (documented in [docs/2-how-to/use-ocra-from-java.md](docs/2-how-to/use-ocra-from-java.md)) acts as the reference pattern
   for Feature 014 – Native Java API Facade and ADR-0007:
   - Entry-point helpers live under `core` and `application` (for example, `OcraCredentialFactory` +
     `OcraResponseCalculator`), using simple request/response DTOs and avoiding direct persistence coupling.

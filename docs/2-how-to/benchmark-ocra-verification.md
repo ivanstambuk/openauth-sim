@@ -38,12 +38,12 @@ Interpretation:
 Because the harness filters out any vector that fails to replay (`strict_mismatch`, validation errors), all samples contribute to latency metrics.
 
 ## 3. Capture and Store Results
-1. Copy the two log lines into `docs/4-architecture/features/009/plan.md` (or the active feature plan) with:
+1. Copy the two log lines into [docs/4-architecture/features/009/plan.md](docs/4-architecture/features/009/plan.md) (or the active feature plan) with:
    - Execution date/time.
    - Environment summary (OS, CPU, Java vendor/version).
    - Confirmation that thresholds were met.
 2. If rerunning later on different hardware, add a new bullet with the fresh details instead of overwriting the previous entry.
-3. Keep supporting command output (optional) at `core/build/test-results/test/TEST-io.openauth.sim.core.credentials.ocra.OcraReplayVerifierBenchmark.xml` for raw timing data.
+3. Keep supporting command output (optional) at core/build/test-results/test/TEST-io.openauth.sim.core.credentials.ocra.OcraReplayVerifierBenchmark.xml for raw timing data.
 
 ## 4. Troubleshooting
 - **Benchmark skipped** – double-check `IO_OPENAUTH_SIM_BENCHMARK=true` (or pass `-Dio.openauth.sim.benchmark=true`). The Gradle output should show the property at startup.
@@ -51,6 +51,6 @@ Because the harness filters out any vector that fails to replay (`strict_mismatc
 - **High P95 values** – rerun with `--info --rerun-tasks` to rule out transient JVM warm-up spikes. Capture system load alongside the metrics and investigate recent code changes affecting `OcraReplayVerifier`.
 
 ## 5. Related References
-- `docs/4-architecture/features/009/spec.md` (ORV-NFR-002 definition).
-- `docs/4-architecture/features/009/plan.md` for recording benchmark outcomes.
-- `core/src/test/java/io/openauth/sim/core/credentials/ocra/OcraReplayVerifierBenchmark.java` (benchmark source).
+- [docs/4-architecture/features/009/spec.md](docs/4-architecture/features/009/spec.md) (ORV-NFR-002 definition).
+- [docs/4-architecture/features/009/plan.md](docs/4-architecture/features/009/plan.md) for recording benchmark outcomes.
+- core/src/test/java/io/openauth/sim/core/credentials/ocra/OcraReplayVerifierBenchmark.java (benchmark source).

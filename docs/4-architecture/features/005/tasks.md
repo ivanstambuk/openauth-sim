@@ -6,72 +6,72 @@ _Last updated:_ 2025-11-13
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
-Linked plan: `docs/4-architecture/features/005/plan.md`
+Linked plan: [docs/4-architecture/features/005/plan.md](docs/4-architecture/features/005/plan.md)
 
 
 ## Checklist
 
-- [x] T-005-01 – Inline preset hydration (S39-02): include the selected preset `credentialId` when submitting inline evaluations so masked secrets fall back to persistence; extend JS + Selenium coverage and reran `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-01 – Inline preset hydration (S39-02): include the selected preset `credentialId` when submitting inline evaluations so masked secrets fall back to persistence; extend JS + Selenium coverage and reran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Inline preset hydration (S39-02): include the selected preset
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-02 – Inline sample vector mode persistence (S39-02, S39-09): fixed operator UI evaluate panel so selecting a sample vector while inline mode is active keeps inline controls visible/editable (no automatic stored-mode switch); added JS + Selenium coverage and reran `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-02 – Inline sample vector mode persistence (S39-02, S39-09): fixed operator UI evaluate panel so selecting a sample vector while inline mode is active keeps inline controls visible/editable (no automatic stored-mode switch); added JS + Selenium coverage and reran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Inline sample vector mode persistence (S39-02, S39-09): fixed operator UI evaluate panel so selecting a sample vector while inline mode is active keeps inline controls visible/editable (no automatic stored-mode switch); added JS + Selenium coverage and reran
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-03 – Stored preset secret hiding (S39-03): `toggleSensitiveFields` now applies `hidden`/`aria-hidden` to sensitive `.field-group` containers and mask wrappers whenever stored mode is active so ICC master key, CDOL1, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data rows vanish; inline mode removes the attributes and restores the inputs. Added Node + Selenium assertions proving stored presets hide rows while inline mode keeps them editable. Commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon spotlessApply check --console=plain`.
+- [x] T-005-03 – Stored preset secret hiding (S39-03): `toggleSensitiveFields` now applies `hidden`/`aria-hidden` to sensitive `.field-group` containers and mask wrappers whenever stored mode is active so ICC master key, CDOL1, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data rows vanish; inline mode removes the attributes and restores the inputs. Added Node + Selenium assertions proving stored presets hide rows while inline mode keeps them editable. Commands: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon spotlessApply check --console=plain`.
   _Intent:_ Stored preset secret hiding (S39-03):
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon spotlessApply check --console=plain`
 
-- [x] T-005-04 – Stored mode label hiding (S39-03): extended `.emv-stored-mode` selectors to cover the same field groups/mask wrappers and refreshed Selenium fixtures to expect hidden labels/hints during stored submissions with inline mode regression coverage. Commands: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon spotlessApply check --console=plain`.
+- [x] T-005-04 – Stored mode label hiding (S39-03): extended `.emv-stored-mode` selectors to cover the same field groups/mask wrappers and refreshed Selenium fixtures to expect hidden labels/hints during stored submissions with inline mode regression coverage. Commands: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon spotlessApply check --console=plain`.
   _Intent:_ Stored mode label hiding (S39-03): extended
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon spotlessApply check --console=plain`
 
-- [x] T-005-05 – Customer input inline grouping (S39-07): restructured Evaluate and Replay “Input from customer” sections into a single fieldset, wired mode-driven enablement/disablement (Identify = all disabled/cleared, Respond = challenge only, Sign = reference+amount while challenge stays masked), updated helper hints, refreshed JS unit coverage, adjusted Selenium coverage (Sign inline scenario deferred via TODO), and ran `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-05 – Customer input inline grouping (S39-07): restructured Evaluate and Replay “Input from customer” sections into a single fieldset, wired mode-driven enablement/disablement (Identify = all disabled/cleared, Respond = challenge only, Sign = reference+amount while challenge stays masked), updated helper hints, refreshed JS unit coverage, adjusted Selenium coverage (Sign inline scenario deferred via TODO), and ran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Customer input inline grouping (S39-07): restructured Evaluate and Replay “Input from customer” sections into a single fieldset, wired mode-driven enablement/disablement (Identify = all disabled/cleared, Respond = challenge only, Sign = reference+amount while challenge stays masked), updated helper hints, refreshed JS unit coverage, adjusted Selenium coverage (Sign inline scenario deferred via TODO), and ran
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-06 – Inline preset full hydration (S39-02): taught the Node console harness to await credential summaries before dispatching preset change events so inline Evaluate/Replay hydration reliably loads sensitive defaults; reran `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test` (first attempt surfaced the existing Fido2 HTMLUnit flake; rerun via the `spotlessApply check` pipeline succeeded), `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-06 – Inline preset full hydration (S39-02): taught the Node console harness to await credential summaries before dispatching preset change events so inline Evaluate/Replay hydration reliably loads sensitive defaults; reran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test` (first attempt surfaced the existing Fido2 HTMLUnit flake; rerun via the `spotlessApply check` pipeline succeeded), `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, and `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Inline preset full hydration (S39-02): taught the Node console harness to await credential summaries before dispatching preset change events so inline Evaluate/Replay hydration reliably loads sensitive defaults; reran
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `spotlessApply check`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-07 – Card transaction grouping (S39-07): introduced a dedicated “Transaction” fieldset under the card configuration section for Evaluate and Replay, stacking ICC payload template and Issuer Application Data inputs with the required `"xxxx" is replaced by the ATC` helper copy plus new data-testid hooks. Extended Node + Selenium coverage (console harness now asserts ICC template masking in stored mode; Selenium checks legends/hints for both panels). Verification matrix: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-07 – Card transaction grouping (S39-07): introduced a dedicated “Transaction” fieldset under the card configuration section for Evaluate and Replay, stacking ICC payload template and Issuer Application Data inputs with the required `"xxxx" is replaced by the ATC` helper copy plus new data-testid hooks. Extended Node + Selenium coverage (console harness now asserts ICC template masking in stored mode; Selenium checks legends/hints for both panels). Verification matrix: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Card transaction grouping (S39-07): introduced a dedicated “Transaction” fieldset under the card configuration section for Evaluate and Replay, stacking ICC payload template and Issuer Application Data inputs with the required
   _Verification commands:_
   - `"xxxx" is replaced by the ATC`
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-08 – Session key derivation grouping (S39-07): wrapped the master key, ATC, branch factor, height, and IV inputs beneath a dedicated “Session key derivation” fieldset (Evaluate + Replay), added helper copy + data-testid hooks, tweaked copy to call out all derivation inputs, layered CSS fieldset styling, and extended Node/Selenium coverage so stored mode keeps the numeric derivation rows visible while only masking secrets. Tests: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-08 – Session key derivation grouping (S39-07): wrapped the master key, ATC, branch factor, height, and IV inputs beneath a dedicated “Session key derivation” fieldset (Evaluate + Replay), added helper copy + data-testid hooks, tweaked copy to call out all derivation inputs, layered CSS fieldset styling, and extended Node/Selenium coverage so stored mode keeps the numeric derivation rows visible while only masking secrets. Tests: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Session key derivation grouping (S39-07): wrapped the master key, ATC, branch factor, height, and IV inputs beneath a dedicated “Session key derivation” fieldset (Evaluate + Replay), added helper copy + data-testid hooks, tweaked copy to call out all derivation inputs, layered CSS fieldset styling, and extended Node/Selenium coverage so stored mode keeps the numeric derivation rows visible while only masking secrets. Tests:
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
@@ -83,40 +83,40 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-10 – Session key row width alignment (S39-07): wrapped the ICC master key + secret mask and ATC inputs inside a dedicated `.emv-session-master-row` container in `panel.html`, added matching CSS grid helpers so the row spans edge-to-edge, and kept stored-mode masking scoped to the master key while ATC stays visible. Extended Selenium coverage with `assertMasterAtcRow` plus new JS assertions confirming ATC containers remain interactive in stored mode. Verification: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-10 – Session key row width alignment (S39-07): wrapped the ICC master key + secret mask and ATC inputs inside a dedicated `.emv-session-master-row` container in `panel.html`, added matching CSS grid helpers so the row spans edge-to-edge, and kept stored-mode masking scoped to the master key while ATC stays visible. Extended Selenium coverage with `assertMasterAtcRow` plus new JS assertions confirming ATC containers remain interactive in stored mode. Verification: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Session key row width alignment (S39-07): wrapped the ICC master key + secret mask and ATC inputs inside a dedicated
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-11 – Card configuration isolation (S39-07): split the Evaluate + Replay templates so `.emv-card-block` now wraps only CDOL1/IPB inputs while the Transaction (`.emv-transaction-block`) and Input from customer (`.emv-customer-block`) fieldsets render as siblings; added a template regression test in `console.test.js` plus new Selenium assertions to enforce the hierarchy. Verification: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-11 – Card configuration isolation (S39-07): split the Evaluate + Replay templates so `.emv-card-block` now wraps only CDOL1/IPB inputs while the Transaction (`.emv-transaction-block`) and Input from customer (`.emv-customer-block`) fieldsets render as siblings; added a template regression test in `console.test.js` plus new Selenium assertions to enforce the hierarchy. Verification: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`, `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Card configuration isolation (S39-07): split the Evaluate + Replay templates so
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-12 – Input-from-customer row layout polish (S39-07): updated the Feature 039 spec + plan with R5.7, rebuilt the Evaluate + Replay templates so each mode owns a dedicated row (radio + left-aligned label) with its customer inputs on the same row (Respond + Challenge, Sign + Reference/Amount, Identify shows a placeholder), layered new `.emv-customer-row`/`fields` styling to keep the radios vertically aligned, and refreshed the console JS + Selenium coverage to assert the single-set Challenge/Reference/Amount DOM structure. Verification: `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
+- [x] T-005-12 – Input-from-customer row layout polish (S39-07): updated the Feature 039 spec + plan with R5.7, rebuilt the Evaluate + Replay templates so each mode owns a dedicated row (radio + left-aligned label) with its customer inputs on the same row (Respond + Challenge, Sign + Reference/Amount, Identify shows a placeholder), layered new `.emv-customer-row`/`fields` styling to keep the radios vertically aligned, and refreshed the console JS + Selenium coverage to assert the single-set Challenge/Reference/Amount DOM structure. Verification: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
   _Intent:_ Input-from-customer row layout polish (S39-07): updated the Feature 039 spec + plan with R5.7, rebuilt the Evaluate + Replay templates so each mode owns a dedicated row (radio + left-aligned label) with its customer inputs on the same row (Respond + Challenge, Sign + Reference/Amount, Identify shows a placeholder), layered new
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
 
-- [x] T-005-13 – Session key single-line inputs (S39-07): converted the ICC master key control from a textarea to a single-line text input so the master key and ATC share one row without vertical scrollbars, kept the `.secret-mask` overlay scoped to the master key column in stored mode, refreshed console JS fixtures plus Selenium/Node coverage, and reran `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-13 – Session key single-line inputs (S39-07): converted the ICC master key control from a textarea to a single-line text input so the master key and ATC share one row without vertical scrollbars, kept the `.secret-mask` overlay scoped to the master key column in stored mode, refreshed console JS fixtures plus Selenium/Node coverage, and reran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Session key single-line inputs (S39-07): converted the ICC master key control from a textarea to a single-line text input so the master key and ATC share one row without vertical scrollbars, kept the
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-14 – IV/IPB/IAD single-line inputs (S39-07): swapped the Evaluate panel’s Initialization Vector, Issuer Proprietary Bitmap, and Issuer Application Data controls (plus the Replay panel’s issuer bitmap/application inputs) from `<textarea>` elements to `<input type="text">`, updated console.js DOM lookups and sensitive-field masks, refreshed Node fixtures + Selenium assertions to expect the new markup, and reran `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon spotlessApply check` (second run required 600 s timeout after the initial 300 s limit expired).
+- [x] T-005-14 – IV/IPB/IAD single-line inputs (S39-07): swapped the Evaluate panel’s Initialization Vector, Issuer Proprietary Bitmap, and Issuer Application Data controls (plus the Replay panel’s issuer bitmap/application inputs) from `<textarea>` elements to `<input type="text">`, updated console.js DOM lookups and sensitive-field masks, refreshed Node fixtures + Selenium assertions to expect the new markup, and reran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon spotlessApply check` (second run required 600 s timeout after the initial 300 s limit expired).
   _Intent:_ IV/IPB/IAD single-line inputs (S39-07): swapped the Evaluate panel’s Initialization Vector, Issuer Proprietary Bitmap, and Issuer Application Data controls (plus the Replay panel’s issuer bitmap/application inputs) from
   _Verification commands:_
   - `<input type="text">`
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
@@ -130,17 +130,17 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   _Verification commands:_
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-17 – Replay CTA spacing parity (S39-07): documented R5.8 in the spec/plan, added Node template + Selenium assertions enforcing the shared `stack-offset-top-lg` class on both action bars, updated `panel.html` so Evaluate + Replay reuse the helper, ran `node --test rest-api/src/test/javascript/emv/console.test.js` and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`; full `./gradlew --no-daemon spotlessApply check` left for the operator per current session note.
+- [x] T-005-17 – Replay CTA spacing parity (S39-07): documented R5.8 in the spec/plan, added Node template + Selenium assertions enforcing the shared `stack-offset-top-lg` class on both action bars, updated `panel.html` so Evaluate + Replay reuse the helper, ran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)` and `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`; full `./gradlew --no-daemon spotlessApply check` left for the operator per current session note.
   _Intent:_ Replay CTA spacing parity (S39-07): documented R5.8 in the spec/plan, added Node template + Selenium assertions enforcing the shared
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-18 – Remove EMV helper copy (S39-07): deleted the Identify-mode hint and both session-derivation helper paragraphs from the Evaluate and Replay panels, stripped the related copy wiring from `console.js`, updated Node + Selenium coverage to drop the string assertions, and reran `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-18 – Remove EMV helper copy (S39-07): deleted the Identify-mode hint and both session-derivation helper paragraphs from the Evaluate and Replay panels, stripped the related copy wiring from `console.js`, updated Node + Selenium coverage to drop the string assertions, and reran `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Remove EMV helper copy (S39-07): deleted the Identify-mode hint and both session-derivation helper paragraphs from the Evaluate and Replay panels, stripped the related copy wiring from
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon spotlessApply check`
 
@@ -154,10 +154,10 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   _Verification commands:_
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-21 – Verbose trace provenance tests (S39-08): introduced the canonical fixture (`docs/test-vectors/emv-cap/trace-provenance-example.json`) plus the shared `EmvCapTraceProvenanceSchema` helper, then extended every facade test suite to demand the richer schema. Application and replay tests now fail until provenance data exists, REST MockMvc + CLI JSON tests validate the schema and lock the identify-baseline trace to the fixture, and the JS/Selenium suites assert that `VerboseTraceConsole` renders the six provenance sections fed by the fixture-backed fetch stub. Tests remain red pending T-005-22 implementation, so no Gradle commands were executed beyond local linting.
+- [x] T-005-21 – Verbose trace provenance tests (S39-08): introduced the canonical fixture ([docs/test-vectors/emv-cap/trace-provenance-example.json](docs/test-vectors/emv-cap/trace-provenance-example.json)) plus the shared `EmvCapTraceProvenanceSchema` helper, then extended every facade test suite to demand the richer schema. Application and replay tests now fail until provenance data exists, REST MockMvc + CLI JSON tests validate the schema and lock the identify-baseline trace to the fixture, and the JS/Selenium suites assert that `VerboseTraceConsole` renders the six provenance sections fed by the fixture-backed fetch stub. Tests remain red pending T-005-22 implementation, so no Gradle commands were executed beyond local linting.
   _Intent:_ Verbose trace provenance tests (S39-08): introduced the canonical fixture (
   _Verification commands:_
-  - `docs/test-vectors/emv-cap/trace-provenance-example.json`
+  - [docs/test-vectors/emv-cap/trace-provenance-example.json](docs/test-vectors/emv-cap/trace-provenance-example.json)
 
 - [x] T-005-23 – Verbose trace provenance implementation (S39-08)
   _Intent:_ Verbose trace provenance implementation (S39-08)
@@ -173,15 +173,15 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `IAD Decoding`
   - `MAC Transcript`
   - `Decimalization Overlay`
-  - `rest-api/src/main/resources/static/ui/emv/console.js`
-  - `rest-api/src/main/resources/static/ui/shared/verbose-trace.js`
-  - `rest-api/src/main/resources/static/ui/eudi-openid4vp/console.js`
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - [rest-api/src/main/resources/static/ui/emv/console.js](rest-api/src/main/resources/static/ui/emv/console.js)
+  - [rest-api/src/main/resources/static/ui/shared/verbose-trace.js](rest-api/src/main/resources/static/ui/shared/verbose-trace.js)
+  - [rest-api/src/main/resources/static/ui/eudi-openid4vp/console.js](rest-api/src/main/resources/static/ui/eudi-openid4vp/console.js)
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
   - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`
-  - `docs/test-vectors/emv-cap/trace-provenance-example.json`
-  - `rest-api/docs/test-vectors/emv-cap/`
+  - [docs/test-vectors/emv-cap/trace-provenance-example.json](docs/test-vectors/emv-cap/trace-provenance-example.json)
+  - ``rest-api/docs/test-vectors/emv-cap`/`
   - `rest-api/`
   - `./gradlew --no-daemon --console=plain :application:test`
   - `:cli:test`
@@ -190,9 +190,9 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `pmdMain pmdTest`
   - `spotlessApply check`
   _Notes:_
-  > - [x] T-005-24a – Planning sync (S39-08): reread spec R2.4 + fixture helper, documented the provenance field-to-source mapping inside `docs/4-architecture/features/005/plan.md` ("Provenance Field Mapping (T-005-24a)") and outlined the per-surface verification plan before resuming code work.
+  > - [x] T-005-24a – Planning sync (S39-08): reread spec R2.4 + fixture helper, documented the provenance field-to-source mapping inside [docs/4-architecture/features/005/plan.md](docs/4-architecture/features/005/plan.md) ("Provenance Field Mapping (T-005-24a)") and outlined the per-surface verification plan before resuming code work.
   >   _Verification commands:_
-  >   - `docs/4-architecture/features/005/plan.md`
+  >   - [docs/4-architecture/features/005/plan.md](docs/4-architecture/features/005/plan.md)
   > - [x] T-005-25b – Core/application builder (S39-08): extend verbose trace assembly to populate `trace.provenance` for evaluation + replay responses; start by updating `EmvCapEvaluationApplicationServiceTest`/`EmvCapReplayApplicationServiceTest` so they fail until provenance data flows, then run `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Trace*"` (add `:core:test` if helper logic changes).
   > - Implemented `TraceAssembler` with protocol context, key-derivation, CDOL breakdown, IAD decoding, MAC transcript, and decimalization overlay builders that load issuer profile overrides when necessary (baseline fixture now matches `trace-provenance-example.json`).
   > - Extended `Trace` record with provenance data + ICC template/resolution, added issuer profile catalogue, and refreshed schema assertions to map the nested structure for `EmvCapEvaluation/ReplayApplicationServiceTest`.
@@ -200,15 +200,15 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   > - [x] T-005-26c – REST/CLI propagation (S39-08): extend `EmvCapEvaluationResponse`/`EmvCapReplayResponse` (plus their `Json` serializers) so `trace.provenance` travels through REST payloads unchanged, wire controller assemblers and `TraceAssemblerResponseFactory` helpers accordingly, and mirror the same structure in Picocli JSON output (`EmvCliEvaluateCommand`, `EmvCliEvaluateStoredCommand`, `EmvCliReplayCommand`). Update MockMvc + CLI JSON tests/snapshots first so they fail, then rerun `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"` and `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.*Emv*Trace*"` until the schema validator + identify-baseline fixture comparisons pass.
   > - 2025-11-09: Replay REST + CLI mismatch tests now assert that `trace.expectedOtp` is present, numeric, and equals `provenance.decimalizationOverlay.otp`, ensuring provenance data survives facade serialization. Verified via `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"` and `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.*Emv*Trace*"`.
   > - [x] T-005-27d – Operator UI wiring (S39-08): feed the richer provenance payload through the JS fetch stub, make sure `console.js` passes all six sections to `VerboseTraceConsole.handleResponse`, and extend Selenium coverage so both Evaluate + Replay drawers render `Protocol Context`, `Key Derivation`, `CDOL Breakdown`, `IAD Decoding`, `MAC Transcript`, and `Decimalization Overlay`.
-  > - 2025-11-09 completion: mirrored the provenance fetch into `rest-api/src/main/resources/static/ui/emv/console.js`, `rest-api/src/main/resources/static/ui/shared/verbose-trace.js`, and `rest-api/src/main/resources/static/ui/eudi-openid4vp/console.js` so all console variants forward the protocol context fields; refreshed the Node harness (`node --test rest-api/src/test/javascript/emv/console.test.js`) plus Selenium coverage (`OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`) to assert the six provenance sections render for Evaluate & Replay.
+  > - 2025-11-09 completion: mirrored the provenance fetch into [rest-api/src/main/resources/static/ui/emv/console.js](rest-api/src/main/resources/static/ui/emv/console.js), [rest-api/src/main/resources/static/ui/shared/verbose-trace.js](rest-api/src/main/resources/static/ui/shared/verbose-trace.js), and [rest-api/src/main/resources/static/ui/eudi-openid4vp/console.js](rest-api/src/main/resources/static/ui/eudi-openid4vp/console.js) so all console variants forward the protocol context fields; refreshed the Node harness (`node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`) plus Selenium coverage (`OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`) to assert the six provenance sections render for Evaluate & Replay.
   > - [x] T-005-28e – Snapshot + verification sweep (S39-08): regenerate OpenAPI (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`), CLI snapshots/fixtures, and UI assets once provenance lands, then execute `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check` (≥600 s timeout). Capture the passing command log plus any TODOs in the roadmap and `_current-session.md`.
-  > - 2025-11-09 prep: mirrored `docs/test-vectors/emv-cap/trace-provenance-example.json` into `rest-api/docs/test-vectors/emv-cap/` so Gradle’s JS/Selenium runners (which execute from `rest-api/`) and Spring static assets can resolve the provenance fixture without depending on repo-relative paths. Keep both copies in sync until a dedicated sync task lands.
+  > - 2025-11-09 prep: mirrored [docs/test-vectors/emv-cap/trace-provenance-example.json](docs/test-vectors/emv-cap/trace-provenance-example.json) into ``rest-api/docs/test-vectors/emv-cap`/` so Gradle’s JS/Selenium runners (which execute from `rest-api/`) and Spring static assets can resolve the provenance fixture without depending on repo-relative paths. Keep both copies in sync until a dedicated sync task lands.
   > - 2025-11-09 verification: regenerated the OpenAPI snapshot (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`), then ran the full gate as discrete invocations (`./gradlew --no-daemon --console=plain :application:test`, `:cli:test`, `:rest-api:test`, `:ui:test`, `pmdMain pmdTest`, and finally `spotlessApply check`) so provenance fixtures, PMD, and Spotless all pass together. Logged the green commands in `_current-session.md`.
 
-- [x] T-005-29 – Fixture scaffolding & red tests (S39-01): added `docs/test-vectors/emv-cap/{identify,respond,sign}-baseline.json`, captured session key/cryptogram/overlay/OTP metadata, and introduced `EmvCapSimulationVectorsTest` with deliberate failures pending domain wiring (Gradle run deferred until implementation). Commands: `./gradlew --no-daemon :core:test`.
+- [x] T-005-29 – Fixture scaffolding & red tests (S39-01): added ``docs/test-vectors/emv-cap`/{identify,respond,sign}-baseline.json`, captured session key/cryptogram/overlay/OTP metadata, and introduced `EmvCapSimulationVectorsTest` with deliberate failures pending domain wiring (Gradle run deferred until implementation). Commands: `./gradlew --no-daemon :core:test`.
   _Intent:_ Fixture scaffolding & red tests (S39-01): added
   _Verification commands:_
-  - `docs/test-vectors/emv-cap/{identify,respond,sign}-baseline.json`
+  - ``docs/test-vectors/emv-cap`/{identify,respond,sign}-baseline.json`
   - `./gradlew --no-daemon :core:test`
 
 - [x] T-005-30 – Core implementation (S39-01): implemented session key derivation, CAP mode validation, Generate AC execution, and IPB masking to satisfy T-005-31 tests; introduced negative-path coverage for invalid hex and Identify-mode challenge misuse. Commands: `./gradlew --no-daemon :core:test`, `./gradlew --no-daemon spotlessApply check`.
@@ -232,10 +232,10 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `./gradlew --no-daemon :rest-api:test`
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-35 – Documentation & telemetry verification (S39-10): refreshed roadmap/knowledge map, added `docs/2-how-to/use-emv-cap-rest-operations.md`, updated `_current-session.md`, verified telemetry redaction via `./gradlew --no-daemon :application:test :rest-api:test`, and ran `./gradlew --no-daemon spotlessApply check`.
+- [x] T-005-35 – Documentation & telemetry verification (S39-10): refreshed roadmap/knowledge map, added [docs/2-how-to/use-emv-cap-rest-operations.md](docs/2-how-to/use-emv-cap-rest-operations.md), updated `_current-session.md`, verified telemetry redaction via `./gradlew --no-daemon :application:test :rest-api:test`, and ran `./gradlew --no-daemon spotlessApply check`.
   _Intent:_ Documentation & telemetry verification (S39-10): refreshed roadmap/knowledge map, added
   _Verification commands:_
-  - `docs/2-how-to/use-emv-cap-rest-operations.md`
+  - [docs/2-how-to/use-emv-cap-rest-operations.md](docs/2-how-to/use-emv-cap-rest-operations.md)
   - `./gradlew --no-daemon :application:test :rest-api:test`
   - `./gradlew --no-daemon spotlessApply check`
 
@@ -291,18 +291,18 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   > * 2 mismatch samples per mode capturing negative OTP comparisons for replay regression (Δ offsets ±1 and ±2).
   > - Completed: wired the new fixtures into core/application/REST regression suites using parameterized coverage and reran `./gradlew --no-daemon :core:test :application:test :rest-api:test`.
 
-- [x] T-005-42 – Documentation & full verification (S39-10): published updated how-to guides (`docs/2-how-to/use-emv-cap-rest-operations.md`) and new CLI/UI companions, refreshed `docs/4-architecture/knowledge-map.md` with the extended fixture set, marked Feature 039 replay scope across roadmap/plan/spec, verified OpenAPI snapshots via `:rest-api:test`, and ran the full quality gate on 2025-11-02 (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).
+- [x] T-005-42 – Documentation & full verification (S39-10): published updated how-to guides ([docs/2-how-to/use-emv-cap-rest-operations.md](docs/2-how-to/use-emv-cap-rest-operations.md)) and new CLI/UI companions, refreshed [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md) with the extended fixture set, marked Feature 039 replay scope across roadmap/plan/spec, verified OpenAPI snapshots via `:rest-api:test`, and ran the full quality gate on 2025-11-02 (`./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`).
   _Intent:_ Documentation & full verification (S39-10): published updated how-to guides (
   _Verification commands:_
-  - `docs/2-how-to/use-emv-cap-rest-operations.md`
-  - `docs/4-architecture/knowledge-map.md`
+  - [docs/2-how-to/use-emv-cap-rest-operations.md](docs/2-how-to/use-emv-cap-rest-operations.md)
+  - [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md)
   - `:rest-api:test`
   - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`
 
-- [x] T-005-43 – Replay scaffolding & red tests (S39-05, S39-06): extended the fixture catalogue with stored/inline replay vectors (`docs/test-vectors/emv-cap/replay-fixtures.json`), introduced failing coverage across application (`EmvCapReplayApplicationServiceTest`), REST (`EmvCapReplayEndpointTest`), CLI (`EmvCliReplayTest`), and UI (`EmvCapOperatorUiSeleniumTest`) suites, and documented pending implementation here prior to activation. Commands: `./gradlew --no-daemon :application:test :rest-api:test :cli:test :ui:test` (targeted classes), `./gradlew --no-daemon spotlessApply check` (expected red).
+- [x] T-005-43 – Replay scaffolding & red tests (S39-05, S39-06): extended the fixture catalogue with stored/inline replay vectors ([docs/test-vectors/emv-cap/replay-fixtures.json](docs/test-vectors/emv-cap/replay-fixtures.json)), introduced failing coverage across application (`EmvCapReplayApplicationServiceTest`), REST (`EmvCapReplayEndpointTest`), CLI (`EmvCliReplayTest`), and UI (`EmvCapOperatorUiSeleniumTest`) suites, and documented pending implementation here prior to activation. Commands: `./gradlew --no-daemon :application:test :rest-api:test :cli:test :ui:test` (targeted classes), `./gradlew --no-daemon spotlessApply check` (expected red).
   _Intent:_ Replay scaffolding & red tests (S39-05, S39-06): extended the fixture catalogue with stored/inline replay vectors (
   _Verification commands:_
-  - `docs/test-vectors/emv-cap/replay-fixtures.json`
+  - [docs/test-vectors/emv-cap/replay-fixtures.json](docs/test-vectors/emv-cap/replay-fixtures.json)
   - `./gradlew --no-daemon :application:test :rest-api:test :cli:test :ui:test`
   - `./gradlew --no-daemon spotlessApply check`
 
@@ -325,7 +325,7 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `./gradlew --no-daemon :application:test`  
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-48 – Author `docs/2-how-to/use-emv-cap-from-java.md` and tests (FR-014-03/04, S-014-01/02).  
+- [x] T-005-48 – Author [docs/2-how-to/use-emv-cap-from-java.md](docs/2-how-to/use-emv-cap-from-java.md) and tests (FR-014-03/04, S-014-01/02).  
   _Intent:_ Add an EMV/CAP `*-from-java` guide and tests that drive `EmvCapEvaluationApplicationService` as a façade seam, mirroring the HOTP/TOTP/OCRA/FIDO2 Native Java guides.  
   _Verification commands:_  
   - `./gradlew --no-daemon :application:test`  
@@ -497,7 +497,7 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
 - [x] T-005-67 – Verbose console red tests (S39-08): Stage Node + Selenium assertions that require the shared `VerboseTraceConsole` to appear only when `includeTrace` is enabled and disappears when disabled; cover both Evaluate and Replay flows so the shared toggle contract fails fast until wiring lands.
   _Intent:_ Lock the expected shared-console behaviour (presence, copy CTA, provenance sections) in automated tests before updating implementation.
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"`
   _Notes:_
@@ -508,7 +508,7 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
 - [x] T-005-68 – Verbose console integration (S39-08): Wire EMV/CAP responses through the shared `VerboseTraceConsole.handleResponse`, ensure `includeTrace` flows through REST/CLI/application seams, and update Node/Selenium tests plus CLI/REST trace assertions to go green.
   _Intent:_ Deliver the functional changes demanded by I8b so every facade reuses the shared console controls while keeping trace payloads/parity intact.
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.*Trace*"`
   - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCli*Trace*"`
   - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.*Trace*"`
@@ -534,7 +534,7 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - Update `_current-session.md` with the command log (no command, tracked as a documentation step)
   _Notes:_ Both commands passed (see `_current-session.md` 2025-11-15c/15d logs) and confirm the post-doc refresh build remains green across modules plus the governance `qualityGate` sweep.
 
-- [x] T-005-71 – Replay fixture scaffolding & backend red tests (S39-05): Extend `docs/test-vectors/emv-cap/*.json` with stored/inline mismatch cases, add failing assertions to `EmvCapReplayApplicationServiceTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and `EmvCliReplayTest`, and document the expected telemetry/mismatch payloads.
+- [x] T-005-71 – Replay fixture scaffolding & backend red tests (S39-05): Extend ``docs/test-vectors/emv-cap`/*.json` with stored/inline mismatch cases, add failing assertions to `EmvCapReplayApplicationServiceTest`, `EmvCapReplayEndpointTest`, `EmvCapReplayServiceTest`, and `EmvCliReplayTest`, and document the expected telemetry/mismatch payloads.
   _Intent:_ Capture the replay expectations (preview windows, mismatch deltas, trace payloads) before implementation.
   _Verification commands:_
   - `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.emv.cap.EmvCapReplayApplicationServiceTest.storedReplayMismatchTelemetryIncludesExpectedOtpHash"` (PASS – telemetry now exposes `expectedOtpHash` + `mismatchReason`)
@@ -542,19 +542,19 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapReplayServiceTest.metadataIncludesExpectedOtpHash"` (PASS – REST metadata adapter propagates hashed OTP when telemetry provides it)
   - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliReplayTest.inlineReplayMismatchReturnsMismatchStatus"` (PASS – CLI JSON metadata now includes `expectedOtpHash`)
   _Notes:_
-  > - Added `docs/test-vectors/emv-cap/replay-mismatch.json` (FX-005-04) plus `EmvCapReplayMismatchFixtures` to keep hashed OTP expectations deterministic; the follow-up implementation (T-005-73) wires telemetry + metadata so `expectedOtpHash` and `mismatchReason` surface across application/REST/CLI as required by TE-005-05.
+  > - Added [docs/test-vectors/emv-cap/replay-mismatch.json](docs/test-vectors/emv-cap/replay-mismatch.json) (FX-005-04) plus `EmvCapReplayMismatchFixtures` to keep hashed OTP expectations deterministic; the follow-up implementation (T-005-73) wires telemetry + metadata so `expectedOtpHash` and `mismatchReason` surface across application/REST/CLI as required by TE-005-05.
 
 - [x] T-005-72 – Replay UI placeholders (S39-05): Add Replay tab placeholders in the operator console JS + Selenium suites (Evaluate/Replay drawer interactions, OTP mismatch messaging, includeTrace toggle) and guard them with `@Disabled`/TODO markers so they fail fast once re-enabled.
   _Intent:_ Ensure UI automation is ready the moment replay implementation resumes, without blocking Feature 005’s current review.
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   _Notes:_
   > - Replay result card now exposes a diagnostics banner with explicit `data-placeholder="T-005-72"` markup, the JS stores hashed OTP metadata and renders a hashed OTP guidance banner when mismatches occur and verbose tracing is disabled, and Node/Selenium suites now exercise the banner copy/CTA behaviour directly (tests were originally skipped/`@Disabled` and have been re-enabled now that TE-005-05 telemetry is wired).
 
 - [x] T-005-74 – Replay mismatch banner & UI coverage (S39-05): Activate the Replay mismatch banner, wire hashed OTP metadata and verbose-trace guidance into the operator console, and enable the T-005-72 Node/Selenium tests.
   _Intent:_ Surface hashed OTP diagnostics and clear guidance in the UI when replay mismatches occur without verbose tracing, keeping operators aligned with the backend telemetry.
   _Verification commands:_
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest.replayMismatchDisplaysDiagnosticsBanner"`
   _Notes:_
   > - The EMV/CAP replay result card now shows a visible banner on mismatch responses when telemetry includes `expectedOtpHash` but the global “Enable verbose tracing for the next request” toggle is disabled; the banner copy surfaces the `sha256:` digest and instructs operators to enable verbose tracing and replay for full diagnostics, and the CTA button becomes enabled (no longer `disabled`/`aria-disabled`) while leaving replay submission mechanics unchanged.
@@ -575,7 +575,7 @@ Linked plan: `docs/4-architecture/features/005/plan.md`
 ## Verification log
 - 2025-11-09 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
 - 2025-11-09 – `./gradlew --no-daemon --console=plain :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`
-- 2025-11-09 – `node --test rest-api/src/test/javascript/emv/console.test.js`
+- 2025-11-09 – `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
 - 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration sweep)
 
 ## Notes / TODOs

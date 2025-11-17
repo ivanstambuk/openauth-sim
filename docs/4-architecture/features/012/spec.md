@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/012/plan.md` |
-| Linked tasks | `docs/4-architecture/features/012/tasks.md` |
+| Linked plan | [docs/4-architecture/features/012/plan.md](docs/4-architecture/features/012/plan.md) |
+| Linked tasks | [docs/4-architecture/features/012/tasks.md](docs/4-architecture/features/012/tasks.md) |
 | Roadmap entry | #12 – Core Cryptography & Persistence |
 
 ## Overview
@@ -30,7 +30,7 @@ source for persistence guidance.
 - G-012-03 – Keep persistence documentation warning-free by capturing IDE remediation steps, toolchain updates, and
   verification commands.
 - G-012-04 – Maintain roadmap/knowledge-map/architecture-graph references and log verification commands in
-  `_current-session.md` + session log (docs/_current-session.md) entries for every persistence documentation change.
+  `_current-session.md` + session log ([docs/_current-session.md](docs/_current-session.md)) entries for every persistence documentation change.
 
 ## Non-Goals
 - Shipping new persistence code, storage backends, or schema changes in this documentation-only iteration.
@@ -47,7 +47,7 @@ source for persistence guidance.
 | FR-012-05 | Standardise the default credential-store filename (`credentials.db`) across all facades and document manual migration guidance (rename legacy files or supply explicit paths). | Factories default to `credentials.db`; CLI help/REST config/UI copy mention the shared default; docs explain manual migration steps. | `rg "credentials.db"` across docs; CLI/REST tests assert defaults; Selenium flows show updated copy. | Legacy filenames referenced or fallback logic reintroduced. | Logs only mention overrides (no noise for defaults). | Spec |
 | FR-012-06 | Remove legacy filename detection and require explicit overrides for custom paths; log overrides deterministically. | `CredentialStoreFactory` rejects implicit legacy file detection; logs structured override lines with `explicit=true`. | Unit tests assert default vs override cases; docs mention `--credential-store-path`. | Silent fallback occurs or logs spam defaults. | `persistence.defaultPathSelected` log (explicit only). | Spec |
 | FR-012-07 | Record IDE warning remediation steps (assertion tightening, DTO extraction, SpotBugs annotation export, transient REST exception fields) so persistence modules remain warning-free. | Docs capture remediation scope; application/core/CLI/REST/UI tests cover new assertions; SpotBugs annotations exported via `compileOnlyApi`. | `./gradlew --no-daemon :application:test :core:test :cli:test :rest-api:test :ui:test spotlessApply check`; IDE snapshot referenced in plan/tasks. | Warnings reappear or documentation omits context. | No telemetry change. | Spec |
-| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log (docs/_current-session.md)) and list executed commands in `_current-session.md`. | Session logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Spec |
+| FR-012-08 | Log every persistence documentation update (spec/plan/tasks, roadmap, knowledge map, architecture graph, session log ([docs/_current-session.md](docs/_current-session.md))) and list executed commands in `_current-session.md`. | Session logs mention commands (`rg`, `spotlessApply`, doc edits); open questions stay empty. | Manual review before closing tasks. | Auditors cannot trace persistence doc changes. | None. | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -107,7 +107,7 @@ source for persistence guidance.
 | S-012-05 | Unified `credentials.db` default adopted across factories, CLI/REST/UI, and documentation. |
 | S-012-06 | Manual migration guidance explains renaming legacy files or providing explicit paths. |
 | S-012-07 | IDE warning remediation recorded; tests/assertions strengthened without regressions. |
-| S-012-08 | Roadmap/knowledge map/session log (docs/_current-session.md)/session logs capture persistence doc updates + commands. |
+| S-012-08 | Roadmap/knowledge map/session log ([docs/_current-session.md](docs/_current-session.md))/session logs capture persistence doc updates + commands. |
 
 ## Test Strategy
 - **Benchmarks/Profiles:** Reference existing performance notes when running persistence benchmarks; ensure cache-hit metrics
@@ -156,7 +156,7 @@ source for persistence guidance.
 | ID | Path | Purpose |
 |----|------|---------|
 | FX-012-01 | `docs/test-vectors/ocra/` + credential-store snapshots | Used for cache tuning + maintenance smoke tests.
-| FX-012-02 | `data/credentials.db` | Unified default path referenced in docs/tests.
+| FX-012-02 | [data/credentials.db](data/credentials.db) | Unified default path referenced in docs/tests.
 | FX-012-03 | Performance benchmark notes (appendix referenced from plan) | Record throughput/P99 measurements.
 
 ### UI States
@@ -174,12 +174,12 @@ Persistence telemetry uses the `TelemetryContracts` adapters so CLI/REST/UI logg
 
 ## Documentation Deliverables
 - Roadmap, knowledge map, and architecture graph mention Feature 012 as the persistence/polishing owner.
-- How-to guides (`docs/2-how-to/configure-persistence-profiles.md`, credential store maintenance docs) describe profiles,
+- How-to guides ([docs/2-how-to/configure-persistence-profiles.md](docs/2-how-to/configure-persistence-profiles.md), credential store maintenance docs) describe profiles,
   defaults, maintenance commands, encryption toggles, and manual migration steps.
 - `_current-session.md` logs each documentation change + verification command.
 
 ## Fixtures & Sample Data
-- `data/credentials.db` is the canonical default and appears in docs/test updates plus CLI/REST smoke tests.
+- [data/credentials.db](data/credentials.db) is the canonical default and appears in docs/test updates plus CLI/REST smoke tests.
 - `docs/test-vectors/ocra/` credential-store snapshots power cache tuning and maintenance regression suites, ensuring consistent fixture states.
 - Performance benchmark notes (see Feature 012 plan appendix) capture throughput/P99 metrics referenced by the documentation.
 

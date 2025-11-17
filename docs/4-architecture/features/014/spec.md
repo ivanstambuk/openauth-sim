@@ -5,11 +5,11 @@
 | Status | Complete |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/014/plan.md` |
-| Linked tasks | `docs/4-architecture/features/014/tasks.md` |
+| Linked plan | [docs/4-architecture/features/014/plan.md](docs/4-architecture/features/014/plan.md) |
+| Linked tasks | [docs/4-architecture/features/014/tasks.md](docs/4-architecture/features/014/tasks.md) |
 | Roadmap entry | #14 – Native Java API Facade |
 
-> Guardrail: This specification is the single normative source of truth for the Native Java API facade. High- and medium-impact questions about Java entry points, stability guarantees, or Javadoc publishing must be tracked in `docs/4-architecture/open-questions.md`, encoded here once resolved, and mirrored into ADRs (for example ADR-0007) when they materially affect architecture. Do not introduce per-feature “Clarifications” sections; use this spec plus ADRs instead.
+> Guardrail: This specification is the single normative source of truth for the Native Java API facade. High- and medium-impact questions about Java entry points, stability guarantees, or Javadoc publishing must be tracked in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md), encoded here once resolved, and mirrored into ADRs (for example ADR-0007) when they materially affect architecture. Do not introduce per-feature “Clarifications” sections; use this spec plus ADRs instead.
 
 ## Overview
 Define Native Java API usage as a first-class facade across the OpenAuth Simulator so external Java 17 applications can
@@ -29,7 +29,7 @@ the existing OCRA Native Java API.
   and stability expectations for those entry points.
 - G-014-03 – Ensure each protocol feature (HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW OpenID4VP) has explicit plan
   and tasks backlog items to (a) expose a Native Java API and (b) publish at least one `*-from-java` how-to guide.
-- G-014-04 – Keep DeepWiki and docs/2-how-to aligned so the “Native Java API” surface is visible and discoverable for all
+- G-014-04 – Keep DeepWiki and `docs/2-how-to` aligned so the “Native Java API” surface is visible and discoverable for all
   protocols once their APIs are implemented.
 
 ## Non-Goals
@@ -43,18 +43,18 @@ the existing OCRA Native Java API.
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-014-01 | Document Native Java API as a fourth facade alongside CLI, REST, and operator UI for all protocols. | README, docs/2-how-to, DeepWiki, and this spec consistently describe Native Java as a supported consumption surface across protocols. | Manual review of README, docs/2-how-to, `.devin/wiki.json`, and DeepWiki pages; `rg "Native Java API"` across docs shows consistent messaging. | Docs omit Native Java or describe it only for OCRA. | No new telemetry; relies on existing protocol events. | ADR-0007, Feature 010 spec. |
+| FR-014-01 | Document Native Java API as a fourth facade alongside CLI, REST, and operator UI for all protocols. | README, `docs/2-how-to`, DeepWiki, and this spec consistently describe Native Java as a supported consumption surface across protocols. | Manual review of README, `docs/2-how-to`, [.devin/wiki.json](.devin/wiki.json), and DeepWiki pages; `rg "Native Java API"` across docs shows consistent messaging. | Docs omit Native Java or describe it only for OCRA. | No new telemetry; relies on existing protocol events. | ADR-0007, Feature 010 spec. |
 | FR-014-02 | Define a per-protocol Native Java API pattern that OCRA and future protocols follow. | Spec enumerates expectations for entry-point classes, DTOs, error/exception semantics, telemetry hooks, and stability guarantees (including package placement and naming rules); OCRA’s existing API is annotated as the reference; other features inherit this pattern in their specs/plans. | Spec sections and ADR-0007 reference the pattern; at least one additional protocol feature (e.g., HOTP or TOTP) documents a planned Native Java API increment referencing this spec. | Protocol features define ad-hoc Java entry points that diverge from the pattern. | Existing telemetry events remain unchanged; Java APIs reuse telemetry adapters where applicable. | ADR-0007, Feature 003 spec/plan/tasks. |
 | FR-014-03 | Seed backlog items in Features 001, 002, 004, 005, and 006 to expose Native Java APIs and `*-from-java` guides. | Each referenced feature plan’s Follow-ups/Backlog section lists a Native Java API increment referencing this spec/ADR-0007; tasks files mention future `*-from-java` guides where appropriate. | Manual inspection of feature plans/tasks and roadmap; `_current-session.md` logs the planning change. | No cross-feature backlog exists; Native Java remains OCRA-only. | None. | Spec, ADR-0007. |
-| FR-014-04 | Keep DeepWiki and how-to docs aligned with Native Java API governance. | `.devin/wiki.json` includes a Native Java API page and repo notes describing four surfaces; docs/2-how-to lists per-surface guides, including Native Java; DeepWiki renders a Native Java API page that points to per-protocol guides as they are added. | DeepWiki and docs are checked after each major Native Java API increment; discrepancies are recorded in Feature 014 plan/tasks. | DeepWiki omits or misrepresents Native Java usage, or docs drift away from implemented APIs. | None. | Feature 010 spec/plan, `.devin/wiki.json`. |
+| FR-014-04 | Keep DeepWiki and how-to docs aligned with Native Java API governance. | [.devin/wiki.json](.devin/wiki.json) includes a Native Java API page and repo notes describing four surfaces; `docs/2-how-to` lists per-surface guides, including Native Java; DeepWiki renders a Native Java API page that points to per-protocol guides as they are added. | DeepWiki and docs are checked after each major Native Java API increment; discrepancies are recorded in Feature 014 plan/tasks. | DeepWiki omits or misrepresents Native Java usage, or docs drift away from implemented APIs. | None. | Feature 010 spec/plan, [.devin/wiki.json](.devin/wiki.json). |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
 | NFR-014-01 | Consistent API style | Reduce friction for Java consumers by aligning naming, packaging, and error-handling across protocol APIs. | Code review of new Native Java APIs; style guidelines captured in Feature 014 plan/tasks. | `core`, `application` modules; Java 17 language features. | ADR-0007. |
-| NFR-014-02 | Documentation parity | Native Java APIs ship with how-to guides and, when feasible, Javadoc published in `docs/3-reference/`. | Presence of `*-from-java` how-to guides and a documented Javadoc generation command in Feature 014 plan/tasks. | Gradle Javadoc tasks, docs/3-reference. | Spec, ADR-0007. |
+| NFR-014-02 | Documentation parity | Native Java APIs ship with how-to guides and, when feasible, Javadoc published in ``docs/3-reference`/`. | Presence of `*-from-java` how-to guides and a documented Javadoc generation command in Feature 014 plan/tasks. | Gradle Javadoc tasks, `docs/3-reference`. | Spec, ADR-0007. |
 | NFR-014-03 | Governance & stability | Native Java entry points remain changeable under the greenfield constitution but may only change via spec/ADR updates and with docs/tests kept in sync. | Protocol specs/plans reference this feature when changing Native Java APIs; review of ADRs and `_current-session.md` logs shows deliberate changes. | Feature specs 001–006, ADR-0007, Feature 010. | Constitution, ADR-0007. |
-| NFR-014-04 | Public Javadoc hygiene | Keep public-facing Javadoc (as published via `:core:javadoc`, `:application:javadoc`, and `:application:nativeJavaApiJavadoc`) free of internal roadmap identifiers (Feature/FR/NFR/T numbers); describe behaviour via protocol names, standards, and how-to docs instead. | Automated guard in `core-architecture-tests` scans aggregated Javadoc for forbidden identifiers; manual spot checks compare Javadoc to `docs/2-how-to/*-from-java.md`. | Gradle Javadoc tasks, core-architecture-tests module, docs/2-how-to. | Spec, ADR-0008. |
+| NFR-014-04 | Public Javadoc hygiene | Keep public-facing Javadoc (as published via `:core:javadoc`, `:application:javadoc`, and `:application:nativeJavaApiJavadoc`) free of internal roadmap identifiers (Feature/FR/NFR/T numbers); describe behaviour via protocol names, standards, and how-to docs instead. | Automated guard in `core-architecture-tests` scans aggregated Javadoc for forbidden identifiers; manual spot checks compare Javadoc to ``docs/2-how-to`/*-from-java.md`. | Gradle Javadoc tasks, core-architecture-tests module, `docs/2-how-to`. | Spec, ADR-0008. |
 
 ## UI / Interaction Mock-ups
 This feature has no UI-facing changes; operator console behaviour remains governed by existing protocol features and
@@ -64,7 +64,7 @@ configuration.
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-014-01 | Readers can discover and understand Native Java API usage for at least OCRA plus one additional protocol via docs/2-how-to and DeepWiki. |
+| S-014-01 | Readers can discover and understand Native Java API usage for at least OCRA plus one additional protocol via `docs/2-how-to` and DeepWiki. |
 | S-014-02 | Feature plans/tasks for 001, 002, 004, 005, and 006 contain explicit backlog entries to expose or refine Native Java APIs under this spec. |
 
 ## Test Strategy
@@ -75,7 +75,7 @@ configuration.
 - **REST/CLI/UI:** No direct changes; existing tests remain the source of truth for those facades, but Native Java flows
   should be able to reproduce REST/CLI/UI behaviour using shared fixtures.
 - **UI (JS/Selenium):** No changes expected; rely on existing end-to-end coverage per protocol.
-- **Docs/Contracts:** Treat `docs/2-how-to/*-from-java.md` guides as executable specifications; spot-check against current
+- **Docs/Contracts:** Treat ``docs/2-how-to`/*-from-java.md` guides as executable specifications; spot-check against current
   APIs and update when APIs change.
 
 ## Interface & Contract Catalogue
@@ -103,7 +103,7 @@ configuration.
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-014-01 | docs/test-vectors/** | Existing fixture catalogues used by Native Java examples in `*-from-java` guides. |
+| FX-014-01 | `docs/test-vectors`/** | Existing fixture catalogues used by Native Java examples in `*-from-java` guides. |
 
 ### UI States
 | ID | State | Trigger / Expected outcome |
@@ -125,19 +125,18 @@ This section defines what “Native Java API” means in this repository and how
   Catalogue” and reference FR-014-01..04 so the seam remains traceable.
 - For HOTP (Feature 001), `io.openauth.sim.application.hotp.HotpEvaluationApplicationService` and its
   `EvaluationCommand` / `EvaluationResult` types act as the Native Java entry point once T-001-21/22 complete, with
-  usage governed by this pattern and `docs/2-how-to/use-hotp-from-java.md`.
+  usage governed by this pattern and [docs/2-how-to/use-hotp-from-java.md](docs/2-how-to/use-hotp-from-java.md).
 - For TOTP (Feature 002), `io.openauth.sim.application.totp.TotpEvaluationApplicationService` and its
   `EvaluationCommand` / `EvaluationResult` types act as the Native Java entry point once T-002-19/20 complete, with
-  usage governed by this pattern and `docs/2-how-to/use-totp-from-java.md`.
+  usage governed by this pattern and [docs/2-how-to/use-totp-from-java.md](docs/2-how-to/use-totp-from-java.md).
 - For FIDO2/WebAuthn (Feature 004), `io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService` and its
   `EvaluationCommand` / `EvaluationResult` types act as the Native Java entry point for assertion evaluation once
-  T-004-08/09 complete, with usage governed by this pattern and `docs/2-how-to/use-fido2-from-java.md`.
+  T-004-08/09 complete, with usage governed by this pattern and [docs/2-how-to/use-fido2-from-java.md](docs/2-how-to/use-fido2-from-java.md).
 - For EMV/CAP (Feature 005), `io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService` and its
   `EvaluationRequest` / `EvaluationResult` types act as the Native Java entry point once T-005-47/48 complete, with
-  usage governed by this pattern and `docs/2-how-to/use-emv-cap-from-java.md`.
-- For EUDIW OpenID4VP (Feature 006), `io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService`
-  and `OpenId4VpValidationService` act as the Native Java entry points for wallet simulation and validation once
-  T-006-28/29 complete, with usage governed by this pattern and `docs/2-how-to/use-eudiw-from-java.md`.
+  usage governed by this pattern and [docs/2-how-to/use-emv-cap-from-java.md](docs/2-how-to/use-emv-cap-from-java.md).
+- For EUDIW OpenID4VP (Feature 006), `io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService` and `OpenId4VpValidationService` act as the Native Java entry points for wallet simulation and validation once
+  T-006-28/29 complete, with usage governed by this pattern and [docs/2-how-to/use-eudiw-from-java.md](docs/2-how-to/use-eudiw-from-java.md).
 
 ### Naming & style
 - Entry-point classes SHOULD:
@@ -173,10 +172,10 @@ This section defines what “Native Java API” means in this repository and how
     `OpenId4VpWalletSimulationService`, `OpenId4VpValidationService`, and future seams).
   - A future Feature 010 increment will own a dedicated aggregation task (for example,
     `:application:nativeJavaApiJavadoc`) that runs the relevant Javadoc tasks and exports either a zipped bundle or
-    curated reference pages into `docs/3-reference/native-java-api/`.
-  - Offline snapshots under `docs/3-reference/native-java-api/` MUST remain small and focused (indexes or curated
-    summaries) rather than full HTML trees; the full Javadoc output stays in `build/docs/javadoc` artefacts.
-- `docs/2-how-to/*-from-java.md` guides SHOULD reuse the same terminology and types as the Javadoc and avoid duplicating
+    curated reference pages into ``docs/3-reference/native-java-api`/`.
+  - Offline snapshots under ``docs/3-reference/native-java-api`/` MUST remain small and focused (indexes or curated
+    summaries) rather than full HTML trees; the full Javadoc output stays in build/docs/javadoc artefacts.
+- ``docs/2-how-to`/*-from-java.md` guides SHOULD reuse the same terminology and types as the Javadoc and avoid duplicating
   low-level details; they act as entry-level runbooks rather than full API references and SHOULD link to the Native Java
-  API reference in `docs/3-reference/native-java-api/` once it is available. These guides remain the preferred location
+  API reference in ``docs/3-reference/native-java-api`/` once it is available. These guides remain the preferred location
   for referencing feature/task identifiers when needed because they are internal artefacts.

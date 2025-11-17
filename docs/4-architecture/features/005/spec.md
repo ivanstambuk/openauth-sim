@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/005/plan.md` |
-| Linked tasks | `docs/4-architecture/features/005/tasks.md` |
+| Linked plan | [docs/4-architecture/features/005/plan.md](docs/4-architecture/features/005/plan.md) |
+| Linked tasks | [docs/4-architecture/features/005/tasks.md](docs/4-architecture/features/005/tasks.md) |
 | Roadmap entry | #5 – EMV/CAP Evaluation & Replay |
 
 ## Overview
@@ -74,7 +74,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
      - **CDOL/IAD decoding & validation** – ordered tag/length/source tables with byte offsets, resolved hex, and decoded CVR/IAD metadata so operators can verify every TLV that fed `GENERATE AC`.
      - **MAC transcript details** – MAC algorithm (3DES-CBC-MAC today), IV, padding rule, block-by-block notes, CID interpretation, and the raw Generate AC response so cryptogram derivations are reproducible.
      - **Decimalization & overlay proof** – declared decimalization table (derived from IPB), concatenated source string (e.g., `AC||ATC`), mask pattern, and per-digit overlay steps that lead to the final OTP digits.
-  5. Introduce fixtures under `docs/test-vectors/emv-cap/*.json` capturing canonical inputs/outputs, seeded with the transcript sample and placeholders for user-supplied vectors. Maintain coverage for:
+  5. Introduce fixtures under ``docs/test-vectors/emv-cap`/*.json` capturing canonical inputs/outputs, seeded with the transcript sample and placeholders for user-supplied vectors. Maintain coverage for:
      - Baseline identify/respond/sign flows (`identify-baseline`, `respond-baseline`, `sign-baseline`).
      - Additional identify variations spanning branch factor/height pairs (`identify-b2-h6`, `identify-b6-h10`).
      - Respond challenges covering short/long inputs (`respond-challenge4`, `respond-challenge8`).
@@ -180,12 +180,12 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
   - CLI JSON output MUST equal the REST representation byte-for-byte (ordering aside). Text-mode traces can pretty-print, but the underlying data source must still populate the JSON structure.
   - Operator UI traces reuse the same JSON via `VerboseTraceConsole`. Rendered labels/sections must map one-to-one with the schema keys (`Protocol Context`, `Key Derivation`, `CDOL Breakdown`, `IAD Decoding`, `MAC Transcript`, `Decimalization Overlay`).
   - Replay flows reuse the identical schema; mismatches add an `expectedOtp` field (already defined elsewhere) but may not omit provenance objects.
-  - Example objects in the spec and docs serve as golden fixtures; update `docs/test-vectors/emv-cap/*.json` when fields change to keep automated snapshots deterministic.
+  - Example objects in the spec and docs serve as golden fixtures; update ``docs/test-vectors/emv-cap`/*.json` when fields change to keep automated snapshots deterministic.
   - Acceptance tests:
     1. `EmvCapEvaluationApplicationServiceTest` and `EmvCapReplayApplicationServiceTest` assert the full schema (including empty arrays) and enforce the format constraints.
     2. `EmvCapEvaluationEndpointTest`/`EmvCapReplayEndpointTest` capture MockMvc snapshots for `includeTrace=true` and keep OpenAPI snapshots in sync.
     3. `EmvCliEvaluateTest` and `EmvCliReplayTest` compare `--output-json` responses against the REST payload to guarantee parity.
-    4. `rest-api/src/test/javascript/emv/console.test.js` plus `EmvCapOperatorUiSeleniumTest` assert that `VerboseTraceConsole` renders each provenance section with the expected labels/values.
+    4. [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js) plus `EmvCapOperatorUiSeleniumTest` assert that `VerboseTraceConsole` renders each provenance section with the expected labels/values.
 - **Validation path:** Reject invalid EMV/CAP inputs and surface detailed problem details per Scenario Matrix.
 - **Failure path:** Abort with protocol-specific errors (`invalid_request`, `invalid_scope`, `otp_mismatch`) and log telemetry.
 - **Telemetry & traces:** Refer to `emv.cap.*` events and verbose trace schema; ensure secrets are redacted per specification.
@@ -445,7 +445,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
 | NFR-005-01 | Master keys always redacted (digest + length) while session keys remain visible only in traces. | Prevent sensitive key exposure without losing troubleshooting detail. | `TraceSchemaAssertions`, telemetry snapshot review, and UI/CLI log inspections. | `TelemetryContracts`, `EmvCapTraceProvenanceSchema`, `VerboseTraceConsole`. | Project governance. |
-| NFR-005-02 | Fixture-driven executions remain deterministic across core/application/REST/CLI/UI. | Ensure reproducible coverage + debugging fidelity. | Regression suites comparing fixture outputs + seeded MapDB runs. | `docs/test-vectors/emv-cap/*.json`, MapDB credential store, application service tests. | Project governance. |
+| NFR-005-02 | Fixture-driven executions remain deterministic across core/application/REST/CLI/UI. | Ensure reproducible coverage + debugging fidelity. | Regression suites comparing fixture outputs + seeded MapDB runs. | ``docs/test-vectors/emv-cap`/*.json`, MapDB credential store, application service tests. | Project governance. |
 | NFR-005-03 | REST/CLI/UI contracts stay synchronized (payloads, preview controls, documentation). | Preserve operator experience parity and documentation accuracy. | MockMvc, Picocli, Selenium/Node parity checks + doc updates per increment. | `EmvCapEvaluationEndpointTest`, `EmvCliTest`, `EmvCapOperatorUiSeleniumTest`, docs workflow. | Project governance. |
 
 ### NFR-005-01
@@ -459,7 +459,7 @@ Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors
 - **Requirement:** Fixture-driven evaluations must remain deterministic so the same inputs yield identical session keys, cryptograms, OTPs, and traces across CLI/REST/UI.
 - **Driver:** Keep regression coverage stable and reproducible.
 - **Measurement:** Fixture smoke tests plus application/service suites assert deterministic outputs under seeded MapDB stores.
-- **Dependencies:** `docs/test-vectors/emv-cap/*.json`, MapDB credential store, `EmvCapEvaluationApplicationServiceTest`.
+- **Dependencies:** ``docs/test-vectors/emv-cap`/*.json`, MapDB credential store, `EmvCapEvaluationApplicationServiceTest`.
 - **Source:** Project governance.
 
 ### NFR-005-03
@@ -679,19 +679,19 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 - Roadmap entry #39 documents the EMV/CAP rollout, verbose trace schema, and credential seeding guardrails.
 - Knowledge map links `core.emv.cap`, application services, REST/CLI facades, and operator console panels.
 - Operator how-to guides for REST/CLI/UI document stored vs inline flows, preview windows, and telemetry expectations.
-- Telemetry appendix (`docs/3-reference/emv-cap-telemetry.md`) captures the `emv.cap.*` events and redaction rules.
+- Telemetry appendix (docs/3-reference/emv-cap-telemetry.md) captures the `emv.cap.*` events and redaction rules.
 
 ## Fixtures & Sample Data
-- `docs/test-vectors/emv-cap/identify-baseline.json` – transcript baseline.
-- `docs/test-vectors/emv-cap/respond-challenge4.json` / `respond-challenge8.json` – Respond scenarios.
-- `docs/test-vectors/emv-cap/sign-amount-0845.json` / `sign-amount-50375.json` – Sign flows with different amounts.
-- `docs/test-vectors/emv-cap/replay-mismatch.json` – Stored mismatch coverage.
-- `docs/test-vectors/emv-cap/credentials.json` – Seed dataset for stored credentials (digests only).
+- [docs/test-vectors/emv-cap/identify-baseline.json](docs/test-vectors/emv-cap/identify-baseline.json) – transcript baseline.
+- [docs/test-vectors/emv-cap/respond-challenge4.json](docs/test-vectors/emv-cap/respond-challenge4.json) / `respond-challenge8.json` – Respond scenarios.
+- [docs/test-vectors/emv-cap/sign-amount-0845.json](docs/test-vectors/emv-cap/sign-amount-0845.json) / `sign-amount-50375.json` – Sign flows with different amounts.
+- [docs/test-vectors/emv-cap/replay-mismatch.json](docs/test-vectors/emv-cap/replay-mismatch.json) – Stored mismatch coverage.
+- docs/test-vectors/emv-cap/credentials.json – Seed dataset for stored credentials (digests only).
 
 ### Native Java API
 | ID | Entry point | Description | Notes |
 |----|-------------|-------------|-------|
-| NJ-005-01 | `io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService` | Application-level EMV/CAP evaluation service used as the Native Java API seam for Identify/Respond/Sign simulations. | Mirrors CLI/REST EMV/CAP evaluation semantics (including preview windows and verbose trace payloads); callers construct `EvaluationRequest` records and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-emv-cap-from-java.md`. |
+| NJ-005-01 | `io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService` | Application-level EMV/CAP evaluation service used as the Native Java API seam for Identify/Respond/Sign simulations. | Mirrors CLI/REST EMV/CAP evaluation semantics (including preview windows and verbose trace payloads); callers construct `EvaluationRequest` records and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in [docs/2-how-to/use-emv-cap-from-java.md](docs/2-how-to/use-emv-cap-from-java.md). |
 
 ## Spec DSL
 ```

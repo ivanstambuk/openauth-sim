@@ -1,6 +1,6 @@
 # CLI OCRA Telemetry Snapshot
 
-Captured on 2025-09-28 using `./gradlew :cli:runOcraCli` commands with a scratch database at `build/tmp/cli-ocra/docs.db`.
+Captured on 2025-09-28 using `./gradlew :cli:runOcraCli` commands with a scratch database at build/tmp/cli-ocra/docs.db.
 
 ```bash
 ./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db import --credential-id docs-token --suite OCRA-1:HOTP-SHA1-6:QN08 --secret 3132333435363738393031323334353637383930"

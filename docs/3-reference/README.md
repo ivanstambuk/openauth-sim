@@ -22,15 +22,15 @@ These documents describe each supported protocol’s flows and message shapes, i
 
 ### Diagram theming and regeneration
 
-All protocol diagrams under `docs/3-reference/protocols/diagrams/` **must** use the shared PlantUML theme in `docs/3-reference/protocols/diagrams/sequence-classic-theme.puml` and be rendered with the local PlantUML JAR, not the online server.
+All protocol diagrams under ``docs/3-reference/protocols/diagrams`/` **must** use the shared PlantUML theme in [docs/3-reference/protocols/diagrams/sequence-classic-theme.puml](docs/3-reference/protocols/diagrams/sequence-classic-theme.puml) and be rendered with the local PlantUML JAR, not the online server.
 
 - Theme: keep `sequence-classic-theme.puml` as the single source of truth for colours, fonts, DPI, and shadows. Update it before re-rendering if the visual style needs to change.
 - Single-diagram refresh (from the workspace root):  
-  `java -jar tools/plantuml/plantuml.jar -config docs/3-reference/protocols/diagrams/sequence-classic-theme.puml docs/3-reference/protocols/diagrams/<diagram>.puml`
+  `java -jar [tools/plantuml/plantuml.jar](tools/plantuml/plantuml.jar) -config [docs/3-reference/protocols/diagrams/sequence-classic-theme.puml](docs/3-reference/protocols/diagrams/sequence-classic-theme.puml) `docs/3-reference/protocols/diagrams`/<diagram>.puml`
 - Batch refresh for all protocol diagrams:  
-  `java -jar tools/plantuml/plantuml.jar -config docs/3-reference/protocols/diagrams/sequence-classic-theme.puml docs/3-reference/protocols/diagrams/*.puml`
-- Do **not** commit PNGs that were captured via IDE “remote/server” rendering modes or the public `plantuml.com` service; always regenerate committed assets using the local `tools/plantuml/plantuml.jar` command above so outputs remain deterministic across environments.
+  `java -jar [tools/plantuml/plantuml.jar](tools/plantuml/plantuml.jar) -config [docs/3-reference/protocols/diagrams/sequence-classic-theme.puml](docs/3-reference/protocols/diagrams/sequence-classic-theme.puml) `docs/3-reference/protocols/diagrams`/*.puml`
+- Do **not** commit PNGs that were captured via IDE “remote/server” rendering modes or the public `plantuml.com` service; always regenerate committed assets using the local [tools/plantuml/plantuml.jar](tools/plantuml/plantuml.jar) command above so outputs remain deterministic across environments.
 
 ## Pending Artifacts
-- Native Java API Javadoc index under `docs/3-reference/native-java-api/` (curated index still pending; generate full Javadoc with `./gradlew --no-daemon :application:nativeJavaApiJavadoc`, which runs `:core:javadoc` and `:application:javadoc` and writes HTML to `core/build/docs/javadoc` and `application/build/docs/javadoc`).
+- Native Java API Javadoc index under ``docs/3-reference/native-java-api`/` (curated index still pending; generate full Javadoc with `./gradlew --no-daemon :application:nativeJavaApiJavadoc`, which runs `:core:javadoc` and `:application:javadoc` and writes HTML to `core/build/docs/javadoc` and `application/build/docs/javadoc`).
 - Open standard specifications (FIDO2/WebAuthn, OATH/OCRA, EUDI wallet, EMV) via external links captured in future documentation updates.

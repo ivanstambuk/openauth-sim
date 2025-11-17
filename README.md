@@ -1,23 +1,115 @@
 # OpenAuth Simulator
 
-OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating contemporary authentication credentials and protocols (FIDO2/WebAuthn, OATH/OCRA, EUDI wallet artefacts, EMV/CAP, and future additions). The project is intentionally greenfield and non-production; we optimise for fast iteration by AI agents, incremental steps under ten minutes, and the ability to crush and rebuild APIs as requirements evolve. The simulator can be consumed via four surfaces: a Native Java API, CLI commands, REST API endpoints, and an operator console web UI.
+OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating contemporary authentication credentials and protocols (HOTP/TOTP, OATH OCRA, EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP wallet artefacts). The project is intentionally greenfield and non-production; we optimise for fast iteration by AI agents, incremental steps under ten minutes, and the ability to crush and rebuild APIs as requirements evolve. The simulator can be consumed via four surfaces: a Native Java API, CLI commands, REST API endpoints, and an operator console web UI.
 
-## Current status (2025-09-30)
+## What is this?
 
-- ✅ `core` provides the OCRA credential domain and Native Java API seam, plus persistence adapters and ArchUnit guards used by all other facades.
-- ✅ `cli` ships Picocli commands for importing, listing, deleting, evaluating credentials, and running MapDB maintenance tasks.
-- ✅ `rest-api` exposes `/api/v1/ocra/evaluate` and `/api/v1/ocra/credentials`, publishes OpenAPI snapshots, and serves Swagger UI at `http://localhost:8080/swagger-ui/index.html` when booted locally.
-- ✅ `ui` hosts the operator console at `/ui/console`, reusing the REST endpoints for inline and stored-credential evaluations.
-- ✅ Documentation under `docs/` now covers operator workflows across Java integrations, CLI usage, REST operations, test vector generation, and persistence tuning.
+- Simulates OATH HOTP/TOTP and OCRA (RFC&nbsp;4226/6238/6287) using deterministic secrets and fixtures.
+- Emulates EMV/CAP cardholder verification flows for lab and integration testing.
+- Exercises FIDO2/WebAuthn assertions and EUDIW OpenID4VP wallet/verifier exchanges with synthetic PID artefacts.
+- Provides four consumption surfaces:
+  - Native Java API entry points (per protocol).
+  - REST API (Spring Boot, OpenAPI-documented).
+  - CLI (Picocli commands for credential lifecycle and evaluation).
+  - Operator console UI for exploratory use.
+
+**Not for:** production customer authentication, HSM-backed key management, or compliance-grade IAM systems.
+
+## Current status (2025-11-16)
+
+- ✅ `core` implements protocol primitives and fixtures for HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, and EUDIW OpenID4VP.
+- ✅ `application` exposes orchestration services and Native Java API seams (for example `HotpEvaluationApplicationService`, `TotpEvaluationApplicationService`, `OcraEvaluationApplicationService`, `EmvCapEvaluationApplicationService`, `WebAuthnEvaluationApplicationService`, `OpenId4VpWalletSimulationService`, `OpenId4VpValidationService`).
+- ✅ `cli` ships Picocli commands for importing, listing, deleting, evaluating credentials, running MapDB maintenance tasks, and exercising fixtures across protocols.
+- ✅ `rest-api` exposes JSON endpoints for the simulators, publishes OpenAPI snapshots, and serves Swagger UI at `http://localhost:8080/swagger-ui/index.html` when booted locally.
+- ✅ `ui` hosts the operator console at /ui/console, reusing REST endpoints for inline and stored-credential evaluations.
+- ✅ Documentation under `docs/` covers Java integrations, CLI usage, REST operations, Native Java usage from tools (JMeter/Neoload), test vector generation, and persistence tuning.
 
 ## Module map
 
-| Module    | Purpose                                                          |
-|-----------|------------------------------------------------------------------|
-| `core`    | OCRA credential domain, crypto helpers, persistence abstractions, Native Java API seam |
-| `cli`     | Picocli tooling for credential lifecycle, evaluation, maintenance |
-| `rest-api`| Spring Boot facade exposing OCRA evaluation and credential directory |
-| `ui`      | Server-rendered operator console built atop the REST API         |
+| Module       | Purpose                                                                                       |
+|--------------|-----------------------------------------------------------------------------------------------|
+| `core`       | Protocol primitives (HOTP/TOTP/OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW helpers), crypto, fixtures |
+| `application`| Orchestration services and Native Java API seams for all protocols                            |
+| `cli`        | Picocli tooling for credential lifecycle, evaluation, maintenance, and simulator fixtures     |
+| `rest-api`   | Spring Boot facade exposing JSON endpoints and Swagger/OpenAPI documentation                  |
+| `ui`         | Server-rendered operator console built atop the REST API                                      |
+| `infra-persistence` | MapDB-based `CredentialStoreFactory` and persistence defaults                          |
+
+## Quickstart by surface
+
+### Native Java API (example: HOTP)
+
+```java
+import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
+import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationCommand;
+import io.openauth.sim.infra.persistence.CredentialStoreFactory;
+import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
+
+var store = CredentialStoreFactory.openInMemoryStore();
+var service = new HotpEvaluationApplicationService(store);
+
+EvaluationCommand.Inline cmd = new EvaluationCommand.Inline(
+        "3132333435363738393031323334353637383930",
+        HotpHashAlgorithm.SHA1,
+        6,
+        0L,
+        Map.of(),
+        0,
+        0);
+
+String otp = service.evaluate(cmd).otp();
+```
+
+See [docs/2-how-to/use-hotp-from-java.md](docs/2-how-to/use-hotp-from-java.md), [docs/2-how-to/use-totp-from-java.md](docs/2-how-to/use-totp-from-java.md), [docs/2-how-to/use-ocra-from-java.md](docs/2-how-to/use-ocra-from-java.md),
+[docs/2-how-to/use-emv-cap-from-java.md](docs/2-how-to/use-emv-cap-from-java.md), [docs/2-how-to/use-fido2-from-java.md](docs/2-how-to/use-fido2-from-java.md), and [docs/2-how-to/use-eudiw-from-java.md](docs/2-how-to/use-eudiw-from-java.md)
+for full Native Java examples across all protocols.
+
+### CLI
+
+```bash
+./gradlew --no-daemon :cli:run --args="hotp evaluate --help"
+```
+
+Protocol-specific CLI usage (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW) is documented under ``docs/2-how-to`/*-cli-operations.md`.
+
+### REST API and UI
+
+```bash
+./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi
+```
+
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Operator console: `http://localhost:8080/ui/console`
+
+OpenAPI snapshots live under ``docs/3-reference`/` and are enforced by the `OpenApiSnapshotTest` suite.
+
+### MCP proxy (agents)
+
+1. Start the REST facade (see above) so `/api/v1/**` endpoints are available.
+2. Create `~/.config/openauth-sim/mcp-config.yaml` (or pass `--config <path>`). Minimal example:
+
+   ```yaml
+   baseUrl: http://localhost:8080
+   apiKey:
+   timeouts:
+     defaultMillis: 10000
+     hotp.evaluate: 15000
+   ```
+
+3. Run the MCP proxy: `./gradlew --no-daemon :tools-mcp-server:run --args="--config ~/.config/openauth-sim/mcp-config.yaml"`.
+4. Connect an MCP-aware client (for example `npx @modelcontextprotocol/cli`) to the spawned process. The server streams JSON-RPC messages over stdin/stdout using the standard `Content-Length` framing, exposing tools such as `hotp.evaluate`, `totp.evaluate`, `totp.helper.currentOtp`, `ocra.evaluate`, `emv.cap.evaluate`, `fido2.assertion.evaluate`, `eudiw.wallet.simulate`, `eudiw.presentation.validate`, and `fixtures.list`.
+
+Each tool forwards the supplied JSON payload to the documented REST endpoint and returns the HTTP status/body to the MCP client, so assistants see precisely the same behaviour as human operators using the REST API or UI.
+
+### JSON-LD metadata snapshots
+
+Keep README/ReadMe.LLM structured data in sync by regenerating the JSON-LD snippets whenever simulator docs change. The generator now runs automatically inside `./gradlew check` and `./gradlew qualityGate`, and it skips rewriting files whose contents already match. Run it directly when you need to preview the updated snippets without the rest of the build:
+
+```bash
+./gradlew --no-daemon generateJsonLd
+```
+
+The task reads [docs/3-reference/json-ld/metadata.json](docs/3-reference/json-ld/metadata.json), refreshes snippet files under ``docs/3-reference/json-ld/snippets`/`, and writes a consolidated bundle to [build/json-ld/openauth-sim.json](build/json-ld/openauth-sim.json) for future hosted docs.
 
 ## Development quick start
 
@@ -38,7 +130,7 @@ The default build disables Error Prone for now because plugin 3.1.0 and recent E
 
 ### Run the REST facade locally
 
-Use the shared init script at `tools/run-rest-api.init.gradle.kts` whenever you want to start the REST endpoints or operator console without IDE tooling. It registers two helper tasks:
+Use the shared init script at [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) whenever you want to start the REST endpoints or operator console without IDE tooling. It registers two helper tasks:
 
 - `runRestApi` launches `io.openauth.sim.rest.RestApiApplication` with the assembled runtime classpath.
 - `printRestApiRuntimeClasspath` outputs the resolved classpath so you can invoke `java -cp …` manually if needed.
@@ -64,12 +156,12 @@ Stop the service with `Ctrl+C`. To inspect the runtime classpath instead:
 ### Specification-Driven Development (SDD)
 
 The project runs on Specification-Driven Development: specifications lead every change, executable tests capture behaviour before code, and only then do we plan and implement tasks. The working rhythm is:
-1. Draft or update the feature specification (stored at `docs/4-architecture/features/<NNN>/spec.md`).
+1. Draft or update the feature specification (stored at ``docs/4-architecture/features`/<NNN>/spec.md`).
 2. Capture expected behaviour as failing tests or executable specifications.
 3. Break the work into logical, self-contained tasks that are expected to complete within ≤90 minutes (shorter slices encouraged) and reference the spec plus staged tests.
 4. Implement the smallest viable increment, keeping specs, plans, and docs in sync.
 
-For more background, see the [GitHub Spec Kit guidance](https://github.com/github/spec-kit/blob/main/spec-driven.md) and the detailed agent workflow in `AGENTS.md`.
+For more background, see the [GitHub Spec Kit guidance](https://github.com/github/spec-kit/blob/main/spec-driven.md) and the detailed agent workflow in [AGENTS.md](AGENTS.md).
 
 ## Documentation
 
@@ -88,10 +180,16 @@ Long-form documentation lives in `/docs`:
 | `docs/8-compliance`      | Security & compliance posture (stub)                         |
 | `docs/_assets`           | Diagram sources and shared images                            |
 
-Consult the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for future priorities, and see `AGENTS.md` for AI agent expectations. Contributions welcome—read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
+Consult the living [Implementation Roadmap](docs/4-architecture/roadmap.md) for future priorities, and see [AGENTS.md](AGENTS.md) for AI agent expectations. Contributions welcome—read [CONTRIBUTING.md](CONTRIBUTING.md) before raising PRs.
+
+### For AI assistants and agents
+
+- Use [ReadMe.LLM](ReadMe.LLM) for a compact, LLM-oriented overview of protocols, Native Java entry points, and minimal examples.
+- Use [llms.txt](llms.txt) as the manifest of high-signal specs under `docs/4-architecture/features` when constructing context windows.
+- Follow [AGENTS.md](AGENTS.md) for governance, workflow, and guardrails before making changes or suggesting refactors.
 
 ## Protocol Info embeddable assets
 
-- CSS/JS bundles live at `rest-api/src/main/resources/static/ui/protocol-info.css` and `protocol-info.js`. They expose the `ProtocolInfo` API used by the operator console and external integrations.
-- A standalone demo is available at `rest-api/src/main/resources/static/ui/protocol-info-demo.html` for manual QA without running the Spring Boot application.
+- CSS/JS bundles live at [rest-api/src/main/resources/static/ui/protocol-info.css](rest-api/src/main/resources/static/ui/protocol-info.css) and `protocol-info.js`. They expose the `ProtocolInfo` API used by the operator console and external integrations.
+- A standalone demo is available at [rest-api/src/main/resources/static/ui/protocol-info-demo.html](rest-api/src/main/resources/static/ui/protocol-info-demo.html) for manual QA without running the Spring Boot application.
 - Integration guidance (including JSON schema, API usage, CustomEvents, and persistence keys) is documented in [docs/2-how-to/embed-protocol-info-surface.md](docs/2-how-to/embed-protocol-info-surface.md).

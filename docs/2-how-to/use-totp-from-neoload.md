@@ -9,8 +9,7 @@ Java APIs via `Packages.*`.
 - Java 17 JDK to build and run OpenAuth Simulator itself (per the project constitution).
 - NeoLoad’s embedded JRE must also be Java 17 or newer, because the OpenAuth Simulator JARs are compiled with
   `targetCompatibility = 17`. Check `<neoload-install>/jre/bin/java -version` rather than relying on `JAVA_HOME`.
-- OpenAuth Simulator JARs on the NeoLoad classpath (at minimum: `core`, `core-shared`, `core-ocra`, `application`,
-  and `infra-persistence`) via `<project>/lib/jslib`.
+- OpenAuth Simulator JARs on the NeoLoad classpath (at minimum: `core`, `core-shared`, `core-ocra`, `application`, and `infra-persistence`) via `<project>/lib/jslib`.
 
 ## 1. JavaScript action for inline TOTP
 

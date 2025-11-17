@@ -3,20 +3,20 @@
 Use this checklist after a feature's specification, plan, and tasks exist but before implementation begins. After implementation, complete the Implementation Drift Gate section before the feature can be marked complete. Together these guardrails enforce the project constitution and keep specifications, plans, tasks, and code aligned.
 
 ## Inputs
-- Feature specification (e.g., `docs/4-architecture/features/XXX/spec.md`)
-- Feature plan (e.g., `docs/4-architecture/features/XXX/plan.md`)
-- Feature tasks (e.g., `docs/4-architecture/features/XXX/tasks.md`)
-- Open questions log (`docs/4-architecture/open-questions.md`)
-- Constitution (`docs/6-decisions/project-constitution.md`)
+- Feature specification (e.g., docs/4-architecture/features/XXX/spec.md)
+- Feature plan (e.g., docs/4-architecture/features/XXX/plan.md)
+- Feature tasks (e.g., docs/4-architecture/features/XXX/tasks.md)
+- Open questions log ([docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md))
+- Constitution ([docs/6-decisions/project-constitution.md](docs/6-decisions/project-constitution.md))
 - Feature plan subsection reserved for the Implementation Drift Gate report (create if missing)
 
 ## Checklist
 1. **Specification completeness** 
    - [ ] Objectives, functional, and non-functional requirements are populated.
    - [ ] Resolved high- and medium-impact questions for this feature are reflected directly in the spec’s normative sections (requirements, NFR, behaviour/UI, telemetry/policy).
-   - [ ] UI-impacting work includes an ASCII mock-up in the spec (`docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`).
+   - [ ] UI-impacting work includes an ASCII mock-up in the spec ([docs/4-architecture/spec-guidelines/ui-ascii-mockups.md](docs/4-architecture/spec-guidelines/ui-ascii-mockups.md)).
 2. **Open questions review**
-   - [ ] No blocking `Open` entries remain for this feature in `docs/4-architecture/open-questions.md`. If any exist, pause and obtain clarification.
+   - [ ] No blocking `Open` entries remain for this feature in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md). If any exist, pause and obtain clarification.
    - [ ] For architecturally significant decisions (cross-feature/module boundaries, security/telemetry strategies, major NFR trade-offs), ADRs exist or are planned, and the spec/open-questions entries link to the corresponding ADR IDs.
 3. **Plan alignment**
    - [ ] Feature plan references the correct specification and tasks files.
@@ -46,7 +46,7 @@ Run this section once all planned tasks are complete and the latest build is gre
    - [ ] No implementation or tests lack an originating spec/plan task; undocumented work is captured as a follow-up task or spec addition.
    - [ ] Feature plan and tasks remain consistent with the shipped implementation (dependencies, acceptance criteria, sequencing).
 3. **Divergence handling**
-   - [ ] High- and medium-impact gaps or over-deliveries are logged as new entries in `docs/4-architecture/open-questions.md` for user direction.
+   - [ ] High- and medium-impact gaps or over-deliveries are logged as new entries in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) for user direction.
    - [ ] Low-impact or low-level drift (typos, minor wording, formatting) is corrected directly before finalising the report; document the fix without escalating.
    - [ ] Follow-up tasks or spec updates are drafted for any outstanding divergences awaiting approval.
 4. **Coverage confirmation**

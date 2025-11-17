@@ -12,10 +12,8 @@ Native Java usage for HOTP is governed by:
 ## Prerequisites
 
 - Java 17 JDK (`JAVA_HOME` must point to it per the project constitution).
-- OpenAuth Simulator on your classpath (at minimum: `core`, `core-shared`, `core-ocra`, `application`,
-  and `infra-persistence`).
-- Optional: an existing `credentials.db` MapDB file seeded via the CLI’s `maintenance hotp import`
-  command.
+- OpenAuth Simulator on your classpath (at minimum: `core`, `core-shared`, `core-ocra`, `application`, and `infra-persistence`).
+- Optional: an existing `credentials.db` MapDB file seeded via the CLI’s `maintenance hotp import` command.
 
 ## 1. Open a CredentialStore and create the HOTP service
 

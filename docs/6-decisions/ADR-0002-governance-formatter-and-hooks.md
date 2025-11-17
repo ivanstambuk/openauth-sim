@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2025-11-15
-- **Related features/specs:** Feature 011 (`docs/4-architecture/features/011/spec.md`)
+- **Related features/specs:** Feature 011 ([docs/4-architecture/features/011/spec.md](docs/4-architecture/features/011/spec.md))
 - **Related open questions:** (none currently)
 
 ## Context
@@ -20,12 +20,12 @@ Feature 011 consolidates governance under a single spec and must select:
 ## Decision
 
 Adopt Palantir Java Format 2.78.0 (120-character wrap, Java 17) as the canonical formatter and enforce it via:
-- Spotless configuration in `build.gradle.kts` and the version catalog (`gradle/libs.versions.toml`) pinned to Palantir 2.78.0.
-- Managed Git hooks (`githooks/pre-commit`, `githooks/commit-msg`) invoked through `core.hooksPath=githooks`:
-  - `githooks/pre-commit` warms the Gradle configuration cache via `./gradlew --no-daemon help --configuration-cache`,
+- Spotless configuration in [build.gradle.kts](build.gradle.kts) and the version catalog ([gradle/libs.versions.toml](gradle/libs.versions.toml)) pinned to Palantir 2.78.0.
+- Managed Git hooks ([githooks/pre-commit](githooks/pre-commit), [githooks/commit-msg](githooks/commit-msg)) invoked through `core.hooksPath=githooks`:
+  - [githooks/pre-commit](githooks/pre-commit) warms the Gradle configuration cache via `./gradlew --no-daemon help --configuration-cache`,
     retries `spotlessApply` once on stale-cache failures (deleting `.gradle/configuration-cache/**`), logs the retry outcome,
     and then runs Spotless, targeted Gradle tasks, and gitleaks.
-  - `githooks/commit-msg` runs gitlint with the repository `.gitlint` profile, enforcing Conventional Commits with a
+  - [githooks/commit-msg](githooks/commit-msg) runs gitlint with the repository [.gitlint](.gitlint) profile, enforcing Conventional Commits with a
     100-character title and 120-character body lines.
 - IDE formatter guidance aligned with Palantir’s configuration so local formatting matches Spotless output.
 
@@ -78,7 +78,7 @@ on pushes/PRs. Feature 011’s spec/plan/tasks remain the single source of truth
 
 ## Links
 
-- Related spec sections: `docs/4-architecture/features/011/spec.md#overview`, `#functional-requirements`,
+- Related spec sections: `[docs/4-architecture/features/011/spec.md](docs/4-architecture/features/011/spec.md)#overview`, `#functional-requirements`,
   `#non-functional-requirements`, `#telemetry--observability`
 - Related ADRs: ADR-0001 (Core Credential Store Stack)
 - Related issues / PRs: (to be linked from future governance updates)

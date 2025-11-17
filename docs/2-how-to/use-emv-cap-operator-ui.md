@@ -6,7 +6,7 @@ _Last updated: 2025-11-15_
 The operator console exposes an EMV/CAP tab that mirrors the REST contract while surfacing a concise OTP preview and an optional verbose trace. This guide walks through loading presets, submitting Identify/Respond/Sign evaluations, capturing traces, and keeping sensitive data gated behind the trace toggle.
 
 ## Prerequisites
-- Launch the REST application (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`).
+- Launch the REST application (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`).
 - Seed EMV/CAP credentials via the CLI (`./gradlew --quiet :cli:run --args=$'emv cap seed --preset all'`) or the REST endpoint (`POST /api/v1/emv/cap/credentials/seed`) if you want stored presets available.
 - Use a modern browser (Chrome, Firefox, Edge) with JavaScript enabled. The console lives at `http://localhost:8080/ui/console`.
 
@@ -46,8 +46,8 @@ Replay submissions emit sanitized telemetry events with `telemetryId` prefixes `
 - Sensitive buffers (master keys, session keys, Generate AC inputs/outputs) only appear when the trace toggle is enabled for the request. Disable the toggle when capturing screenshots or operating in untrusted environments.
 
 ## Keep provenance fixtures mirrored
-- The verbose trace JSON shown in the UI (and the Node/Selenium harnesses that stub it) reads from `docs/test-vectors/emv-cap/trace-provenance-example.json`. Because the UI tests execute from the `rest-api/` module, the same file must also live under `rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json` until a future fixture-sync automation task lands.
-- When updating or replacing the provenance fixture, edit the canonical copy under `docs/test-vectors/emv-cap/`, then copy it into `rest-api/docs/test-vectors/emv-cap/` before rerunning `node --test rest-api/src/test/javascript/emv/console.test.js` and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
+- The verbose trace JSON shown in the UI (and the Node/Selenium harnesses that stub it) reads from [docs/test-vectors/emv-cap/trace-provenance-example.json](docs/test-vectors/emv-cap/trace-provenance-example.json). Because the UI tests execute from the `rest-api/` module, the same file must also live under [rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json](rest-api/docs/test-vectors/emv-cap/trace-provenance-example.json) until a future fixture-sync automation task lands.
+- When updating or replacing the provenance fixture, edit the canonical copy under ``docs/test-vectors/emv-cap`/`, then copy it into ``rest-api/docs/test-vectors/emv-cap`/` before rerunning `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)` and `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`.
 - Keeping the two files identical prevents the console bundle, REST OpenAPI snapshots, and Selenium stub server from diverging during local development or CI.
 
 ## Troubleshooting

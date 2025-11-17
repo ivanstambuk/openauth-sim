@@ -5,8 +5,8 @@
 | Status | Complete |
 | Last updated | 2025-11-13 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/002/plan.md` |
-| Linked tasks | `docs/4-architecture/features/002/tasks.md` |
+| Linked plan | [docs/4-architecture/features/002/plan.md](docs/4-architecture/features/002/plan.md) |
+| Linked tasks | [docs/4-architecture/features/002/tasks.md](docs/4-architecture/features/002/tasks.md) |
 | Roadmap entry | #2 – TOTP Simulator & Tooling |
 
 ## Overview
@@ -34,7 +34,7 @@ slice spanning core → application → CLI/REST → operator console; issuance/
 | FR-002-04 | CLI commands import/list/evaluate/replay TOTP credentials with drift/timestamp options. | Picocli tests assert outputs + telemetry, covering stored/inline/replay. | Invalid input tests produce descriptive errors. | CLI command fails or telemetry absent. | Telemetry parallels HOTP/OCRA. | Spec. |
 | FR-002-05 | REST endpoints (evaluate inline/stored, replay) expose schema + OpenAPI updates, accept drift/timestamp overrides, return OTP payloads. | MockMvc + OpenAPI tests pass; replay non-mutating. | Negative tests cover invalid drift, timestamp overrides. | REST tests fail or counters mutate. | `totp.evaluate`/`totp.replay`. | Spec. |
 | FR-002-06 | Operator console adds TOTP stored/inline/replay panels with presets, seeding, auto-fill toggles, inline-default Evaluate tab. | Selenium tests cover stored/inline/replay, seeding, timestamp controls, auto-applied samples. | Accessibility checks (aria roles, keyboard order). | UI missing flows or telemetry inconsistent. | Reuses REST telemetry. | Spec. |
-| FR-002-07 | Publish `docs/totp_validation_vectors.json` and shared loader; update CLI/REST/UI docs/how-to. | Fixture loader feeds tests/presets; docs reference vector IDs. | Missing vector causes tests/docs failures. | n/a | Spec. |
+| FR-002-07 | Publish [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json) and shared loader; update CLI/REST/UI docs/how-to. | Fixture loader feeds tests/presets; docs reference vector IDs. | Missing vector causes tests/docs failures. | n/a | Spec. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -94,7 +94,7 @@ Replay panel mirrors Evaluate but never mutates counters.
 ### Native Java API
 | ID | Entry point | Description | Notes |
 |----|-------------|-------------|-------|
-| NJ-002-01 | `io.openauth.sim.application.totp.TotpEvaluationApplicationService` | Application-level TOTP evaluation service used as the Native Java API seam for stored and inline flows. | Mirrors CLI/REST evaluation semantics (including drift windows and timestamp overrides); callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in `docs/2-how-to/use-totp-from-java.md`. |
+| NJ-002-01 | `io.openauth.sim.application.totp.TotpEvaluationApplicationService` | Application-level TOTP evaluation service used as the Native Java API seam for stored and inline flows. | Mirrors CLI/REST evaluation semantics (including drift windows and timestamp overrides); callers supply a `CredentialStore` and `EvaluationCommand` and consume `EvaluationResult` as the façade DTO. Governed by Feature 014 (FR-014-02/04) and ADR-0007, with usage documented in [docs/2-how-to/use-totp-from-java.md](docs/2-how-to/use-totp-from-java.md). |
 
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |
@@ -105,7 +105,7 @@ Replay panel mirrors Evaluate but never mutates counters.
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-002-01 | `docs/totp_validation_vectors.json` | RFC 6238 vectors shared across modules. |
+| FX-002-01 | [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json) | RFC 6238 vectors shared across modules. |
 | FX-002-02 | `rest-api/src/test/resources/totp/sample-requests/*.json` | REST/Selenium test payloads. |
 
 ### UI States
@@ -123,7 +123,7 @@ Replay panel mirrors Evaluate but never mutates counters.
 - Update TOTP operator how-to, CLI/REST guides, roadmap, knowledge map, OpenAPI docs.
 
 ## Fixtures & Sample Data
-- `docs/totp_validation_vectors.json` plus derived test fixtures.
+- [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json) plus derived test fixtures.
 
 ## Spec DSL
 ```

@@ -6,7 +6,7 @@ _Last updated: 2025-11-11_
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
-Linked plan: `docs/4-architecture/features/007/plan.md`
+Linked plan: [docs/4-architecture/features/007/plan.md](docs/4-architecture/features/007/plan.md)
 
 ## Checklist
 - [ ] T-007-01 – Fixture ingestion + deterministic DeviceResponse generator

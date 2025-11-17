@@ -1,0 +1,35 @@
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "OpenAuth Simulator",
+            "applicationCategory": "SecurityApplication",
+            "operatingSystem": "Linux \u00b7 macOS \u00b7 Windows",
+            "description": "Deterministic HOTP, TOTP, OCRA, EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP simulators with CLI, REST, UI, Native Java, and MCP facades for IAM testing.",
+            "url": "https://github.com/ivanstambuk/openauth-sim",
+            "softwareVersion": "0.1.0-SNAPSHOT",
+            "license": "https://github.com/ivanstambuk/openauth-sim/blob/main/LICENSE"
+        },
+        {
+            "@type": "TechArticle",
+            "name": "ReadMe.LLM",
+            "description": "LLM-oriented overview describing Native Java seams, canonical entry points, and context-packing guidance.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/ReadMe.LLM"
+        },
+        {
+            "@type": "TechArticle",
+            "name": "llms.txt",
+            "description": "Manifest of high-signal simulator specs and docs for LLM context windows.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/blob/main/llms.txt"
+        },
+        {
+            "@type": "SoftwareApplication",
+            "name": "OpenAuth Simulator MCP Proxy",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Linux \u00b7 macOS \u00b7 Windows",
+            "description": "REST-backed Model Context Protocol proxy exposing simulator tools (hotp/totp/ocra/emv/fido2/eudiw) for agent workflows.",
+            "url": "https://github.com/ivanstambuk/openauth-sim/tree/main/tools/mcp-server"
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 # EUDIW OpenID4VP Telemetry Snapshot
 
-Captured on 2025-11-15 after rerunning the targeted suites (`./gradlew --no-daemon :application:test :cli:test :rest-api:test`, `node --test rest-api/src/test/javascript/eudi/openid4vp/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`). Use these frames to regression-test redaction rules and to confirm the refreshed `oid4vp.fixtures.ingested` signal stays sanitized.
+Captured on 2025-11-15 after rerunning the targeted suites (`./gradlew --no-daemon :application:test :cli:test :rest-api:test`, `node --test [rest-api/src/test/javascript/eudi/openid4vp/console.test.js](rest-api/src/test/javascript/eudi/openid4vp/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EudiwOperatorUiSeleniumTest"`). Use these frames to regression-test redaction rules and to confirm the refreshed `oid4vp.fixtures.ingested` signal stays sanitized.
 
 ## Request creation (REST)
 ```

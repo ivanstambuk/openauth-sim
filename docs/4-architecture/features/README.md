@@ -1,6 +1,6 @@
 # Feature Artifact Layout
 
-Each feature now owns a dedicated directory under `docs/4-architecture/features/<NNN>/` (three-digit feature id). Every folder contains:
+Each feature now owns a dedicated directory under ``docs/4-architecture/features`/<NNN>/` (three-digit feature id). Every folder contains:
 
 - `spec.md` – the authoritative specification.
 - `plan.md` – the implementation plan / roadmap slice for that feature.
@@ -9,13 +9,13 @@ Each feature now owns a dedicated directory under `docs/4-architecture/features/
 
 When creating a new feature:
 
-1. Add `spec.md`, `plan.md`, and `tasks.md` to `docs/4-architecture/features/<NNN>/`.
-2. Reference the files via the canonical paths `docs/4-architecture/features/<NNN>/spec.md`, etc.
+1. Add `spec.md`, `plan.md`, and `tasks.md` to ``docs/4-architecture/features`/<NNN>/`.
+2. Reference the files via the canonical paths ``docs/4-architecture/features`/<NNN>/spec.md`, etc.
 3. Keep scenario IDs stable across all three artifacts.
 
 ## Renumbering Note (2025-11-11)
 - The catalogue is transitioning to 13 vertically sliced features (001–013). During the migration, some legacy artifacts
-  remain under `docs/4-architecture/features/<NNN>/legacy/<old-id>/` (currently Features 001–008) so history is preserved
+  remain under ``docs/4-architecture/features`/<NNN>/legacy/<old-id>/` (currently Features 001–008) so history is preserved
   without keeping the old top-level directories. Features 009–013 have finished their Phase 2 rewrites and no longer ship
   `legacy/` subdirectories; consult Git history for their archived content.
 - Batch P1 moved HOTP/TOTP/OCRA content into Features 001/002/003. Reference those specs for the authoritative
@@ -37,4 +37,4 @@ When creating a new feature:
   (`features/014/`, `features/015/`, etc.) from the templates and document clarifications there so numbering stays
   consistent without separate holding areas.
 
-The legacy `docs/4-architecture/specs/`, `tasks/`, and `feature-plan-*.md` files have been relocated here to keep the top-level directory manageable.
+The legacy ``docs/4-architecture/specs`/`, `tasks/`, and `feature-plan-*.md` files have been relocated here to keep the top-level directory manageable.

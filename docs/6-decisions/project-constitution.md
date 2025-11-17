@@ -4,7 +4,7 @@ Version: none -> 1.0.0
 Modified Principles: n/a
 Added Sections: Principles, Governance, Enforcement
 Removed Sections: none
-Templates requiring updates: docs/6-decisions/project-constitution.md ✅, AGENTS.md ✅, docs/5-operations/runbook-session-reset.md ✅, docs/4-architecture/features/001/plan.md ✅, docs/4-architecture/features/001/spec.md ✅, docs/4-architecture/features/001/tasks.md ✅, docs/5-operations/analysis-gate-checklist.md ✅
+Templates requiring updates: [docs/6-decisions/project-constitution.md](docs/6-decisions/project-constitution.md) ✅, [AGENTS.md](AGENTS.md) ✅, [docs/5-operations/runbook-session-reset.md](docs/5-operations/runbook-session-reset.md) ✅, [docs/4-architecture/features/001/plan.md](docs/4-architecture/features/001/plan.md) ✅, [docs/4-architecture/features/001/spec.md](docs/4-architecture/features/001/spec.md) ✅, [docs/4-architecture/features/001/tasks.md](docs/4-architecture/features/001/tasks.md) ✅, [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) ✅
 Follow-up TODOs: none
 -->
 # OpenAuth Simulator Constitution
@@ -22,16 +22,17 @@ This constitution establishes the non-negotiable operating principles for the Op
 ### Principle 1 – Specifications Lead Execution
 - Author or update a feature specification before producing plans, tasks, or code.
 - Treat the specification as the source of truth; implementation plans, tasks, and code must reference it explicitly.
-- Store specifications under `docs/4-architecture/features/<NNN>/spec.md` with traceable identifiers (e.g., Feature 001).
+- Store specifications under ``docs/4-architecture/features`/<NNN>/spec.md` with traceable identifiers (e.g., Feature 001).
 
 ### Principle 2 – Clarification Gate
 - Resolve ambiguous scope before planning by capturing every high-impact question for the feature; escalate every medium-impact uncertainty the same way, while tidying low-level or lightweight ambiguities directly and noting the fixes in the governing spec/plan.
-- Record all high- and medium-impact open questions in `docs/4-architecture/open-questions.md`; do not plan or implement until the user answers them and the specification captures the resolution.
+- Record all high- and medium-impact open questions in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md); do not plan or implement until the user answers them and the specification captures the resolution.
 - When a question is resolved:
   - Update the governing specification’s normative sections (functional requirements, non-functional requirements, behaviour/flows/UI, telemetry/quality/policy) so the spec itself remains the single source of truth for behaviour.
-  - For architecturally significant clarifications (cross-feature/module boundaries, security/telemetry strategies, major non-functional trade-offs), create or update an ADR under `docs/6-decisions/` using `docs/templates/adr-template.md`. ADRs record the rationale and options; specs record the behaviour.
-  - Update the corresponding entry in `docs/4-architecture/open-questions.md` as resolved, including links to the updated spec sections and any ADRs.
+  - For architecturally significant clarifications (cross-feature/module boundaries, security/telemetry strategies, major non-functional trade-offs), create or update an ADR under ``docs/6-decisions`/` using [docs/templates/adr-template.md](docs/templates/adr-template.md). ADRs record the rationale and options; specs record the behaviour.
+  - Update the corresponding entry in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) as resolved, including links to the updated spec sections and any ADRs.
   - Keep the order of operations strict: spec first, then ADR (when required), then open-questions and plan/tasks updates.
+- When documenting options inside [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md), always sort them by preference: Option A is the recommended path, Option B the next-best alternative, and so on, so reviewers can see the preferred direction immediately.
 
 ### Principle 3 – Test-First Quality Discipline
 - Write or update executable tests (unit, integration, contract) before implementing behavior.
@@ -44,7 +45,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Mirror every approved change across roadmap, feature plans, tasks, knowledge map, and runbooks as needed.
 - Maintain per-feature `tasks.md` files that decompose work into logical increments planned to complete within ≤90 minutes, reference spec requirements, and sequence tests before code (execution may run longer as needed).
 - Log self-review notes and tool usage back into the relevant plan or runbook to preserve provenance.
-- For any UI-facing feature or modification, include ASCII mock-ups directly in the governing specification per `docs/4-architecture/spec-guidelines/ui-ascii-mockups.md`.
+- For any UI-facing feature or modification, include ASCII mock-ups directly in the governing specification per [docs/4-architecture/spec-guidelines/ui-ascii-mockups.md](docs/4-architecture/spec-guidelines/ui-ascii-mockups.md).
 
 ### Principle 5 – Controlled Dependencies & Security
 - Add or upgrade dependencies only with explicit owner approval and record the rationale in the feature plan.
@@ -57,18 +58,18 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Cross-check the approved specification, feature plan, tasks checklist, and code/tests to confirm every spec requirement has a corresponding implementation and that no implementation ships without documented intent.
 - Verify that high-impact and medium-impact requirements explicitly trace from the specification’s normative sections (functional requirements, non-functional requirements, behaviour/flows/UI, telemetry/quality/policy) to implementation and tests; ensure low-level details remain consistent with the governing artefacts.
 - Produce a drift report (attach it to the governing feature plan) summarising matches, gaps, and speculative work; reference exact spec sections and code paths so reviewers can trace decisions.
-- For every high- or medium-impact divergence discovered during the gate, record an open question in `docs/4-architecture/open-questions.md` for user direction; once resolved, update the relevant spec sections first, then create or update an ADR for architecturally significant decisions, and finally mark the open question resolved with links to the spec sections and ADR IDs. Remediate lightweight or low-level drift yourself (typos, formatting, minor wording) and capture the adjustments in the drift report without escalating.
+- For every high- or medium-impact divergence discovered during the gate, record an open question in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md) for user direction; once resolved, update the relevant spec sections first, then create or update an ADR for architecturally significant decisions, and finally mark the open question resolved with links to the spec sections and ADR IDs. Remediate lightweight or low-level drift yourself (typos, formatting, minor wording) and capture the adjustments in the drift report without escalating.
 - Verify executable coverage alignment by confirming each spec branch has failing tests staged before implementation and green tests afterwards; call out any missing coverage as follow-up tasks.
 - Document lessons and reusable guidance surfaced during the gate so downstream features inherit the updated practices.
 
 ## Governance
 - **Amendments:** Propose constitution changes via pull request referencing this document. Classify version bumps as MAJOR (principle removal or incompatible rewrite), MINOR (new principle or substantial expansion), or PATCH (clarification without semantic change).
-- **Review cadence:** Reconfirm adherence during each session reset using `docs/5-operations/runbook-session-reset.md`.
+- **Review cadence:** Reconfirm adherence during each session reset using [docs/5-operations/runbook-session-reset.md](docs/5-operations/runbook-session-reset.md).
 - **Exception handling:** Temporary deviations require written approval in the relevant feature plan and must include a restoration plan.
-- **Governance source of truth:** Feature 011 (`docs/4-architecture/features/011/{spec,plan,tasks}.md`) owns the authoritative policies for AGENTS/runbooks/hooks, gitlint, Palantir formatting, and governance verification logs. When those artefacts change, follow the Feature 011 plan/tasks to record `git config core.hooksPath`, hook dry-runs, and `./gradlew --no-daemon spotlessApply check`/`qualityGate` outputs in `_current-session.md`.
+- **Governance source of truth:** Feature 011 (``docs/4-architecture/features/011`/{spec,plan,tasks}.md`) owns the authoritative policies for AGENTS/runbooks/hooks, gitlint, Palantir formatting, and governance verification logs. When those artefacts change, follow the Feature 011 plan/tasks to record `git config core.hooksPath`, hook dry-runs, and `./gradlew --no-daemon spotlessApply check`/`qualityGate` outputs in `_current-session.md`.
 
 ## Enforcement
-- `docs/5-operations/analysis-gate-checklist.md` must be executed once a spec, plan, and tasks exist to verify alignment before implementation.
+- [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) must be executed once a spec, plan, and tasks exist to verify alignment before implementation.
 - The Implementation Drift Gate report must demonstrate zero unresolved high- or medium-impact divergences before a feature is marked complete; pending issues require recorded follow-up tasks or specification updates approved by the user.
 - Commits failing constitutional checks may not merge; re-run analysis and remediation before continuing.
 - Repeated violations trigger a governance review to determine whether additional principles or automation are required.

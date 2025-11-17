@@ -1,0 +1,224 @@
+# OpenAuth Simulator – LLM Guide
+
+This file is a compact orientation guide for AI coding assistants and agents. It describes what
+the project does, which modules and Java APIs are safe entry points, and where to find complete
+examples for each protocol.
+
+## 1. Scope and constraints
+
+- Non-production **Java 17** simulator for modern authentication protocols:
+  - OATH HOTP (RFC 4226) and TOTP (RFC 6238).
+  - OATH OCRA (RFC 6287).
+  - EMV/CAP cardholder verification flows.
+  - FIDO2/WebAuthn assertions.
+  - EUDIW OpenID4VP / wallet-side artefacts (SD‑JWT VC + mdoc PID).
+- Purpose: generate and verify deterministic **test vectors**, not to authenticate real users.
+- Data: fixtures are synthetic or derived from public specs; do **not** treat this as a key
+  management or HSM integration library.
+- Consumption surfaces:
+  - **Native Java API** (preferred for library usage).
+  - **REST API** (Spring Boot, documented via OpenAPI).
+  - **CLI** (Picocli-based tooling).
+  - **Operator UI** (Thymeleaf + JS console).
+
+When in doubt, prefer the Native Java APIs listed below and the `docs/2-how-to/*-from-java.md`
+guides over using low-level internals directly.
+
+## 2. Modules and canonical Java entry points
+
+The workspace is a Gradle 8 multi-module build. For most AI-generated code, treat these classes as
+the **public Native Java API** seams:
+
+- **HOTP (counter-based OTP)**  
+  - Module: `application`  
+  - Entry point: `io.openauth.sim.application.hotp.HotpEvaluationApplicationService`  
+  - Usage: evaluate stored or inline HOTP credentials; returns an `EvaluationResult` with the OTP,
+    counter movement, and optional verbose trace.
+
+- **TOTP (time-based OTP)**  
+  - Module: `application`  
+  - Entry point: `io.openauth.sim.application.totp.TotpEvaluationApplicationService`  
+  - Usage: evaluate stored or inline TOTP credentials for a given clock; returns `EvaluationResult`
+    and telemetry status.
+
+- **OCRA (challenge–response OTP)**  
+  - Module: `application`  
+  - Entry point: `io.openauth.sim.application.ocra.OcraEvaluationApplicationService`  
+  - Usage: evaluate stored or inline OCRA credentials based on OCRA suite strings, challenges,
+    counters, and session data; exposes request/response DTOs and verbose traces.
+
+- **EMV/CAP (cardholder verification)**  
+  - Module: `application`  
+  - Entry point: `io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService`  
+  - Usage: simulate EMV CAP Identify / Respond / Sign flows; returns structured diagnostics for
+    CAP responses and telemetry.
+
+- **FIDO2/WebAuthn (assertions)**  
+  - Module: `application`  
+  - Entry point: `io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService`  
+  - Usage: evaluate registration/authentication assertions against deterministic fixtures; returns
+    WebAuthn-specific result DTOs and telemetry.
+
+- **EUDIW OpenID4VP (remote verifier + wallet)**  
+  - Module: `application`  
+  - Wallet simulator: `io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService`  
+  - Verifier: `io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService`  
+  - Usage: simulate wallet responses (SD‑JWT VC + mdoc DeviceResponse) and validate presentations
+    against HAIP-aligned rules and Trusted Authorities fixtures.
+
+Supporting infrastructure that assistants can safely depend on:
+
+- Persistence: `io.openauth.sim.infra.persistence.CredentialStoreFactory` (opens MapDB-backed or
+  in-memory `CredentialStore` instances).
+- Telemetry contracts: `io.openauth.sim.application.telemetry.TelemetryContracts` and protocol
+  adapters (for example `HotpTelemetryAdapter`, `TotpTelemetryAdapter`).
+
+## 3. Minimal Native Java usage patterns
+
+The `docs/2-how-to/*-from-java.md` guides contain full, runnable snippets. The examples here are
+short patterns you can adapt in generated code.
+
+### 3.1 HOTP – inline evaluation
+
+```java
+import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
+import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationCommand;
+import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationResult;
+import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
+import io.openauth.sim.infra.persistence.CredentialStoreFactory;
+
+import java.util.Map;
+
+public final class HotpInlineExample {
+
+    public static String generateHotp() {
+        var store = CredentialStoreFactory.openInMemoryStore();
+        var service = new HotpEvaluationApplicationService(store);
+
+        EvaluationCommand.Inline cmd = new EvaluationCommand.Inline(
+                "3132333435363738393031323334353637383930", // sharedSecretHex
+                HotpHashAlgorithm.SHA1,
+                6,                      // digits
+                0L,                     // counter
+                Map.of(),               // metadata
+                0,                      // windowBackward
+                0                       // windowForward
+        );
+
+        EvaluationResult result = service.evaluate(cmd);
+        return result.otp();
+    }
+}
+```
+
+For a complete HOTP walkthrough (stored vs inline, telemetry, verbose traces), prefer
+`docs/2-how-to/use-hotp-from-java.md`.
+
+### 3.2 TOTP – stored evaluation
+
+```java
+import io.openauth.sim.application.totp.TotpEvaluationApplicationService;
+import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationCommand;
+import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationResult;
+import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.infra.persistence.CredentialStoreFactory;
+
+import java.time.Clock;
+
+public final class TotpStoredExample {
+
+    public static String evaluateTotp(String credentialId) {
+        CredentialStore store = CredentialStoreFactory.openInMemoryStore();
+        Clock clock = Clock.systemUTC();
+        TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store, clock);
+
+        EvaluationCommand.Stored cmd = new EvaluationCommand.Stored(credentialId);
+        EvaluationResult result = service.evaluate(cmd);
+        return result.otp();
+    }
+}
+```
+
+For time-window and drift handling, use `docs/2-how-to/use-totp-from-java.md`.
+
+### 3.3 OCRA – inline evaluation
+
+```java
+import io.openauth.sim.application.ocra.OcraEvaluationApplicationService;
+import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.EvaluationCommand;
+import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.EvaluationResult;
+import io.openauth.sim.infra.persistence.CredentialStoreFactory;
+
+public final class OcraInlineExample {
+
+    public static String evaluateOcra() {
+        var store = CredentialStoreFactory.openInMemoryStore();
+        var service = new OcraEvaluationApplicationService(store);
+
+        EvaluationCommand.Inline cmd = new EvaluationCommand.Inline(
+                "OCRA-1:HOTP-SHA1-6:QN08-PSHA1",
+                "3132333435363738393031323334353637383930", // sharedSecretHex
+                "00000000",                                 // challenge (Q)
+                null,                                       // session data (P)
+                null                                        // password/PIN (S)
+        );
+
+        EvaluationResult result = service.evaluate(cmd);
+        return result.otp();
+    }
+}
+```
+
+See `docs/2-how-to/use-ocra-from-java.md` for stored evaluations, advanced suites, and verbose
+trace integration.
+
+### 3.4 EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP
+
+- EMV/CAP: use `EmvCapEvaluationApplicationService` with the request DTOs shown in
+  `docs/2-how-to/use-emv-cap-from-java.md`.  
+- FIDO2/WebAuthn: use `WebAuthnEvaluationApplicationService` with the examples in
+  `docs/2-how-to/use-fido2-from-java.md`.  
+- EUDIW OpenID4VP: use `OpenId4VpWalletSimulationService` and `OpenId4VpValidationService` as
+  illustrated in `docs/2-how-to/use-eudiw-from-java.md`.
+
+These guides contain complete, protocol-specific examples that are preferable to inventing argument
+lists from scratch.
+
+## 4. REST and CLI patterns
+
+When generating REST or CLI usage:
+
+- REST API
+  - Spring Boot app in `rest-api` exposes endpoints under `/api/v1/**` (for example, OCRA, HOTP,
+    TOTP, FIDO2, EUDIW).
+  - OpenAPI snapshots live under `docs/3-reference/rest-openapi.*` and are enforced by
+    `OpenApiSnapshotTest`.
+  - For example, you can POST to the OCRA evaluate endpoint with a JSON body that mirrors the
+    `OcraEvaluationApplicationService` request DTOs.
+
+- CLI
+  - Entry points live under the `cli` module using Picocli.
+  - Commands include protocol-specific verbs (for example `hotp`, `totp`, `ocra`, `fido2`, `eudiw`)
+    with subcommands such as `evaluate`, `replay`, or `fixtures`.
+  - Exact flags and examples are documented in `docs/2-how-to/*-cli-operations.md`.
+
+Prefer reading the how-to guides and OpenAPI files instead of inferring JSON shapes or CLI flags;
+tests and docs stay in sync via the spec-driven development process.
+
+## 5. Usage guidance for AI agents
+
+- Treat the classes listed in section 2 as **public facades**; avoid reaching into lower-level
+  internal helpers unless the docs explicitly bless them.
+- When suggesting dependencies, prefer the future Maven coordinates for the Native Java facade
+  (for example `io.openauth:openauth-sim-core` / `…-application`) rather than the entire workspace.
+- Preserve the non-production intent: do not position this project as a drop-in replacement for
+  hardened IAM or HSM-backed systems.
+- When emitting code samples, favour:
+  - Java 17 syntax (records, `var` only where idiomatic).
+  - Deterministic examples that match the how-to guides and test vectors.
+- When in doubt, point users to:
+  - `README.md` for high-level overview.
+  - `AGENTS.md` for repository workflow and guardrails.
+  - `docs/2-how-to/*-from-java.md` and `docs/3-reference/protocols/*` for protocol-specific
+    details.
+

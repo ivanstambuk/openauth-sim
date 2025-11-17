@@ -39,7 +39,7 @@ _Last updated:_ 2025-11-13
   _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*TotpOperatorUiSeleniumTest*TimestampControls"`
 - [x] T-002-16 – Implement timestamp toggle UI, quantised reset helpers (S-002-04).  
   _Verification:_ `./gradlew --no-daemon :rest-api:test`, `./gradlew --no-daemon spotlessApply check`
-- [x] T-002-17 – Publish `docs/totp_validation_vectors.json`, add shared loader/tests across modules (S-002-05, FR-002-07).  
+- [x] T-002-17 – Publish [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json), add shared loader/tests across modules (S-002-05, FR-002-07).  
   _Verification:_ `./gradlew --no-daemon :core:test :cli:test :rest-api:test`
 - [x] T-002-18 – Update operator/CLI/REST how-to guides, roadmap, knowledge map; rerun spotless (S-002-05, FR-002-07).  
   _Verification:_ `./gradlew --no-daemon spotlessApply check`
@@ -49,7 +49,7 @@ _Last updated:_ 2025-11-13
   _Verification:_  
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-002-20 – Author `docs/2-how-to/use-totp-from-java.md` and tests (FR-014-03/04, S-014-01/02).  
+- [x] T-002-20 – Author [docs/2-how-to/use-totp-from-java.md](docs/2-how-to/use-totp-from-java.md) and tests (FR-014-03/04, S-014-01/02).  
   _Intent:_ Add a TOTP `*-from-java` how-to guide and tests that treat `TotpEvaluationApplicationService` (with `EvaluationCommand` / `EvaluationResult`) as façade seams for stored and inline flows, mirroring the OCRA and HOTP Java guides.  
   _Verification:_  
   - `./gradlew --no-daemon :core:test :application:test`  

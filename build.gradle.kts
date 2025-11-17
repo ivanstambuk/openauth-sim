@@ -2,16 +2,26 @@ import com.github.spotbugs.snom.Confidence
 import com.github.spotbugs.snom.Effort
 import com.github.spotbugs.snom.SpotBugsExtension
 import com.github.spotbugs.snom.SpotBugsTask
+import com.diffplug.gradle.spotless.SpotlessTask
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import info.solidsoft.gradle.pitest.PitestPluginExtension
+import java.io.File
 import net.ltgt.gradle.errorprone.ErrorProneOptions
 import net.ltgt.gradle.errorprone.errorprone
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.plugins.quality.Pmd
 import org.gradle.api.plugins.quality.PmdExtension
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.getByType
@@ -70,6 +80,89 @@ spotless {
         leadingTabsToSpaces()
         endWithNewline()
     }
+}
+
+abstract class GenerateJsonLdTask : DefaultTask() {
+    @get:InputFile
+    abstract val metadataFile: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val snippetsDirectory: DirectoryProperty
+
+    @get:OutputFile
+    abstract val bundleFile: RegularFileProperty
+
+    @TaskAction
+    fun generate() {
+        val parser = JsonSlurper()
+        val metadata = parser.parse(metadataFile.get().asFile) as Map<*, *>
+        val context = (metadata["@context"] ?: "https://schema.org").toString()
+        val entities = (metadata["entities"] as? List<*>)?.associate { raw ->
+            val entry = raw as Map<*, *>
+            val id = entry["id"]?.toString()
+                ?: error("Entity missing id in ${metadataFile.get().asFile}")
+            val data = entry["data"] as? Map<*, *>
+                ?: error("Entity $id missing data block")
+            id to data
+        } ?: emptyMap()
+
+        snippetsDirectory.get().asFile.apply { mkdirs() }
+
+        val snippets = metadata["snippets"] as? List<*> ?: emptyList<Any?>()
+        snippets.forEach { raw ->
+            val snippet = raw as Map<*, *>
+            val snippetId = snippet["id"]?.toString()
+                ?: error("Snippet missing id in ${metadataFile.get().asFile}")
+            val entityRefs = snippet["entityRefs"] as? List<*>
+                ?: error("Snippet $snippetId missing entityRefs array")
+            val graph = entityRefs.map { ref ->
+                val entityId = ref?.toString()
+                    ?: error("Null entityRef in snippet $snippetId")
+                entities[entityId]
+                    ?: error("Unknown entityRef $entityId in snippet $snippetId")
+            }
+
+            val snippetPayload = mapOf(
+                "@context" to context,
+                "@graph" to graph
+            )
+            val snippetFile = snippetsDirectory.file("$snippetId.jsonld").get().asFile
+            snippetFile.parentFile.mkdirs()
+            writeJsonIfChanged(snippetFile, snippetPayload)
+        }
+
+        val bundlePayload = mapOf(
+            "@context" to context,
+            "@graph" to entities.values.toList()
+        )
+        val bundle = bundleFile.get().asFile
+        bundle.parentFile.mkdirs()
+        writeJsonIfChanged(bundle, bundlePayload)
+    }
+
+    private fun writeJsonIfChanged(target: File, payload: Any) {
+        val json = JsonOutput.prettyPrint(JsonOutput.toJson(payload))
+        if (target.exists()) {
+            val existing = target.readText()
+            if (existing == json) {
+                return
+            }
+        }
+        target.parentFile.mkdirs()
+        target.writeText(json)
+    }
+}
+
+val generateJsonLd by tasks.registering(GenerateJsonLdTask::class) {
+    group = "documentation"
+    description = "Generates JSON-LD snippets for README/ReadMe.LLM and a consolidated bundle."
+    metadataFile.set(layout.projectDirectory.file("docs/3-reference/json-ld/metadata.json"))
+    snippetsDirectory.set(layout.projectDirectory.dir("docs/3-reference/json-ld/snippets"))
+    bundleFile.set(layout.buildDirectory.file("json-ld/openauth-sim.json"))
+}
+
+tasks.withType(SpotlessTask::class).configureEach {
+    dependsOn(generateJsonLd)
 }
 
 val pitTargets = mapOf(
@@ -401,5 +494,10 @@ val qualityGate = tasks.register("qualityGate") {
 }
 
 tasks.named("check") {
+    dependsOn(generateJsonLd)
     dependsOn(architectureTest, jacocoCoverageVerification, ":application:nativeJavaApiJavadoc")
+}
+
+qualityGate.configure {
+    dependsOn(generateJsonLd)
 }

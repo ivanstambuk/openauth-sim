@@ -6,8 +6,8 @@ _Last updated: 2025-11-08_
 The operator console now includes an **EUDIW** tab for Feature 040. It mirrors the REST/CLI contracts so you can generate HAIP-compliant authorization requests, drive deterministic wallet simulations, and validate VP Tokens without leaving the browser. This guide covers the Evaluate (Generate) and Replay (Validate) flows, baseline vs HAIP profile toggles, Trusted Authority diagnostics, and trace handling.
 
 ## Prerequisites
-- Start the REST application: `./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`.
-- Keep the shared fixtures in place (`docs/test-vectors/eudiw/openid4vp/…`). The simulator ships with the synthetic `pid-haip-baseline` vector preloaded; conformance bundles will appear once the ingestion toggle is exposed.
+- Start the REST application: `./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`.
+- Keep the shared fixtures in place (``docs/test-vectors/eudiw/openid4vp`/…`). The simulator ships with the synthetic `pid-haip-baseline` vector preloaded; conformance bundles will appear once the ingestion toggle is exposed.
 - Open `http://localhost:8080/ui/console?protocol=eudiw&tab=evaluate` in Chrome, Firefox, or Edge.
 
 ## Evaluate (Generate) mode walk-through
@@ -18,7 +18,7 @@ The operator console now includes an **EUDIW** tab for Feature 040. It mirrors
 3. Select **Wallet input**:
    - **Stored preset** – pick `pid-haip-baseline` to load the synthetic SD-JWT VC, KB-JWT, and Trusted Authority policies immediately.
    - **Inline parameters** – switch the radio button to enter a compact SD-JWT, disclosures, and optional KB-JWT manually. Use the **Load sample vector** dropdown to copy a fixture into the inline fields without editing JSON files.
-4. Optional: expand the DCQL preview (read-only). It always mirrors the presets under `docs/test-vectors/eudiw/openid4vp/fixtures/dcql/` and helps you confirm credential IDs, claim paths, and Trusted Authority filters before generation.
+4. Optional: expand the DCQL preview (read-only). It always mirrors the presets under ``docs/test-vectors/eudiw/openid4vp/fixtures/dcql`/` and helps you confirm credential IDs, claim paths, and Trusted Authority filters before generation.
 5. Click **Generate presentation**. The result column renders:
    - Status badge (`SUCCESS`/`FAILED`).
    - Response mode and holder-binding summary.
@@ -46,7 +46,7 @@ The operator console now includes an **EUDIW** tab for Feature 040. It mirrors
    - Claims path diagnostics for multi-presentation DCQL responses. Each presentation receives a dedicated trace entry that matches the row in the result card.
 
 ## Trusted Authority labels & provenance
-- The UI surfaces both the hash (`aki:s9tIpP7qrS9=`) and the friendly label (“EU PID Issuer”). These values originate from `docs/test-vectors/eudiw/openid4vp/trust/snapshots/*.json` and stay synchronized through the loader.
+- The UI surfaces both the hash (`aki:s9tIpP7qrS9=`) and the friendly label (“EU PID Issuer”). These values originate from ``docs/test-vectors/eudiw/openid4vp/trust/snapshots`/*.json` and stay synchronized through the loader.
 - When the ingestion toggle exposes conformance bundles, the **Stored preset** dropdown and sample selector automatically reflect the currently selected dataset (synthetic vs conformance). The UI labels those presets with their provenance metadata so reviewers can tell whether a VP Token came from the in-repo fixtures or a third-party bundle.
 
 ## Trace dock & telemetry reminders

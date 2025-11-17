@@ -217,6 +217,37 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/TotpReplayErrorResponse"
+  /api/v1/totp/helper/current:
+    post:
+      tags:
+      - "totp-helper-controller"
+      summary: "Return the current OTP and metadata for a stored credential"
+      operationId: "currentTotpHelper"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TotpHelperRequest"
+        required: true
+      responses:
+        "200":
+          description: "Helper lookup successful"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpHelperResponse"
+        "422":
+          description: "Validation error"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TotpEvaluationErrorResponse"
   /api/v1/totp/evaluate:
     post:
       tags:
@@ -306,6 +337,18 @@ paths:
               $ref: "#/components/schemas/OcraVerificationRequest"
         required: true
       responses:
+        "404":
+          description: "Credential not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
+        "500":
+          description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "200":
           description: "Verification completed"
           content:
@@ -327,12 +370,6 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
         "422":
           description: "Verification payload failed validation"
           content:
@@ -353,12 +390,6 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraVerificationErrorResponse"
   /api/v1/ocra/evaluate:
     post:
       tags:
@@ -393,18 +424,18 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "200":
-          description: "Evaluation successful"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OcraEvaluationResponse"
         "500":
           description: "Unexpected server error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/OcraEvaluationErrorResponse"
+        "200":
+          description: "Evaluation successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcraEvaluationResponse"
   /api/v1/ocra/credentials/seed:
     post:
       tags:
@@ -438,18 +469,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
-        "200":
-          description: "Replay completed"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayResponse"
         "500":
           description: "Unexpected error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "200":
+          description: "Replay completed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayResponse"
   /api/v1/hotp/evaluate:
     post:
       tags:
@@ -465,6 +496,12 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -477,12 +514,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -498,6 +529,12 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -510,12 +547,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -636,14 +667,14 @@ paths:
               $ref: "#/components/schemas/EmvCapReplayRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapReplayErrorResponse"
-        "422":
-          description: "Validation error"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -669,12 +700,6 @@ paths:
               $ref: "#/components/schemas/EmvCapEvaluationRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
@@ -683,6 +708,12 @@ paths:
                 $ref: "#/components/schemas/EmvCapEvaluationResponse"
         "422":
           description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -1608,6 +1639,81 @@ components:
           format: "int64"
         verbose:
           type: "boolean"
+    TotpHelperMetadata:
+      type: "object"
+      properties:
+        algorithm:
+          type: "string"
+        digits:
+          type: "integer"
+          format: "int32"
+        stepSeconds:
+          type: "integer"
+          format: "int64"
+        driftBackwardSteps:
+          type: "integer"
+          format: "int32"
+        driftForwardSteps:
+          type: "integer"
+          format: "int32"
+        timestampOverrideProvided:
+          type: "boolean"
+        telemetryId:
+          type: "string"
+        reasonCode:
+          type: "string"
+    TotpHelperResponse:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        otp:
+          type: "string"
+        generationEpochSeconds:
+          type: "integer"
+          format: "int64"
+        expiresEpochSeconds:
+          type: "integer"
+          format: "int64"
+        metadata:
+          $ref: "#/components/schemas/TotpHelperMetadata"
+    TotpEvaluationErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
+    EvaluationWindowRequest:
+      type: "object"
+      properties:
+        backward:
+          type: "integer"
+          format: "int32"
+        forward:
+          type: "integer"
+          format: "int32"
+    TotpHelperRequest:
+      type: "object"
+      properties:
+        credentialId:
+          type: "string"
+        window:
+          $ref: "#/components/schemas/EvaluationWindowRequest"
+        timestamp:
+          type: "integer"
+          format: "int64"
+        timestampOverride:
+          type: "integer"
+          format: "int64"
     OtpPreviewResponse:
       type: "object"
       properties:
@@ -1663,30 +1769,6 @@ components:
           $ref: "#/components/schemas/TotpEvaluationMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    TotpEvaluationErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
-    EvaluationWindowRequest:
-      type: "object"
-      properties:
-        backward:
-          type: "integer"
-          format: "int32"
-        forward:
-          type: "integer"
-          format: "int32"
     TotpStoredEvaluationRequest:
       type: "object"
       properties:
@@ -1775,6 +1857,17 @@ components:
           $ref: "#/components/schemas/OcraVerificationContext"
         verbose:
           type: "boolean"
+    OcraVerificationErrorResponse:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
     OcraVerificationMetadata:
       type: "object"
       properties:
@@ -1807,17 +1900,6 @@ components:
           $ref: "#/components/schemas/OcraVerificationMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
-    OcraVerificationErrorResponse:
-      type: "object"
-      properties:
-        error:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
     OcraEvaluationRequest:
       type: "object"
       properties:
@@ -2615,21 +2697,6 @@ components:
           type: "string"
         includeTrace:
           type: "boolean"
-    EmvCapEvaluationErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/EmvCapTracePayload"
     EmvCapEvaluationResponse:
       type: "object"
       properties:
@@ -2661,6 +2728,21 @@ components:
           type: "string"
         sanitized:
           type: "boolean"
+    EmvCapEvaluationErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/EmvCapTracePayload"
     WebAuthnCredentialSummary:
       type: "object"
       properties:

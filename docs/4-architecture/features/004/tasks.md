@@ -12,7 +12,7 @@ _Last updated:_ 2025-11-13
   _Verification commands:_  
   - `./gradlew --no-daemon :core:test --tests "*WebAuthnAssertionVerifierTest"`  
   - `./gradlew --no-daemon :infra-persistence:test --tests "*CredentialStore*WebAuthn*"`  
-  _Notes:_ Fixtures live under `docs/webauthn_w3c_vectors.json` / `docs/webauthn_assertion_vectors.json`; coverage already exists via `WebAuthnAssertionVerifierTest` / `WebAuthnJsonVectorVerificationTest` & `WebAuthnCredentialStoreAttestationTest`.
+  _Notes:_ Fixtures live under [docs/webauthn_w3c_vectors.json](docs/webauthn_w3c_vectors.json) / [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json); coverage already exists via `WebAuthnAssertionVerifierTest` / `WebAuthnJsonVectorVerificationTest` & `WebAuthnCredentialStoreAttestationTest`.
 
 - [x] **T-004-02 – Implement CLI/REST assertion evaluation + replay (FR-004-01, FR-004-02, S-004-02).**  
   _Intent:_ Wire `maintenance fido2 evaluate/replay`, `/api/v1/fido2/evaluate`, `/api/v1/fido2/replay`, and the credential catalogue endpoint to the verifier services and telemetry adapters.  
@@ -26,7 +26,7 @@ _Last updated:_ 2025-11-13
 - [x] **T-004-03 – Refresh operator console evaluation/replay panels (S-004-01, S-004-05).**  
   _Intent:_ Ensure the UI toggles between Stored/Inline, reuses `secret-fields`, surfaces verification evidence, and keeps reason codes consistent with REST/CLI.  
   _Verification commands:_  
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`  
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`  
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.*Evaluation*"`  
   _Notes:_ Operator console fragment (`templates/ui/fido2/panel.html`) plus `static/ui/fido2/console.js` already expose the toggles; Selenium + Node suites cover evaluation/replay flows.
 
@@ -35,7 +35,7 @@ _Last updated:_ 2025-11-13
   _Verification commands:_  
   - `./gradlew --no-daemon :core:test --tests "*WebAuthnAttestationGeneratorTest"`  
   - `./gradlew --no-daemon :application:test --tests "*WebAuthnAttestation*ServiceTest"`  
-  _Notes:_ Tests (`WebAuthnAttestationGeneratorTest`, `WebAuthnAttestationGenerationStoredTest`) already execute against `docs/webauthn_attestation/*` fixtures.
+  _Notes:_ Tests (`WebAuthnAttestationGeneratorTest`, `WebAuthnAttestationGenerationStoredTest`) already execute against ``docs/webauthn_attestation`/*` fixtures.
 
 - [x] **T-004-05 – Implement CLI/REST attestation commands + trust-anchor metadata (FR-004-03, FR-004-04, S-004-04).**  
   _Intent:_ Wire `maintenance fido2 attest`, `attest-replay`, `seed-attestations`, `/api/v1/webauthn/attest`, `/api/v1/webauthn/attest/replay`, `/api/v1/webauthn/attestations/seed`, `/api/v1/webauthn/attestations/{id}` with the attestation services and telemetry.  
@@ -49,11 +49,11 @@ _Last updated:_ 2025-11-13
   _Intent:_ Add the attestation generation panel (format selector, trust-anchor upload, challenge control), the attestation replay summary, and the `trustAnchorSummaries` rendering plus warnings.  
   _Verification commands:_  
   - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest.*Attestation*"`  
-  - `node --test rest-api/src/test/javascript/emv/console.test.js`  
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`  
   _Notes:_ Attestation UI is live in `templates/ui/fido2/panel.html` + `static/ui/fido2/console.js`; Selenium tests assert metadata cards and `trustAnchorSummaries`.
 
 - [x] **T-004-07 – Document & log the Feature 004 consolidation (I3).**  
-  _Intent:_ Refresh `docs/4-architecture/knowledge-map.md` and `_current-session.md` with the merged scope, verification commands, and hook guard output; ensure the feature plan/spec/tasks updates match the Consolidation Goal.  
+  _Intent:_ Refresh [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md) and `_current-session.md` with the merged scope, verification commands, and hook guard output; ensure the feature plan/spec/tasks updates match the Consolidation Goal.  
   _Verification commands:_  
 - `git config core.hooksPath` (log output in `_current-session.md`)  
   - `./gradlew --no-daemon spotlessApply check`  
@@ -65,7 +65,7 @@ _Last updated:_ 2025-11-13
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-004-09 – Author `docs/2-how-to/use-fido2-from-java.md` and supporting tests (FR-014-03/04, S-014-01/02).  
+- [x] T-004-09 – Author [docs/2-how-to/use-fido2-from-java.md](docs/2-how-to/use-fido2-from-java.md) and supporting tests (FR-014-03/04, S-014-01/02).  
   _Intent:_ Add a FIDO2/WebAuthn Native Java how-to guide and tests that treat `WebAuthnEvaluationApplicationService` as the façade seam for assertion evaluation, aligning docs and behaviour with Feature 014 and ADR-0007.  
   _Verification commands:_  
   - `./gradlew --no-daemon :core:test :application:test`  
@@ -74,9 +74,9 @@ _Last updated:_ 2025-11-13
 ## Verification Log
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check` (baseline).  
 - 2025-11-11 – `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` plus UI/Selenium suites.  
-- 2025-11-11 – `node --test rest-api/src/test/javascript/emv/console.test.js`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon :ui:test`.
-- 2025-11-13 – `git config core.hooksPath` (hooks confirmed as `githooks`), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `node --test rest-api/src/test/javascript/emv/console.test.js`, and `./gradlew --no-daemon :ui:test` to capture the Feature 004 consolidation runs.
+- 2025-11-11 – `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`, and `./gradlew --no-daemon :ui:test`.
+- 2025-11-13 – `git config core.hooksPath` (hooks confirmed as `githooks`), `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"`, `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"`, `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, and `./gradlew --no-daemon :ui:test` to capture the Feature 004 consolidation runs.
 
 ## Notes / TODOs
-- Document any remaining drift in `docs/5-operations/analysis-gate-checklist.md`.  
+- Document any remaining drift in [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md).  
 - Future work (trust-anchor catalog enhancements, registration flows) should reference this feature’s fixture/telemetry contracts.

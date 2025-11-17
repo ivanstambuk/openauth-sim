@@ -9,7 +9,7 @@ Thanks for helping shape OpenAuth Simulator! We build this project in deliberate
 - **Formatter alignment.** Spotless enforces Palantir Java Format 2.78.0 (120-character wrap). Install the matching IDE plugin/settings so local formatting matches CI before you stage code.
 - **Conventional commits.** Use the Angular-style prefixes (`feat:`, `fix:`, `build:`, etc.) so release automation and changelogs can stay machine-readable.
 - **Keep docs in sync.** Update the relevant section under `docs/` whenever you introduce or change behaviour (overview, architecture notes, ADRs, runbooks, etc.).
-- **Own the ADRs.** Decisions—especially reversals—must be captured under `docs/6-decisions/` before or alongside the implementation.
+- **Own the ADRs.** Decisions—especially reversals—must be captured under ``docs/6-decisions`/` before or alongside the implementation.
 - **Error Prone toggle.** Until the Gradle plugin supports the latest Error Prone release, the build runs with Error Prone disabled. Feel free to re-enable it locally via `-PerrorproneEnabled=true`; please include any required fixes in the same commit.
 
 ## Branching & reviews
@@ -22,7 +22,7 @@ Thanks for helping shape OpenAuth Simulator! We build this project in deliberate
 
 - Java 17 (records, sealed types, pattern matching) is encouraged; avoid using APIs introduced after Java 17 unless wrapped behind compatibility layers.
 - Follow Checkstyle and Spotless; the CI will fail on formatting issues.
-- Avoid committing generated artifacts, secrets, or local database files. The default `.gitignore` already filters most build outputs.
+- Avoid committing generated artifacts, secrets, or local database files. The default [.gitignore](.gitignore) already filters most build outputs.
 
 ## Security & compliance
 

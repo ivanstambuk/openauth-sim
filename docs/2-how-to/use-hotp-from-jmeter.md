@@ -10,8 +10,7 @@ credentials (no replay flows).
 - JMeter must also run on a Java 17 (or newer) runtime, because the OpenAuth Simulator JARs are compiled with
   `targetCompatibility = 17`. Check the `java -version` used by `jmeter`/`jmeter.bat` rather than relying only on
   `JAVA_HOME`.
-- OpenAuth Simulator JARs on JMeter’s classpath (at minimum: `core`, `core-shared`, `core-ocra`, `application`,
-  and `infra-persistence`).
+- OpenAuth Simulator JARs on JMeter’s classpath (at minimum: `core`, `core-shared`, `core-ocra`, `application`, and `infra-persistence`).
 - JMeter configured with a JSR223 Sampler using `groovy` as the language.
 
 ## 1. JSR223 Sampler for inline HOTP

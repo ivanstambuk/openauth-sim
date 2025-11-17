@@ -24,7 +24,7 @@ OCRA is a flexible challenge–response algorithm from the OATH family that gene
   - Challenge–response login and step-up authentication.
   - Transaction signing, where `S` encodes transaction details the user can verify.
   - Out-of-band authorisation for higher-risk actions.
- - Example (based on RFC 6287 Appendix C and `docs/ocra_validation_vectors.json`):
+ - Example (based on RFC 6287 Appendix C and [docs/ocra_validation_vectors.json](docs/ocra_validation_vectors.json)):
    - Suite: `OCRA-1:HOTP-SHA1-6:QN08`, shared secret `K` = ASCII `"12345678901234567890"` (hex `3132333435363738393031323334353637383930`), challenge `Q = "00000000"`.
    - The canonicalised data input for `(K, Suite, Q)` produces an OCRA response of `237653`; any change to `Q` or `K` yields a different result.
 

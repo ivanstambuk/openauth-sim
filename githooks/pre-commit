@@ -222,6 +222,25 @@ enforce_staged_file_guards() {
   fi
 }
 
+enforce_markdown_linewraps() {
+  local script="$ROOT_DIR/tools/scripts/check-markdown-linewraps.py"
+  [[ -x $script ]] || return
+
+  local -a markdown_files=()
+  for file in "${STAGED_FILES[@]}"; do
+    [[ $file == *.md ]] && markdown_files+=("$file")
+  done
+
+  if (( ${#markdown_files[@]} == 0 )); then
+    return
+  fi
+
+  log "Checking Markdown list items for manual line wraps"
+  if ! "$script" "${markdown_files[@]}"; then
+    die "Markdown list entries must stay on one physical line (see errors above)."
+  fi
+}
+
 clear_configuration_cache() {
   local cache_dir="$ROOT_DIR/.gradle/configuration-cache"
   if [[ -d $cache_dir ]]; then
@@ -274,6 +293,7 @@ run_external_scanners() {
 main() {
   collect_staged_files
   validate_environment
+  enforce_markdown_linewraps
   enforce_staged_file_guards
   run_gradle_pipeline
   run_mutation_suite

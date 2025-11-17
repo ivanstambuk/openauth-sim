@@ -6,10 +6,10 @@ _Last updated: 2025-11-01_
 The operator console embedded in the REST API now exposes TOTP evaluation and replay tooling alongside the existing OCRA and HOTP flows. This guide shows how to validate stored credentials, drive inline checks with custom parameters, replay OTP submissions without mutating counters, and interpret the metadata surfaced by the UI.
 
 ## Prerequisites
-- Run the REST API locally (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi`) so the console is reachable at `http://localhost:8080/ui/console`.
-- Ensure the simulator can read the credential store MapDB file (defaults to `data/credentials.db`). TOTP issuance is still out of scope, but the operator console now exposes a **Seed sample credentials** action that loads canonical demo entries into the store. Use the TOTP CLI (`./gradlew :cli:run --args='totp list'`) if you want to inspect or verify the seeded credentials outside the UI.
+- Run the REST API locally (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`) so the console is reachable at `http://localhost:8080/ui/console`.
+- Ensure the simulator can read the credential store MapDB file (defaults to [data/credentials.db](data/credentials.db)). TOTP issuance is still out of scope, but the operator console now exposes a **Seed sample credentials** action that loads canonical demo entries into the store. Use the TOTP CLI (`./gradlew :cli:run --args='totp list'`) if you want to inspect or verify the seeded credentials outside the UI.
 - Inline evaluation does not require persisted credentials, but you will need the shared secret (hex or Base32), algorithm, digit length, time-step, timestamp (or override), and the preview window offsets that control how many neighbouring OTPs appear.
-- RFC 6238 validation vectors now ship in `docs/totp_validation_vectors.json`; the simulator loads this catalogue for CLI, REST, and UI presets so the same fixtures remain available across interfaces.
+- RFC 6238 validation vectors now ship in [docs/totp_validation_vectors.json](docs/totp_validation_vectors.json); the simulator loads this catalogue for CLI, REST, and UI presets so the same fixtures remain available across interfaces.
 
 ## Enable Verbose Tracing
 - The console header now exposes an **Enable verbose tracing for the next request** toggle. Leave it unchecked for the default behaviour; when you enable it, the next evaluation or replay request includes `"verbose": true` so the REST API returns a `trace` payload alongside the standard result.

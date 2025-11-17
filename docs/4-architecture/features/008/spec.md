@@ -5,8 +5,8 @@
 | Status | Placeholder (awaiting implementation) |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/008/plan.md` |
-| Linked tasks | `docs/4-architecture/features/008/tasks.md` |
+| Linked plan | [docs/4-architecture/features/008/plan.md](docs/4-architecture/features/008/plan.md) |
+| Linked tasks | [docs/4-architecture/features/008/tasks.md](docs/4-architecture/features/008/tasks.md) |
 | Roadmap entry | #8 – EUDIW SIOPv2 Wallet Simulator |
 
 ## Overview
@@ -123,8 +123,8 @@ Placeholder ASCII sketches keep the template structure intact until the final UX
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-008-01 | `docs/test-vectors/eudiw/sio/consent.json` | Sample request metadata. |
-| FX-008-02 | `docs/test-vectors/eudiw/sio/presentations/pid-sdjwt.json` | VP Token seed. |
+| FX-008-01 | docs/test-vectors/eudiw/sio/consent.json | Sample request metadata. |
+| FX-008-02 | docs/test-vectors/eudiw/sio/presentations/pid-sdjwt.json | VP Token seed. |
 
 ### UI States
 | ID | State | Trigger |
@@ -136,7 +136,7 @@ Placeholder ASCII sketches keep the template structure intact until the final UX
 - Extend `oid4vp.wallet.*` event family with sanitized context (taMatch, credentialCount, includeTrace flag).
 
 ## Documentation Deliverables
-- Update OpenID4VP how-to + session log (docs/_current-session.md) with wallet simulator instructions.
+- Update OpenID4VP how-to + session log ([docs/_current-session.md](docs/_current-session.md)) with wallet simulator instructions.
 
 ## Fixtures & Sample Data
 - Share fixture catalogue with Feature 006 and Feature 007; annotate provenance metadata.

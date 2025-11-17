@@ -43,7 +43,7 @@ _Last updated:_ 2025-11-13
   _Verification:_ `./gradlew --no-daemon :rest-api:test --tests "*HotpOperatorUiReplay*"`
 - [x] T-001-18 – Implement HOTP replay UI tweaks (auto-fill counter/OTP, remove sample button) (S-001-04).  
   _Verification:_ `./gradlew --no-daemon :rest-api:test`
-- [x] T-001-19 – Publish `docs/hotp_validation_vectors.json`, add loader/tests across modules (S-001-05, FR-001-06).  
+- [x] T-001-19 – Publish [docs/hotp_validation_vectors.json](docs/hotp_validation_vectors.json), add loader/tests across modules (S-001-05, FR-001-06).  
   _Verification:_ `./gradlew --no-daemon :core:test :cli:test :rest-api:test`
 - [x] T-001-20 – Update CLI/REST/operator docs with HOTP guidance, rerun spotless (S-001-05, FR-001-07).  
   _Verification:_ `./gradlew --no-daemon spotlessApply check`
@@ -53,7 +53,7 @@ _Last updated:_ 2025-11-13
   _Verification:_  
   - `./gradlew --no-daemon spotlessApply check`
 
-- [x] T-001-22 – Author `docs/2-how-to/use-hotp-from-java.md` and tests (FR-014-03/04, S-014-01/02).  
+- [x] T-001-22 – Author [docs/2-how-to/use-hotp-from-java.md](docs/2-how-to/use-hotp-from-java.md) and tests (FR-014-03/04, S-014-01/02).  
   _Intent:_ Add a HOTP `*-from-java` how-to guide modelled on `use-ocra-from-java.md` and tests that treat `HotpEvaluationApplicationService` (with `EvaluationCommand` / `EvaluationResult`) as the façade seam for stored and inline evaluations.  
   _Verification:_  
   - `./gradlew --no-daemon :core:test :application:test`  

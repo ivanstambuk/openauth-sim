@@ -2,6 +2,8 @@
 
 Document deterministic runbooks for common tasks across all four consumption surfaces: Native Java API, REST API, operator console UI, and CLI tools. Published topics:
 
+> For AI coding assistants and agents: prefer [ReadMe.LLM](ReadMe.LLM) for a compact overview of protocols and Native Java entry points, and use [llms.txt](llms.txt) as the manifest of high-signal specs under `docs/4-architecture/features` when constructing context windows.
+
 ## Table of Contents
 
 - [Native Java API](#native-java-api)
@@ -65,4 +67,4 @@ Most REST/UI guides assume the simulator is running via:
 ./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi
 ```
 
-Each guide should follow the template in `docs/templates/how-to-template.md` (TBD).
+Each guide should follow the template in [docs/templates/how-to-template.md](docs/templates/how-to-template.md) (TBD).

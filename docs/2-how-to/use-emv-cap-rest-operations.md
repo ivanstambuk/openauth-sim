@@ -9,7 +9,7 @@ REST, CLI, and operator UI clients all share the same verbose trace contract. Th
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` configured.
-- Spring Boot application running (`./gradlew --no-daemon --init-script tools/run-rest-api.init.gradle.kts runRestApi` from the repo root).
+- Spring Boot application running (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi` from the repo root).
 - Optional: `jq` for formatting JSON responses.
 
 OpenAPI references:
@@ -238,7 +238,7 @@ Mismatch responses keep secrets redacted while explaining why validation failed:
 The trace is omitted because `includeTrace` defaults to `false`. Set it to `true` when you want the masked overlay that led to the expected OTP.
 
 ## Compare with published vectors
-Baseline vectors live under `docs/test-vectors/emv-cap/`. Each record includes the request payload, resolved ICC data, and expected outputs. Load them directly from tests or tooling to confirm the simulator stays aligned with the transcripted calculator runs.
+Baseline vectors live under ``docs/test-vectors/emv-cap`/`. Each record includes the request payload, resolved ICC data, and expected outputs. Load them directly from tests or tooling to confirm the simulator stays aligned with the transcripted calculator runs.
 
 ### Extended coverage set
 Beyond the original Identify/Respond/Sign baselines, the simulator now ships six additional vectors captured from hardware calculator transcripts:

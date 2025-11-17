@@ -100,7 +100,7 @@ Given: stored public key and metadata for a credential, expected RP ID, allowed 
 
 ### Worked example – assertion verification
 
-This worked example uses the simulator’s ES256 assertion vector `ES256:uv0_up1` from `docs/webauthn_assertion_vectors.json`. It is intentionally high-level: the goal is to show which fields the RP inspects and how they relate to the verification algorithm above.
+This worked example uses the simulator’s ES256 assertion vector `ES256:uv0_up1` from [docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json). It is intentionally high-level: the goal is to show which fields the RP inspects and how they relate to the verification algorithm above.
 
 Given:
 

@@ -5,16 +5,16 @@
 | Status | Complete |
 | Last updated | 2025-11-15 |
 | Owners | Ivan (project owner) |
-| Linked plan | `docs/4-architecture/features/009/plan.md` |
-| Linked tasks | `docs/4-architecture/features/009/tasks.md` |
+| Linked plan | [docs/4-architecture/features/009/plan.md](docs/4-architecture/features/009/plan.md) |
+| Linked tasks | [docs/4-architecture/features/009/tasks.md](docs/4-architecture/features/009/tasks.md) |
 | Roadmap entry | #9 – Operator Console Infrastructure |
 
 ## Overview
 Feature 009 is the single source of truth for every operator-console artefact—Thymeleaf shells, vanilla JS controllers,
 verbose-trace dock wiring, Node harnesses, and protocol-specific helpers. Multi-protocol tabs, info surfaces, validation helpers,
 trace diagnostics, Base32 inputs, preview windows, and the modular JS test harness all share one consolidated spec/plan/tasks bundle
-before further feature work continues and are backed by ADR-0005 (Operator Console Layout and Shared UI Contracts). `/ui/console`
-is the canonical entry point and legacy routes such as `/ui/ocra/*` either redirect to `/ui/console` or return `404` to prevent
+before further feature work continues and are backed by ADR-0005 (Operator Console Layout and Shared UI Contracts). /ui/console
+is the canonical entry point and legacy routes such as `/ui/ocra/*` either redirect to /ui/console or return `404` to prevent
 drift. The tablist order is locked to HOTP → TOTP → OCRA → FIDO2/WebAuthn → EMV/CAP → EUDIW OpenID4VP → EUDIW ISO/IEC 18013-5 →
 EUDIW SIOPv2, with placeholder panels maintained until each protocol is live. Protocol Info drawers, preset catalogues, validation
 helpers, verbose trace toggles, trace tiers, Base32 helpers, preview tables, and modular JS controllers/harnesses described below
@@ -33,7 +33,7 @@ represent the normative behaviour for every operator-console increment.
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
 |----|-------------|--------------|-----------------|--------------|--------------------|--------|
-| FR-009-01 | `/ui/console` renders the ordered protocol tabs, query-parameter-based history, stored credential seed controls, and placeholder messaging while legacy `/ui/ocra/*` routes redirect to the new entry. | Selenium/DOM tests verify tab order, state restoration, seeding controls, and disabled future tabs. | Invalid/legacy tabs fallback to OCRA, history navigation uses query params, and stored credential seeding logs the action. | Legacy routes still reachable or tabs render out of order. | `ui.console.navigation` events carry `protocol`, `tab`, and `seedAction`. | Spec |
+| FR-009-01 | /ui/console renders the ordered protocol tabs, query-parameter-based history, stored credential seed controls, and placeholder messaging while legacy `/ui/ocra/*` routes redirect to the new entry. | Selenium/DOM tests verify tab order, state restoration, seeding controls, and disabled future tabs. | Invalid/legacy tabs fallback to OCRA, history navigation uses query params, and stored credential seeding logs the action. | Legacy routes still reachable or tabs render out of order. | `ui.console.navigation` events carry `protocol`, `tab`, and `seedAction`. | Spec |
 | FR-009-02 | Protocol Info drawer opens via the right-aligned trigger, persists preferences, swaps content per protocol, and exposes embeddable schema-driven assets/docs. | Drawer obeys `prefers-reduced-motion`, uses `localStorage` keys per protocol, and renders schema payloads safely. | Accessibility tests exercise focus trap + ESC/Enter shortcuts; doc review validates README/harness integration. | Drawer fails to open, persistence breaks, or schema renders unescaped HTML. | CustomEvents `ui.protocolInfo.trigger.clicked`, `ui.protocolInfo.opened/closed`, `ui.protocolInfo.protocol.changed`, `ui.protocolInfo.persistence.updated`. | Spec |
 | FR-009-03 | Console preset dropdowns across HOTP/TOTP/OCRA/FIDO2 expose `<scenario – key attributes>` labels, keep seeded/stored catalogues in sync (6/8-digit permutations + RFC suffixes), and documentation references the harmonised copy. | Templates and JS render the new labels; OAuth presets include `(RFC 6287)` suffixes while drafts stay untouched. | UI snapshots + Selenium run confirm the label list and seeded credentials match; docs mention the new pattern. | Stale labels, missing seeded credentials, or docs lacking guidance. | Sanitized label strings remain in telemetry logs. | Spec |
 | FR-009-04 | Validation helper ensures every invalid response reveals the appropriate result card with the API `message` for HOTP/TOTP/OCRA/WebAuthn flows. | Helper toggles `showResultCard` and `validationMessage`, and Selenium suites confirm the message renders. | Integration tests feed invalid payloads to each ceremony; docs describe the pattern. | Result card remains hidden or message missing despite invalid responses. | Telemetry unaffected. | Spec |
@@ -41,13 +41,13 @@ represent the normative behaviour for every operator-console increment.
 | FR-009-06 | Trace tier filtering helper enforces `normal`, `educational`, and `lab-secrets` contracts across builders and facades while logging per-request tier metadata. | Helper masks secrets whose `minimumTier` exceeds the requested tier and returns deterministic payloads; CLI/REST/JS respect tier flags. | Tier fixtures/assertions exercise all protocols; telemetry events emit `telemetry.trace.filtered` and `telemetry.trace.invalid_tier`. | Unknown tiers cause errors or secrets leak at lower tiers. | `telemetry.trace.filtered`, `telemetry.trace.invalid_tier`. | Spec |
 | FR-009-07 | Inline secrets accept Base32 input (mutually exclusive with hex) via the shared `SecretEncodings` helper, CLI flags, and UI toggle; docs cover conversion hints. | Helper uppercases/pads Base32, CLI commands expose `--shared-secret-base32`, REST DTOs support `sharedSecretBase32`, and the UI toggle keeps both encodings aligned. | REST/CLI/UI tests assert exclusivity, validation errors, and conversion results; OpenAPI snapshot documents the new field. | Missing validation, helpers fail, or docs lack guidance. | Telemetry events log only the sanitized hex string. | Spec |
 | FR-009-08 | Evaluation flows accept preview windows (`window.backward/forward`), render Delta-ordered tables (with accent on Delta = 0), and expose CLI/REST flags while keeping replay drift inputs unchanged. | CLI output, REST JSON, and UI tables render the ordered previews; invalid offsets return informative errors and blocks the request. | CLI/REST/Selenium tests cover {0,0} defaults, multi-row windows, accent styling, and helper-text removal. | Preview tables missing, delta accent absent, or helper text unexpectedly shown. | `otp.evaluate.preview`, `otp.evaluate.preview_invalid_window`. | Spec |
-| FR-009-09 | Static JS modules expose per-protocol controller factories, reuse shared helpers (SecretFieldBridge, VerboseTraceConsole), and run through the `operatorConsoleJsTest` Gradle task with filtering support. | Node harness suites (`node --test rest-api/src/test/javascript/...`) exercise HOTP, TOTP, OCRA, FIDO2, EMV, and shared widgets; `./gradlew operatorConsoleJsTest -PconsoleTestFilter=<protocol>` filters runs. | Gradle aggregators (`check`) fail when Node tests regress; docs describe harness onboarding. | Inline scripts remain, harness missing features, or Gradle task not wired under `check`. | Optional telemetry `build.console_js.test`. | Spec |
-| FR-009-10 | Documentation, knowledge map, session log (docs/_current-session.md), roadmap, and `_current-session.md` describe the consolidated console scope (tabs, traces, debug helpers, scripted tests) and reference the new feature as the exclusive source. | Docs mention Feature 009 for console ownership | `spotlessApply check` plus manual doc review confirm the entries; `_current-session.md` cites the deletion/completion log. | Legacy features still cited or docs unsynchronised. | n/a | Spec |
+| FR-009-09 | Static JS modules expose per-protocol controller factories, reuse shared helpers (SecretFieldBridge, VerboseTraceConsole), and run through the `operatorConsoleJsTest` Gradle task with filtering support. | Node harness suites (`node --test `rest-api/src/test/javascript/`...`) exercise HOTP, TOTP, OCRA, FIDO2, EMV, and shared widgets; `./gradlew operatorConsoleJsTest -PconsoleTestFilter=<protocol>` filters runs. | Gradle aggregators (`check`) fail when Node tests regress; docs describe harness onboarding. | Inline scripts remain, harness missing features, or Gradle task not wired under `check`. | Optional telemetry `build.console_js.test`. | Spec |
+| FR-009-10 | Documentation, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), roadmap, and `_current-session.md` describe the consolidated console scope (tabs, traces, debug helpers, scripted tests) and reference the new feature as the exclusive source. | Docs mention Feature 009 for console ownership | `spotlessApply check` plus manual doc review confirm the entries; `_current-session.md` cites the deletion/completion log. | Legacy features still cited or docs unsynchronised. | n/a | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
 |----|-------------|--------|-------------|--------------|--------|
-| NFR-009-01 | Documentation traceability (per Constitution Principle 4) | Keep spec/plan/tasks linked to the console GitHub fragments, knowledge map, and session log (`docs/_current-session.md`) so auditors can trace console changes and ownership over time. | Verified links + `_current-session.md` notes per increment. | Knowledge map, roadmap. | Spec |
+| NFR-009-01 | Documentation traceability (per Constitution Principle 4) | Keep spec/plan/tasks linked to the console GitHub fragments, knowledge map, and session log ([docs/_current-session.md](docs/_current-session.md)) so auditors can trace console changes and ownership over time. | Verified links + `_current-session.md` notes per increment. | Knowledge map, roadmap. | Spec |
 | NFR-009-02 | Telemetry hygiene (per TelemetryContracts guardrail) | Secrets or Base32 strings must never appear in structured logs; trace tiers mask attributes accordingly. | ArchUnit/telemetry guardrails + code review. | `TelemetryContracts`, masked logging helpers. | Spec |
 | NFR-009-03 | Quality gate parity (per Constitution Principle 3) | `./gradlew --no-daemon spotlessApply check`, all JVM `:rest-api`/`:application`/`:cli`/`:ui` suites, Node harness, and PMD/Spotless must stay green. | Command logs recorded in `_current-session.md`. | Gradle toolchain, Node environment. | Spec |
 | NFR-009-04 | Accessibility (tabs, info drawer, validation, preview accents) | Tablist focus, Info drawer, validation messaging, and preview accent styling meet WCAG/keyboard expectations. | Selenium/axe audits + manual review. | Thymeleaf templates, CSS tokens. | Spec |
@@ -71,7 +71,7 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 ## Branch & Scenario Matrix
 | Scenario ID | Description / Expected outcome |
 |-------------|--------------------------------|
-| S-009-01 | `/ui/console` renders ordered tabs (hotp, totp, ocra, emv, fido2, eudi-openid4vp, eudi-iso18013-5, eudi-siopv2), preserves query params, and keeps seeding/placeholder controls intact. |
+| S-009-01 | /ui/console renders ordered tabs (hotp, totp, ocra, emv, fido2, eudi-openid4vp, eudi-iso18013-5, eudi-siopv2), preserves query params, and keeps seeding/placeholder controls intact. |
 | S-009-02 | Protocol Info trigger/drawer opens, swaps schema content, persists preferences, and exposes embeddable docs. |
 | S-009-03 | Preset dropdowns across HOTP/TOTP/OCRA/FIDO2 show `<scenario – key attributes>` labels with RFC suffixes where required.
 | S-009-04 | Validation helper reveals result cards/messages for invalid responses across HOTP/TOTP/OCRA/WebAuthn.
@@ -80,12 +80,12 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 | S-009-07 | Inline secret entry accepts Base32 or hex (mutually exclusive), CLI flags route through the helper, and UI toggles keep values aligned.
 | S-009-08 | Evaluation preview windows render ordered tables with Delta=0 accent, CLI/REST flags pick offsets, and helper text is concise.
 | S-009-09 | Console JS modules run inside the `operatorConsoleJsTest` harness with filtering, covering HOTP/TOTP/OCRA/FIDO2/EMV/shared widgets.
-| S-009-10 | Knowledge map, session log (docs/_current-session.md), roadmap, and `_current-session.md` describe the console feature as the authoritative place for all related content.
+| S-009-10 | Knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), roadmap, and `_current-session.md` describe the console feature as the authoritative place for all related content.
 
 ## Test Strategy
 - JVM suites: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`, and `./gradlew --no-daemon :ui:test` to cover console flows, trace builders, and validation helpers.
-- Node/JS: `node --test rest-api/src/test/javascript/emv/console.test.js`, `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` plus the aggregated `check` target to run Node harness suites.
-- Documentation: `./gradlew --no-daemon spotlessApply check` to keep specs/roadmap/knowledge-map/formatted; manual doc review ensures session log (docs/_current-session.md)/_current-session updates.
+- Node/JS: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` plus the aggregated `check` target to run Node harness suites.
+- Documentation: `./gradlew --no-daemon spotlessApply check` to keep specs/roadmap/knowledge-map/formatted; manual doc review ensures session log ([docs/_current-session.md](docs/_current-session.md))/_current-session updates.
 
 ## Interface & Contract Catalogue
 ### Domain Objects
@@ -114,7 +114,7 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 | ID | Command | Behaviour |
 |----|---------|-----------|
 | CLI-009-01 | `hotp evaluate --verbose --verbose-tier=<tier> --shared-secret-base32` | Routes Base32/hex through helper, emits verbose traces filtered by tier, and prints ordered preview tables when `--window-*` flags used. |
-| CLI-009-02 | `node --test rest-api/src/test/javascript/emv/console.test.js` | Runs the console JS harness for EMV flows. |
+| CLI-009-02 | `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)` | Runs the console JS harness for EMV flows. |
 | CLI-009-03 | `./gradlew --no-daemon operatorConsoleJsTest` | Aggregates console Node suites, supports `-PconsoleTestFilter=<protocol>`, and runs as part of `check`. |
 | CLI-009-04 | `totp inline-evaluate --shared-secret-base32` / `ocra evaluate --shared-secret-base32` etc | Mirror HOTP options per protocol through the shared helper. |
 
@@ -131,9 +131,9 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 ### Fixtures & Sample Data
 | ID | Path | Purpose |
 |----|------|---------|
-| FX-009-01 | `docs/test-vectors/ocra/operator-samples.json` | Seeded credential catalogue for seeding controls. |
-| FX-009-02 | `rest-api/src/main/resources/static/ui/console/console.css` | Shared console styles. |
-| FX-009-03 | `rest-api/src/main/java/io/openauth/sim/rest/ui/HotpOperatorSampleData.java` (and Totp/Ocra/Fido2 variants) | Preset label definitions referred by requirement FR-009-03. |
+| FX-009-01 | docs/test-vectors/ocra/operator-samples.json | Seeded credential catalogue for seeding controls. |
+| FX-009-02 | [rest-api/src/main/resources/static/ui/console/console.css](rest-api/src/main/resources/static/ui/console/console.css) | Shared console styles. |
+| FX-009-03 | [rest-api/src/main/java/io/openauth/sim/rest/ui/HotpOperatorSampleData.java](rest-api/src/main/java/io/openauth/sim/rest/ui/HotpOperatorSampleData.java) (and Totp/Ocra/Fido2 variants) | Preset label definitions referred by requirement FR-009-03. |
 | FX-009-04 | `docs/test-vectors/trace-tiers/hotp/*.json`, `docs/test-vectors/trace-tiers/fido2/*.json` | Canonical tier payloads. |
 | FX-009-05 | `docs/test-vectors/trace-preview/*.json` | Ordered preview tables for evaluation windows. |
 | FX-009-06 | `rest-api/src/test/javascript/support/fixtures/*.json` | DOM harness fixtures for Node suites. |
@@ -141,20 +141,20 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 ### UI States
 | ID | Description | Trigger |
 |----|-------------|--------|
-| UI-009-01 | Tablist with HOTP → EUDI tabs, placeholder panels, and query-param persistence. | `/ui/console` navigation. |
+| UI-009-01 | Tablist with HOTP → EUDI tabs, placeholder panels, and query-param persistence. | /ui/console navigation. |
 | UI-009-02 | Protocol Info drawer (trigger + panel) with schema-driven content and persistence. | `Protocol info` icon. |
 | UI-009-03 | Validation result card forced visible with API message when responses are invalid. | Invalid REST responses. |
 | UI-009-04 | Verbose trace dock (terminal-style) showing trace steps filtered by tier. | `Show verbose trace` control. |
 | UI-009-05 | Base32 toggle/text area syncing between hex/base32, inline hints, and validation states. | Shared secret section. |
 | UI-009-06 | Preview window offsets control and Delta-ordered table with accent for Delta = 0. | Evaluation forms. |
-| UI-009-07 | Node harness documentation/hint showing `createXConsoleController({ dom, harness })`. | JS tests referencing `rest-api/src/test/javascript/support`. |
+| UI-009-07 | Node harness documentation/hint showing `createXConsoleController({ dom, harness })`. | JS tests referencing rest-api/src/test/javascript/support. |
 
 ## Telemetry & Observability
 Continue emitting `operator.console.*` frames through `TelemetryContracts` adapters. Verbose trace tiers emit `telemetry.trace.filtered`/`invalid_tier`, and preview telemetry uses `otp.evaluate.preview*`. The `build.console_js.test` event remains optional but available for monitoring the JS harness.
 
 ## Documentation Deliverables
-- Update `docs/4-architecture/roadmap.md` and `docs/4-architecture/knowledge-map.md` to describe the consolidated console scope (tabs, info drawer, trace tiers, Base32, preview windows, and JS harness).
-- Align operator how-to guides (`docs/2-how-to/*.md`) and runbooks with the new spec, including Base32 instructions, trace usage, and console testing guidance.
+- Update [docs/4-architecture/roadmap.md](docs/4-architecture/roadmap.md) and [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md) to describe the consolidated console scope (tabs, info drawer, trace tiers, Base32, preview windows, and JS harness).
+- Align operator how-to guides (``docs/2-how-to`/*.md`) and runbooks with the new spec, including Base32 instructions, trace usage, and console testing guidance.
 
 ## Fixtures & Sample Data
 Reuse the existing preset helpers (HotpOperatorSampleData, TotpOperatorSampleData, OcraOperatorSampleData, Fido2OperatorSampleData), trace tier fixture sets, and preview table resources; keep the DOM harness fixtures under `rest-api/src/test/javascript/support/fixtures/` up to date with each protocol.
