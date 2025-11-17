@@ -34,7 +34,7 @@ OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating
 | `rest-api`   | Spring Boot facade exposing JSON endpoints and Swagger/OpenAPI documentation                  |
 | `ui`         | Server-rendered operator console built atop the REST API                                      |
 | `infra-persistence` | MapDB-based `CredentialStoreFactory` and persistence defaults                          |
-| `standalone` | Shadow-based distribution module that assembles the `openauth-sim-standalone` fat JAR for all facades |
+| `standalone` | Aggregates all simulator modules into the `openauth-sim-standalone` jar (no third-party deps bundled) |
 
 ## Quickstart by surface
 
@@ -114,16 +114,14 @@ The task reads [docs/3-reference/json-ld/metadata.json](docs/3-reference/json-ld
 
 ## Standalone distribution & Maven publishing
 
-- The `:standalone` module builds **`io.github.ivanstambuk:openauth-sim-standalone`**, a fat JAR that bundles CLI, REST API, UI, and MCP proxy facades. Build it locally with:
+- The `:standalone` module builds **`io.github.ivanstambuk:openauth-sim-standalone`**, an aggregated jar that contains all simulator modules (CLI/REST/UI/MCP) but leaves external libraries (Spring Boot, Picocli, MapDB, etc.) as Maven dependencies. Build it locally with:
 
   ```bash
-  ./gradlew --no-daemon :standalone:shadowJar
-  java -jar standalone/build/libs/openauth-sim-standalone-0.1.0-SNAPSHOT.jar --help
+  ./gradlew --no-daemon :standalone:jar
+  java -jar standalone/build/libs/openauth-sim-standalone-0.1.1.jar --help
   ```
 
-  (Replace the version suffix with the current `VERSION_NAME` when running locally.)
-
-  (The manifest’s `Main-Class` points to the CLI launcher; REST and MCP facades remain available by running their entrypoints via `java -cp`.) Consumers who only need certain surfaces can remove the matching transitive dependencies using the coordinates catalogued in [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
+  (Replace the version suffix with the current `VERSION_NAME` when running locally.) The manifest’s `Main-Class` points to the CLI launcher; REST/MCP facades remain available by running their entry points via `java -cp` and resolving dependencies declared in the published POM. Consumers who only need certain surfaces can remove the matching transitive dependencies using [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
 
 - Configure Maven publishing credentials and signing material **before** releasing:
   - PGP private key + passphrase exported to single-line properties `signingKey` / `signingPassword` (for example in `~/.gradle/gradle.properties`).

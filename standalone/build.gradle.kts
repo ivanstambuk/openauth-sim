@@ -1,10 +1,10 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.jvm.tasks.Jar
 
 plugins {
     java
-    id("com.gradleup.shadow") version "9.2.2"
     id("org.danilopianini.publish-on-central") version "9.1.5"
 }
 
@@ -31,22 +31,22 @@ dependencies {
     implementation(projects.toolsMcpServer)
 }
 
-val shadowJar by tasks.existing(ShadowJar::class) {
+tasks.named<Jar>("jar") {
     archiveBaseName.set("openauth-sim-standalone")
     archiveClassifier.set("")
-    archiveVersion.set(providers.gradleProperty("VERSION_NAME"))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    manifest {
-        attributes(
-            "Main-Class" to "io.openauth.sim.cli.MaintenanceCli"
-        )
+    val projectArtifacts = configurations.runtimeClasspath.get().incoming.artifactView {
+        componentFilter { identifier -> identifier is ProjectComponentIdentifier }
+    }.artifacts
+
+    projectArtifacts.artifactFiles.files.forEach { artifactFile ->
+        from(zipTree(artifactFile))
     }
 
-    mergeServiceFiles()
-}
-
-tasks.assemble {
-    dependsOn(shadowJar)
+    manifest {
+        attributes("Main-Class" to "io.openauth.sim.cli.MaintenanceCli")
+    }
 }
 
 val sourcesJar by tasks.named<Jar>("sourcesJar")
@@ -55,7 +55,7 @@ val javadocJar by tasks.named<Jar>("javadocJar")
 publishing {
     publications {
         create("standalone", MavenPublication::class) {
-            from(components["shadow"])
+            from(components["java"])
             groupId = providers.gradleProperty("GROUP").get()
             artifactId = "openauth-sim-standalone"
             version = providers.gradleProperty("VERSION_NAME").get()

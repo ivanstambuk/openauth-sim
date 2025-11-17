@@ -75,8 +75,8 @@ Supporting infrastructure that assistants can safely depend on:
 
 ### Standalone distribution
 
-- Module `standalone` depends on every runtime facade and produces the Shadow-based fat JAR published as `io.github.ivanstambuk:openauth-sim-standalone`.
-- Build locally with `./gradlew --no-daemon :standalone:shadowJar`.
+- Module `standalone` aggregates every simulator module (no third-party libraries bundled) and publishes `io.github.ivanstambuk:openauth-sim-standalone`.
+- Build locally with `./gradlew --no-daemon :standalone:jar`.
 - Release via the Central Portal workflow: `./gradlew --no-daemon :standalone:publishStandalonePublicationToProjectLocalRepository :standalone:zipMavenCentralPortalPublication :standalone:releaseMavenCentralPortalPublication` after configuring signing (`signingKey` / `signingPassword`) and `mavenCentralPortalUsername/mavenCentralPortalPassword` in `~/.gradle/gradle.properties` or environment variables. See [README.md](README.md) for the full checklist.
 
 ## 3. Minimal Native Java usage patterns
