@@ -10,6 +10,7 @@
 
 - Governance log (2025-11-17, user request "Commit & push all changes"): `git config core.hooksPath` → `githooks` (session reset guard before staging and verification).
 - Governance log (2025-11-17, Feature 015 MCP facade sweep): `./gradlew --no-daemon spotlessApply check` (PASS – 27 s, 109 tasks: 9 executed, 100 up-to-date confirming the repo is clean before committing).
+- Governance log (2025-11-17, Feature 015 MCP facade sweep): `./tools/codex-commit-review.sh` (FAILED – exit 141; manual Conventional Commit message required, mirrors 2025-11-16 failure pattern).
 - Governance log (2025-11-16, user request "Markdown newline sweep – session guard"): `git config core.hooksPath` → `githooks` (confirmed managed hooks before investigating the Markdown rendering regressions called out in this chat).
 - Governance log (2025-11-16, Feature 010 doc newline sweep): `./gradlew --no-daemon spotlessApply check` (PASS – 26 s, 109 tasks: 6 executed, 103 up-to-date after collapsing stray line breaks in prerequisite bullets so the public docs render correctly everywhere).
 - Governance log (2025-11-16, Feature 010 Markdown newline guard): `tools/scripts/check-markdown-linewraps.py $(git ls-files '*.md')` (PASS – repo-wide sweep to verify no staged Markdown bullets still split after commas/inline code before wiring the guard into the hook).
