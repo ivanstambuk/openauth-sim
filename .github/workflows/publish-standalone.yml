@@ -39,7 +39,8 @@ jobs:
         run: ./gradlew --no-daemon spotlessApply check
 
       - name: Publish standalone artifact to Maven Central Portal
-        run: ./gradlew --no-daemon \
-          :standalone:publishStandalonePublicationToProjectLocalRepository \
-          :standalone:zipMavenCentralPortalPublication \
-          :standalone:releaseMavenCentralPortalPublication
+        run: |
+          ./gradlew --no-daemon \
+            :standalone:publishStandalonePublicationToProjectLocalRepository \
+            :standalone:zipMavenCentralPortalPublication \
+            :standalone:releaseMavenCentralPortalPublication
