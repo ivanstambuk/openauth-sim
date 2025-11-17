@@ -59,8 +59,6 @@ publishing {
             groupId = providers.gradleProperty("GROUP").get()
             artifactId = "openauth-sim-standalone"
             version = providers.gradleProperty("VERSION_NAME").get()
-            artifact(sourcesJar)
-            artifact(javadocJar)
 
             pom {
                 name.set("OpenAuth Simulator – Standalone Distribution")
