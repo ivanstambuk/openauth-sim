@@ -1,8 +1,8 @@
-import groovy.util.Node
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.jvm.tasks.Jar
+import groovy.util.Node
 
 plugins {
     java
@@ -95,7 +95,9 @@ publishing {
                     val runtimeDeps = configurations.runtimeClasspath.get()
                         .resolvedConfiguration
                         .firstLevelModuleDependencies
-                        .filter { it.moduleGroup != project.group }
+                        .filter { dep ->
+                            dep.module.id.componentIdentifier !is ProjectComponentIdentifier
+                        }
 
                     if (runtimeDeps.isNotEmpty()) {
                         val dependenciesNode = root.appendNode("dependencies")

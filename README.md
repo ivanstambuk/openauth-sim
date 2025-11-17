@@ -2,6 +2,8 @@
 
 OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating contemporary authentication credentials and protocols (HOTP/TOTP, OATH OCRA, EMV/CAP, FIDO2/WebAuthn, and EUDIW OpenID4VP wallet artefacts). The project is intentionally greenfield and non-production; we optimise for fast iteration by AI agents, incremental steps under ten minutes, and the ability to crush and rebuild APIs as requirements evolve. The simulator can be consumed via four surfaces: a Native Java API, CLI commands, REST API endpoints, and an operator console web UI.
 
+![Operator console walkthrough showing HOTP/TOTP/FIDO2 panels](docs/_assets/app-demo.gif)
+
 ## What is this?
 
 - Simulates OATH HOTP/TOTP and OCRA (RFC&nbsp;4226/6238/6287) using deterministic secrets and fixtures.
@@ -71,7 +73,7 @@ for full Native Java examples across all protocols.
 ./gradlew --no-daemon :cli:run --args="hotp evaluate --help"
 ```
 
-Protocol-specific CLI usage (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW) is documented under ``docs/2-how-to`/*-cli-operations.md`.
+Protocol-specific CLI usage (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW) is documented under `docs/2-how-to/*-cli-operations.md`.d
 
 ### REST API and UI
 
@@ -118,7 +120,7 @@ The task reads [docs/3-reference/json-ld/metadata.json](docs/3-reference/json-ld
 
   ```bash
   ./gradlew --no-daemon :standalone:jar
-  java -jar standalone/build/libs/openauth-sim-standalone-0.1.1.jar --help
+  java -jar standalone/build/libs/openauth-sim-standalone-0.1.3.jar --help
   ```
 
   (Replace the version suffix with the current `VERSION_NAME` when running locally.) The manifest’s `Main-Class` points to the CLI launcher; REST/MCP facades remain available by running their entry points via `java -cp` and resolving dependencies declared in the published POM. The publication filters out internal modules so the POM only lists third-party libraries—consumers can exclude the ones they do not need or add replacements using [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
@@ -128,6 +130,8 @@ The task reads [docs/3-reference/json-ld/metadata.json](docs/3-reference/json-ld
   - Central Portal credentials exposed via `mavenCentralPortalUsername` / `mavenCentralPortalPassword` (or the corresponding environment variables `MAVEN_CENTRAL_PORTAL_USERNAME` / `MAVEN_CENTRAL_PORTAL_PASSWORD`).
   - `GROUP` / `VERSION_NAME` properties already default to `io.github.ivanstambuk` and `0.1.0-SNAPSHOT`; override them per release as needed.
 - GitHub Actions workflow [`.github/workflows/publish-standalone.yml`](.github/workflows/publish-standalone.yml) automates the release by writing `~/.gradle/gradle.properties` from the Central Portal + signing secrets and running the same Gradle tasks below.
+  - Follow [docs/5-operations/standalone-release-runbook.md](docs/5-operations/standalone-release-runbook.md) for the full pre-publish checklist (version bump, build, spotless gate, commit, push, and tagging).
+  - GitHub Actions workflow [`.github/workflows/publish-standalone.yml`](.github/workflows/publish-standalone.yml) automates the release by writing `~/.gradle/gradle.properties` from the Central Portal + signing secrets and running the same Gradle tasks below.
 
 - Release workflow (run from repo root once tests/quality gates are green):
 
