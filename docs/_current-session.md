@@ -8,9 +8,16 @@
 
 ## Governance & Tooling
 
+- Governance log (2025-11-17, user request "Project status – session guard"): `git config core.hooksPath` → `githooks` (runbook reset check at chat kickoff).
 - Governance log (2025-11-17, user request "Commit & push all changes"): `git config core.hooksPath` → `githooks` (session reset guard before staging and verification).
 - Governance log (2025-11-17, Feature 015 MCP facade sweep): `./gradlew --no-daemon spotlessApply check` (PASS – 27 s, 109 tasks: 9 executed, 100 up-to-date confirming the repo is clean before committing).
 - Governance log (2025-11-17, Feature 015 MCP facade sweep): `./tools/codex-commit-review.sh` (FAILED – exit 141; manual Conventional Commit message required, mirrors 2025-11-16 failure pattern).
+- Governance log (2025-11-17, standalone module smoke test): `./gradlew --no-daemon :standalone:shadowJar` (PASS – Shadow-based module builds the `openauth-sim-standalone` fat JAR composed of CLI/REST/UI/MCP dependencies).
+- Governance log (2025-11-17, Feature 010 Maven metadata sweep): `./gradlew --no-daemon spotlessApply check` (PASS – repo-wide formatter + verification sweep after introducing the distribution module, POM metadata, README/ReadMe.LLM publishing docs, and Feature 010 task updates).
+- Governance log (2025-11-17, standalone module rename verification): `./gradlew --no-daemon :standalone:shadowJar` (PASS – confirmed the renamed module still assembles the fat JAR with CLI/REST/UI/MCP bundles).
+- Governance log (2025-11-17, standalone rename spotless check): `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide verification after renaming the module references and docs).
+- Governance log (2025-11-17, publish workflow addition): `./gradlew --no-daemon spotlessApply check` (PASS – verified README/ReadMe.LLM instructions, Feature 010 notes, and the new `.github/workflows/publish-standalone.yml` automation).
+- Governance log (2025-11-17, release prep): Updated [gradle.properties](gradle.properties) to set `VERSION_NAME=0.1.0` ahead of the initial Maven Central release; no additional Gradle run required since code is unchanged.
 - Governance log (2025-11-16, user request "Markdown newline sweep – session guard"): `git config core.hooksPath` → `githooks` (confirmed managed hooks before investigating the Markdown rendering regressions called out in this chat).
 - Governance log (2025-11-16, Feature 010 doc newline sweep): `./gradlew --no-daemon spotlessApply check` (PASS – 26 s, 109 tasks: 6 executed, 103 up-to-date after collapsing stray line breaks in prerequisite bullets so the public docs render correctly everywhere).
 - Governance log (2025-11-16, Feature 010 Markdown newline guard): `tools/scripts/check-markdown-linewraps.py $(git ls-files '*.md')` (PASS – repo-wide sweep to verify no staged Markdown bullets still split after commas/inline code before wiring the guard into the hook).
@@ -76,6 +83,11 @@
  - Governance log (2025-11-16, user request "Project status"): `git config core.hooksPath` → `githooks` (session reset guard for this Codex CLI run before summarising roadmap and active workstreams).
 
 ## Active workstreams
+
+## Decisions & Notes
+
+- 2025-11-17 – Logged [docs/6-decisions/ADR-0011-standalone-fat-jar-distribution.md](docs/6-decisions/ADR-0011-standalone-fat-jar-distribution.md) selecting the `openauth-sim-standalone` fat JAR as the published artifact and pointing consumers to [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md) for exclusion guidance.
+- 2025-11-17 – Added the `standalone` module with Shadow + publish-on-central wiring, updated [README.md](README.md) and [ReadMe.LLM](ReadMe.LLM) with the release workflow for `io.github.ivanstambuk:openauth-sim-standalone`, created [`.github/workflows/publish-standalone.yml`](.github/workflows/publish-standalone.yml) to write `~/.gradle/gradle.properties` from Central Portal + signing secrets, and closed Feature 010 task T-010-07 (docs/4-architecture/features/010/tasks.md) after recording the verification runs.
 
 ### Feature 014 – Native Java Javadoc policy cleanup
 

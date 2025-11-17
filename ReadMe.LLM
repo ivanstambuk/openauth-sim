@@ -73,6 +73,12 @@ Supporting infrastructure that assistants can safely depend on:
 - Telemetry contracts: `io.openauth.sim.application.telemetry.TelemetryContracts` and protocol
   adapters (for example `HotpTelemetryAdapter`, `TotpTelemetryAdapter`).
 
+### Standalone distribution
+
+- Module `standalone` depends on every runtime facade and produces the Shadow-based fat JAR published as `io.github.ivanstambuk:openauth-sim-standalone`.
+- Build locally with `./gradlew --no-daemon :standalone:shadowJar`.
+- Release via the Central Portal workflow: `./gradlew --no-daemon :standalone:publishStandalonePublicationToProjectLocalRepository :standalone:zipMavenCentralPortalPublication :standalone:releaseMavenCentralPortalPublication` after configuring signing (`signingKey` / `signingPassword`) and `mavenCentralPortalUsername/mavenCentralPortalPassword` in `~/.gradle/gradle.properties` or environment variables. See [README.md](README.md) for the full checklist.
+
 ## 3. Minimal Native Java usage patterns
 
 The `docs/2-how-to/*-from-java.md` guides contain full, runnable snippets. The examples here are
@@ -221,4 +227,3 @@ tests and docs stay in sync via the spec-driven development process.
   - `AGENTS.md` for repository workflow and guardrails.
   - `docs/2-how-to/*-from-java.md` and `docs/3-reference/protocols/*` for protocol-specific
     details.
-

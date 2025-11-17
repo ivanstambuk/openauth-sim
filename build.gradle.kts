@@ -49,8 +49,8 @@ val errorProneEnabled = providers.gradleProperty("errorproneEnabled").map(String
 fun VersionCatalog.library(alias: String) = findLibrary(alias).orElseThrow()
 fun VersionCatalog.version(alias: String) = findVersion(alias).orElseThrow().requiredVersion
 
-group = "io.openauth.sim"
-version = "0.1.0-SNAPSHOT"
+group = providers.gradleProperty("GROUP").getOrElse("io.openauth.sim")
+version = providers.gradleProperty("VERSION_NAME").getOrElse("0.1.0-SNAPSHOT")
 
 repositories {
     mavenCentral()

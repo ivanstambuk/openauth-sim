@@ -34,6 +34,7 @@ OpenAuth Simulator is a Java&nbsp;17, Gradle-based lab environment for emulating
 | `rest-api`   | Spring Boot facade exposing JSON endpoints and Swagger/OpenAPI documentation                  |
 | `ui`         | Server-rendered operator console built atop the REST API                                      |
 | `infra-persistence` | MapDB-based `CredentialStoreFactory` and persistence defaults                          |
+| `standalone` | Shadow-based distribution module that assembles the `openauth-sim-standalone` fat JAR for all facades |
 
 ## Quickstart by surface
 
@@ -110,6 +111,38 @@ Keep README/ReadMe.LLM structured data in sync by regenerating the JSON-LD snipp
 ```
 
 The task reads [docs/3-reference/json-ld/metadata.json](docs/3-reference/json-ld/metadata.json), refreshes snippet files under ``docs/3-reference/json-ld/snippets`/`, and writes a consolidated bundle to [build/json-ld/openauth-sim.json](build/json-ld/openauth-sim.json) for future hosted docs.
+
+## Standalone distribution & Maven publishing
+
+- The `:standalone` module builds **`io.github.ivanstambuk:openauth-sim-standalone`**, a fat JAR that bundles CLI, REST API, UI, and MCP proxy facades. Build it locally with:
+
+  ```bash
+  ./gradlew --no-daemon :standalone:shadowJar
+  java -jar standalone/build/libs/openauth-sim-standalone-0.1.0-SNAPSHOT.jar --help
+  ```
+
+  (Replace the version suffix with the current `VERSION_NAME` when running locally.)
+
+  (The manifest’s `Main-Class` points to the CLI launcher; REST and MCP facades remain available by running their entrypoints via `java -cp`.) Consumers who only need certain surfaces can remove the matching transitive dependencies using the coordinates catalogued in [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
+
+- Configure Maven publishing credentials and signing material **before** releasing:
+  - PGP private key + passphrase exported to single-line properties `signingKey` / `signingPassword` (for example in `~/.gradle/gradle.properties`).
+  - Central Portal credentials exposed via `mavenCentralPortalUsername` / `mavenCentralPortalPassword` (or the corresponding environment variables `MAVEN_CENTRAL_PORTAL_USERNAME` / `MAVEN_CENTRAL_PORTAL_PASSWORD`).
+  - `GROUP` / `VERSION_NAME` properties already default to `io.github.ivanstambuk` and `0.1.0-SNAPSHOT`; override them per release as needed.
+- GitHub Actions workflow [`.github/workflows/publish-standalone.yml`](.github/workflows/publish-standalone.yml) automates the release by writing `~/.gradle/gradle.properties` from the Central Portal + signing secrets and running the same Gradle tasks below.
+
+- Release workflow (run from repo root once tests/quality gates are green):
+
+  ```bash
+  ./gradlew --no-daemon spotlessApply check
+  ./gradlew --no-daemon :standalone:publishStandalonePublicationToProjectLocalRepository
+  ./gradlew --no-daemon :standalone:zipMavenCentralPortalPublication
+  ./gradlew --no-daemon :standalone:releaseMavenCentralPortalPublication
+  ```
+
+  `publishStandalonePublicationToMavenLocal` remains useful for smoke-testing dependency resolution before releasing. If Central validation fails, use `validateMavenCentralPortalPublication` and `dropMavenCentralPortalPublication` to inspect/abort the staged bundle, then rerun the release command.
+
+These steps satisfy [docs/6-decisions/ADR-0011-standalone-fat-jar-distribution.md](docs/6-decisions/ADR-0011-standalone-fat-jar-distribution.md): one published artifact for operations simplicity, with per-facade dependency blacklists managed by consumers.
 
 ## Development quick start
 

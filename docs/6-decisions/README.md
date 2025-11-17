@@ -12,6 +12,7 @@ Numbering convention: `ADR-XXXX` where `XXXX` is zero-padded and increments sequ
 | [ADR-0004](ADR-0004-docs-and-quality-gate-workflow.md) | Accepted | Feature 010 as owner of OCRA docs and aggregated qualityGate workflow |
 | [ADR-0005](ADR-0005-operator-console-and-ui-contracts.md) | Accepted | Unified operator console at /ui/console with shared UI contracts and JS harness |
 | [ADR-0006](ADR-0006-eudiw-openid4vp-architecture-and-wallet.md) | Accepted | Partitioned EUDIW OpenID4VP architecture across verifier, fixtures, and wallet features (006/007/008) |
+| [ADR-0011](ADR-0011-standalone-fat-jar-distribution.md) | Accepted | `openauth-sim-standalone` fat JAR is the sole published artifact with consumer-managed exclusions |
 
 ## Templates
 

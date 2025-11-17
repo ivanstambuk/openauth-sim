@@ -19,11 +19,12 @@ _Last updated:_ 2025-11-16
   - `./gradlew --no-daemon spotlessApply check`  
   _Notes:_ Treat this as the first Option B increment; future Option C work (for example MCP servers, JSON-LD metadata) will be coordinated with Feature 013 once these docs are stable.
 
-- [ ] T-010-07 – Wire Maven coordinates into docs and POM metadata (backlog – execute after publication) (FR-010-01/02, FR-010-11, FR-010-13).  
+- [x] T-010-07 – Wire Maven coordinates into docs and POM metadata (FR-010-01/02, FR-010-11, FR-010-13).  
   _Intent:_ Once public Maven coordinates are final, update [README.md](README.md), [ReadMe.LLM](ReadMe.LLM), and the relevant how-to guides with Maven/Gradle dependency snippets for each published artifact, and enrich the published POMs with descriptive `<name>`, `<description>`, `<url>`, `<licenses>`, `<scm>`, and `<developers>` fields that reflect the simulator’s protocols and non-production scope so AI assistants and search tooling can discover and consume the library reliably.  
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`  
-  _Notes:_ Do not edit POM coordinates or add publishing plugins until the user has confirmed the exact Maven groupId/artifactId/version; treat this task as a parked follow-up tied to the first public release.
+  - `./gradlew --no-daemon :standalone:shadowJar`  
+  _Notes:_ Maven coordinates set to `io.github.ivanstambuk:openauth-sim-standalone`; README/ReadMe.LLM now outline the Shadow-based distribution module, credential requirements, Central Portal release sequence, `.github/workflows/publish-standalone.yml` (which writes `~/.gradle/gradle.properties` from secrets before publishing), and how consumers can exclude unwanted dependencies using [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
 
 - [x] T-010-08 – Apply the Option A documentation-link policy across all human-facing Markdown (NFR-010-06).  
   _Intent:_ Sweep README/AGENTS, `docs/0-overview`…8-compliance, feature specs/plans/tasks, runbooks, roadmap, knowledge map, `_current-session.md`, and any other human-readable Markdown to convert prose-level repo **file** references into `[path](path)` links, leave directories as inline code/plain text, and keep fenced code blocks untouched; record linting strategy and exceptions in `_current-session.md`.  
@@ -40,6 +41,7 @@ _Last updated:_ 2025-11-16
   _Notes:_ Implemented `tools/scripts/check-markdown-linewraps.py`, added it to `githooks/pre-commit`, swept the repo via `tools/scripts/check-markdown-linewraps.py $(git ls-files '*.md')`, and added `_current-session.md` entries explaining the guard/Gradle verification. The checker only flags list entries whose next line begins with `and/or/command`, avoiding false positives for multi-paragraph bullets.
 
 ## Verification Log
+- 2025-11-17 – `./gradlew --no-daemon :standalone:shadowJar` and `./gradlew --no-daemon spotlessApply check` (PASS – verified the new Shadow-based distribution module, publishing metadata, and README/ReadMe.LLM documentation updates for T-010-07).
 - 2025-11-16 – `./gradlew --no-daemon spotlessApply check` (PASS – 22 s, 99 tasks: 6 executed, 93 up-to-date after introducing [ReadMe.LLM](ReadMe.LLM), [llms.txt](llms.txt), README/AGENTS/how-to cross-links for LLM/assistant usage; run logged here and in [docs/_current-session.md](docs/_current-session.md)).
 - 2025-11-16 – `python - <<'PY' …` (PASS – converted 102 Markdown files to path links plus follow-up refinement passes; Gradle verification skipped per user request, see [docs/_current-session.md](docs/_current-session.md)).
 - 2025-11-16 – `python - <<'PY' …` (PASS – refined sweep to keep directories unlinked and relink 115 Markdown files; Gradle verification skipped per user request, see [docs/_current-session.md](docs/_current-session.md)).
