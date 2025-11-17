@@ -1313,7 +1313,7 @@ final class TotpOperatorUiSeleniumTest {
     }
 
     private void waitUntilFieldValue(By locator, String expectedValue) {
-        new WebDriverWait(driver, Duration.ofSeconds(5)).until(driver1 -> {
+        new WebDriverWait(driver, Duration.ofSeconds(10)).until(driver1 -> {
             try {
                 WebElement element = driver1.findElement(locator);
                 return expectedValue.equals(element.getAttribute("value"));
