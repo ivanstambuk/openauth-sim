@@ -121,7 +121,7 @@ The task reads [docs/3-reference/json-ld/metadata.json](docs/3-reference/json-ld
   java -jar standalone/build/libs/openauth-sim-standalone-0.1.1.jar --help
   ```
 
-  (Replace the version suffix with the current `VERSION_NAME` when running locally.) The manifest’s `Main-Class` points to the CLI launcher; REST/MCP facades remain available by running their entry points via `java -cp` and resolving dependencies declared in the published POM. Consumers who only need certain surfaces can remove the matching transitive dependencies using [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
+  (Replace the version suffix with the current `VERSION_NAME` when running locally.) The manifest’s `Main-Class` points to the CLI launcher; REST/MCP facades remain available by running their entry points via `java -cp` and resolving dependencies declared in the published POM. The publication filters out internal modules so the POM only lists third-party libraries—consumers can exclude the ones they do not need or add replacements using [docs/3-reference/external-dependencies-by-facade-and-scenario.md](docs/3-reference/external-dependencies-by-facade-and-scenario.md).
 
 - Configure Maven publishing credentials and signing material **before** releasing:
   - PGP private key + passphrase exported to single-line properties `signingKey` / `signingPassword` (for example in `~/.gradle/gradle.properties`).

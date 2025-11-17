@@ -1,3 +1,4 @@
+import groovy.util.Node
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.publish.maven.MavenPublication
@@ -49,9 +50,6 @@ tasks.named<Jar>("jar") {
     }
 }
 
-val sourcesJar by tasks.named<Jar>("sourcesJar")
-val javadocJar by tasks.named<Jar>("javadocJar")
-
 publishing {
     publications {
         create("standalone", MavenPublication::class) {
@@ -87,6 +85,28 @@ publishing {
                     url.set("https://github.com/ivanstambuk/openauth-sim")
                     connection.set("scm:git:https://github.com/ivanstambuk/openauth-sim.git")
                     developerConnection.set("scm:git:ssh://git@github.com/ivanstambuk/openauth-sim.git")
+                }
+
+                withXml {
+                    val root = asNode()
+                    @Suppress("UNCHECKED_CAST")
+                    (root.get("dependencies") as? MutableList<Node>)?.forEach { root.remove(it) }
+
+                    val runtimeDeps = configurations.runtimeClasspath.get()
+                        .resolvedConfiguration
+                        .firstLevelModuleDependencies
+                        .filter { it.moduleGroup != project.group }
+
+                    if (runtimeDeps.isNotEmpty()) {
+                        val dependenciesNode = root.appendNode("dependencies")
+                        runtimeDeps.forEach { dep ->
+                            val dependencyNode = dependenciesNode.appendNode("dependency")
+                            dependencyNode.appendNode("groupId", dep.moduleGroup)
+                            dependencyNode.appendNode("artifactId", dep.moduleName)
+                            dependencyNode.appendNode("version", dep.moduleVersion)
+                            dependencyNode.appendNode("scope", "runtime")
+                        }
+                    }
                 }
             }
         }
