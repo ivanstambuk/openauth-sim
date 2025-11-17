@@ -13,6 +13,7 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 MAX_FILE_SIZE_BYTES=$((1024 * 1024)) # 1 MB
 LARGE_FILE_EXCEPTIONS=(
   "docs/trust/snapshots/2025-11-15/member-states/de/trusted-list.xml"
+  "docs/_assets/app-demo.gif"
 )
 
 log() { echo "[pre-commit] $*" >&2; }

@@ -9,6 +9,8 @@
 ## Governance & Tooling
 
 - Governance log (2025-11-17, user request "README GIF conversion kickoff"): `git config core.hooksPath` → `githooks` (session reset guard logged before processing the README GIF request).
+- Governance log (2025-11-17, pre-commit GIF exception): `git config core.hooksPath` → `githooks` (confirmed managed hooks before editing the size-guard exception).
+- Governance log (2025-11-17, pre-commit GIF exception): `./gradlew --no-daemon spotlessApply check` (PASS – 30 s, 110 tasks: 3 executed, 107 up-to-date verifying the hook update).
 - Governance log (2025-11-17, README GIF showcase): `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,duration,r_frame_rate -of default=noprint_wrappers=1 recording.mp4` (captured source video dimensions/duration before trimming to 7 s).
 - Governance log (2025-11-17, README GIF showcase): `ffmpeg -ss 0 -t 7 -i recording.mp4 -vf "fps=10,scale=800:-1:flags=lanczos,palettegen" /tmp/app-demo-palette.png` and `ffmpeg -ss 0 -t 7 -i recording.mp4 -i /tmp/app-demo-palette.png -lavfi "fps=10,scale=800:-1:flags=lanczos[x];[x][1:v]paletteuse" docs/_assets/app-demo.gif` (generated a 1.4 MB GIF for embedding in README.md).
 - Governance log (2025-11-17, user request "Project status – kickoff status sync"): `git config core.hooksPath` → `githooks` (session reset guard recorded before summarising project status).

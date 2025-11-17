@@ -95,9 +95,7 @@ publishing {
                     val runtimeDeps = configurations.runtimeClasspath.get()
                         .resolvedConfiguration
                         .firstLevelModuleDependencies
-                        .filter { dep ->
-                            dep.module.id.componentIdentifier !is ProjectComponentIdentifier
-                        }
+                        .filter { dep -> dep.moduleGroup != "openauth-sim" }
 
                     if (runtimeDeps.isNotEmpty()) {
                         val dependenciesNode = root.appendNode("dependencies")
