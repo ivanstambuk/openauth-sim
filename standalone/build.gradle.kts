@@ -1,5 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.jvm.tasks.Jar
 
 plugins {
     java
@@ -48,6 +49,9 @@ tasks.assemble {
     dependsOn(shadowJar)
 }
 
+val sourcesJar by tasks.named<Jar>("sourcesJar")
+val javadocJar by tasks.named<Jar>("javadocJar")
+
 publishing {
     publications {
         create("standalone", MavenPublication::class) {
@@ -55,6 +59,8 @@ publishing {
             groupId = providers.gradleProperty("GROUP").get()
             artifactId = "openauth-sim-standalone"
             version = providers.gradleProperty("VERSION_NAME").get()
+            artifact(sourcesJar)
+            artifact(javadocJar)
 
             pom {
                 name.set("OpenAuth Simulator – Standalone Distribution")
