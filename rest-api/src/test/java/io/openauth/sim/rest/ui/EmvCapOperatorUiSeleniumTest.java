@@ -191,33 +191,33 @@ final class EmvCapOperatorUiSeleniumTest {
         WebElement cdol1Input = driver.findElement(By.id("emvCdol1"));
         WebElement cdol1Group = cdol1Input.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
         assertThat(cdol1Group.getAttribute("hidden"))
-                .as("CDOL1 field group should be hidden in stored mode")
-                .isNotNull();
+                .as("CDOL1 field group should remain visible in stored mode so card configuration is inspectable")
+                .isNull();
         assertThat(cdol1Group.getAttribute("aria-hidden"))
-                .as("CDOL1 field group should mark aria-hidden in stored mode")
-                .isEqualTo("true");
+                .as("CDOL1 field group should clear aria-hidden in stored mode")
+                .isNull();
         assertThat(cdol1Group.isDisplayed())
-                .as("CDOL1 field group should not be displayed in stored mode")
-                .isFalse();
-        assertThat(cdol1Input.getAttribute("value"))
-                .as("CDOL1 textarea should remain empty in stored mode to avoid secret leakage")
-                .isBlank();
+                .as("CDOL1 field group should be displayed in stored mode")
+                .isTrue();
+        assertThat(cdol1Input.getAttribute("readonly"))
+                .as("CDOL1 textarea should be read-only in stored mode")
+                .isNotNull();
 
         WebElement issuerDataInput = driver.findElement(By.id("emvIssuerApplicationData"));
         WebElement issuerGroup =
                 issuerDataInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
         assertThat(issuerGroup.getAttribute("hidden"))
-                .as("Issuer application data field group should be hidden in stored mode")
-                .isNotNull();
+                .as("Issuer application data field group should remain visible in stored mode")
+                .isNull();
         assertThat(issuerGroup.getAttribute("aria-hidden"))
-                .as("Issuer application data field group should mark aria-hidden in stored mode")
-                .isEqualTo("true");
+                .as("Issuer application data field group should clear aria-hidden in stored mode")
+                .isNull();
         assertThat(issuerGroup.isDisplayed())
-                .as("Issuer application data field group should not be displayed in stored mode")
-                .isFalse();
-        assertThat(issuerDataInput.getAttribute("value"))
-                .as("Issuer application data input should remain empty in stored mode")
-                .isBlank();
+                .as("Issuer application data field group should be displayed in stored mode")
+                .isTrue();
+        assertThat(issuerDataInput.getAttribute("readonly"))
+                .as("Issuer application data input should be read-only in stored mode")
+                .isNotNull();
         assertThat(issuerDataInput.getTagName())
                 .as("Issuer application data control should render as a single-line input")
                 .isEqualToIgnoringCase("input");
@@ -225,41 +225,50 @@ final class EmvCapOperatorUiSeleniumTest {
         WebElement ipbInput = driver.findElement(By.id("emvIpb"));
         WebElement ipbGroup = ipbInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
         assertThat(ipbGroup.getAttribute("hidden"))
-                .as("Issuer bitmap field group should be hidden in stored mode")
-                .isNotNull();
+                .as("Issuer bitmap field group should remain visible in stored mode")
+                .isNull();
         assertThat(ipbGroup.getAttribute("aria-hidden"))
-                .as("Issuer bitmap field group should mark aria-hidden in stored mode")
-                .isEqualTo("true");
+                .as("Issuer bitmap field group should clear aria-hidden in stored mode")
+                .isNull();
         assertThat(ipbGroup.isDisplayed())
-                .as("Issuer bitmap field group should not be displayed in stored mode")
-                .isFalse();
+                .as("Issuer bitmap field group should be displayed in stored mode")
+                .isTrue();
         assertThat(ipbInput.getTagName())
                 .as("Issuer bitmap control should render as a single-line input")
                 .isEqualToIgnoringCase("input");
+        assertThat(ipbInput.getAttribute("readonly"))
+                .as("Issuer bitmap control should be read-only in stored mode")
+                .isNotNull();
 
         WebElement iccTemplateInput = driver.findElement(By.id("emvIccTemplate"));
         WebElement iccGroup =
                 iccTemplateInput.findElement(By.xpath("ancestor::div[contains(@class,'field-group')][1]"));
         assertThat(iccGroup.getAttribute("hidden"))
-                .as("ICC template field group should be hidden in stored mode")
-                .isNotNull();
+                .as("ICC template field group should remain visible in stored mode")
+                .isNull();
         assertThat(iccGroup.getAttribute("aria-hidden"))
-                .as("ICC template field group should mark aria-hidden in stored mode")
-                .isEqualTo("true");
+                .as("ICC template field group should clear aria-hidden in stored mode")
+                .isNull();
         assertThat(iccGroup.isDisplayed())
-                .as("ICC template field group should not be displayed in stored mode")
-                .isFalse();
+                .as("ICC template field group should be displayed in stored mode")
+                .isTrue();
+        assertThat(iccTemplateInput.getAttribute("readonly"))
+                .as("ICC template textarea should be read-only in stored mode")
+                .isNotNull();
 
         WebElement masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
         assertThat(masterKeyMask.getAttribute("hidden"))
-                .as("Master key mask should remain hidden in stored mode")
-                .isNotNull();
+                .as("Master key mask should clear hidden attribute in stored mode so the digest is visible")
+                .isNull();
         assertThat(masterKeyMask.getAttribute("aria-hidden"))
-                .as("Master key mask should mark aria-hidden in stored mode")
-                .isEqualTo("true");
+                .as("Master key mask should clear aria-hidden in stored mode so assistive tech can read the digest")
+                .isNull();
         assertThat(masterKeyMask.isDisplayed())
-                .as("Master key mask should not render placeholders in stored mode")
-                .isFalse();
+                .as("Master key mask should render the SHA-256 digest placeholder in stored mode")
+                .isTrue();
+        assertThat(masterKeyMask.getText())
+                .as("Master key mask should expose a SHA-256 digest hint")
+                .contains("sha256:");
 
         WebElement cdol1Mask = driver.findElement(By.cssSelector("[data-testid='emv-cdol1-mask']"));
         assertThat(cdol1Mask.getAttribute("hidden"))
@@ -508,13 +517,13 @@ final class EmvCapOperatorUiSeleniumTest {
 
         WebElement masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
         assertThat(masterKeyMask.getAttribute("hidden"))
-                .as("Master key mask should clear hidden attribute while inline mode is active")
-                .isNull();
+                .as("Master key mask should retain hidden attribute while inline mode is active")
+                .isNotNull();
         assertThat(masterKeyMask.getAttribute("aria-hidden"))
-                .as("Master key mask should clear aria-hidden while inline mode is active")
-                .isNull();
+                .as("Master key mask should retain aria-hidden while inline mode is active")
+                .isEqualTo("true");
         assertThat(masterKeyMask.isDisplayed())
-                .as("Master key mask should remain visually hidden via inline styles in inline mode")
+                .as("Master key mask should remain visually hidden via attributes/styles in inline mode")
                 .isFalse();
 
         WebElement masterKeyInput = waitForVisible(By.id("emvMasterKey"));
@@ -621,14 +630,14 @@ final class EmvCapOperatorUiSeleniumTest {
                 .isFalse();
         WebElement masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
         assertThat(masterKeyMask.getAttribute("hidden"))
-                .as("Master key mask should remain hidden while stored mode is active")
-                .isNotNull();
+                .as("Master key mask should clear hidden attribute while stored mode is active")
+                .isNull();
         assertThat(masterKeyMask.getAttribute("aria-hidden"))
-                .as("Master key mask should mark aria-hidden while stored mode is active")
-                .isEqualTo("true");
+                .as("Master key mask should clear aria-hidden while stored mode is active")
+                .isNull();
         assertThat(masterKeyMask.isDisplayed())
-                .as("Master key mask should not render placeholders in stored mode")
-                .isFalse();
+                .as("Master key mask should render the SHA-256 digest placeholder in stored mode")
+                .isTrue();
 
         waitForClickable(By.cssSelector("[data-testid='emv-mode-select-inline']"))
                 .click();
@@ -650,11 +659,11 @@ final class EmvCapOperatorUiSeleniumTest {
                 .isTrue();
         masterKeyMask = driver.findElement(By.cssSelector("[data-testid='emv-master-key-mask']"));
         assertThat(masterKeyMask.getAttribute("hidden"))
-                .as("Master key mask should clear hidden attribute after switching to inline mode")
-                .isNull();
+                .as("Master key mask should retain hidden attribute after switching to inline mode")
+                .isNotNull();
         assertThat(masterKeyMask.getAttribute("aria-hidden"))
-                .as("Master key mask should clear aria-hidden after switching to inline mode")
-                .isNull();
+                .as("Master key mask should retain aria-hidden after switching to inline mode")
+                .isEqualTo("true");
         assertThat(masterKeyMask.isDisplayed())
                 .as("Master key mask should remain visually hidden after switching to inline mode")
                 .isFalse();
@@ -798,16 +807,22 @@ final class EmvCapOperatorUiSeleniumTest {
         WebElement replayMasterKeyMask =
                 driver.findElement(By.cssSelector("[data-testid='emv-replay-master-key-mask']"));
         assertThat(replayMasterKeyMask.getAttribute("hidden"))
-                .as("Replay master key mask should remain hidden in stored mode")
-                .isNotNull();
+                .as("Replay master key mask should clear hidden attribute in stored mode")
+                .isNull();
+        assertThat(replayMasterKeyMask.getAttribute("aria-hidden"))
+                .as("Replay master key mask should clear aria-hidden in stored mode")
+                .isNull();
         assertThat(replayMasterKeyMask.isDisplayed())
-                .as("Replay master key mask should not render placeholders in stored mode")
-                .isFalse();
+                .as("Replay master key mask should render the SHA-256 digest placeholder in stored mode")
+                .isTrue();
 
         WebElement replayIssuerBitmapInput = driver.findElement(By.id("emvReplayIssuerBitmap"));
         assertThat(replayIssuerBitmapInput.getTagName())
                 .as("Replay issuer bitmap control should render as a single-line input")
                 .isEqualToIgnoringCase("input");
+        assertThat(replayIssuerBitmapInput.getAttribute("readonly"))
+                .as("Replay issuer bitmap control should be read-only in stored mode")
+                .isNotNull();
         WebElement replayIssuerMaskContainer =
                 driver.findElement(By.cssSelector("[data-testid='emv-replay-issuer-application-data-mask']"));
         assertThat(replayIssuerMaskContainer.getAttribute("hidden"))
@@ -820,6 +835,9 @@ final class EmvCapOperatorUiSeleniumTest {
         assertThat(replayIssuerApplicationDataInput.getTagName())
                 .as("Replay issuer application data control should render as a single-line input")
                 .isEqualToIgnoringCase("input");
+        assertThat(replayIssuerApplicationDataInput.getAttribute("readonly"))
+                .as("Replay issuer application data control should be read-only in stored mode")
+                .isNotNull();
 
         assertThat(driver.findElements(By.cssSelector("[data-testid='emv-replay-terminal-data']")))
                 .as("Replay panel should no longer expose terminal override input")

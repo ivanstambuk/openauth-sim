@@ -11,10 +11,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public final class McpServer {
     private final McpConfig config;
@@ -81,7 +85,11 @@ public final class McpServer {
         List<Map<String, Object>> tools = registry.definitions().stream()
                 .map(RestToolDefinition::descriptor)
                 .toList();
-        sendResponse(id, Map.of("tools", tools));
+        Map<String, Object> telemetry = buildCatalogTelemetry(tools);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("tools", tools);
+        result.put("telemetry", telemetry);
+        sendResponse(id, result);
     }
 
     private void handleToolsCall(Object id, Map<String, Object> message) throws IOException, InterruptedException {
@@ -97,10 +105,11 @@ public final class McpServer {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown tool: " + toolName));
         RestToolInvocation invocation = definition.createInvocation(config, arguments);
         HttpResponse<String> response = executor.execute(invocation.request());
-        sendResponse(id, buildToolResult(toolName, response));
+        sendResponse(id, buildToolResult(invocation, response));
     }
 
-    private Map<String, Object> buildToolResult(String toolName, HttpResponse<String> response) {
+    private Map<String, Object> buildToolResult(RestToolInvocation invocation, HttpResponse<String> response) {
+        String toolName = invocation.toolName();
         String body = response.body() == null ? "" : response.body();
         StringBuilder builder = new StringBuilder();
         builder.append("HTTP ").append(response.statusCode()).append('\n');
@@ -113,7 +122,172 @@ public final class McpServer {
         result.put("statusCode", response.statusCode());
         result.put("content", List.of(content));
         result.put("isError", response.statusCode() >= 400);
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            Map<String, Object> telemetry =
+                    switch (toolName) {
+                        case "totp.helper.currentOtp" -> buildTotpHelperTelemetry(body);
+                        case "fixtures.list" -> buildFixturesListTelemetry(invocation, body);
+                        default -> Map.of();
+                    };
+            if (!telemetry.isEmpty()) {
+                result.put("telemetry", telemetry);
+            }
+        }
         return result;
+    }
+
+    private Map<String, Object> buildCatalogTelemetry(List<Map<String, Object>> tools) {
+        String telemetryId = "mcp.catalog." + UUID.randomUUID();
+        int toolCount = tools.size();
+        String schemaHash = computeSchemaHash(tools);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("event", "mcp.catalog.listed");
+        payload.put("telemetryId", telemetryId);
+        payload.put("toolCount", toolCount);
+        payload.put("schemaHash", schemaHash);
+        payload.put("sanitized", Boolean.TRUE);
+        return payload;
+    }
+
+    private Map<String, Object> buildTotpHelperTelemetry(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return Map.of();
+        }
+        Object parsed;
+        try {
+            parsed = Json.parse(responseBody);
+        } catch (IllegalArgumentException ex) {
+            return Map.of();
+        }
+        Map<String, Object> root;
+        try {
+            root = Json.expectObject(parsed, "totp.helper.currentOtp response");
+        } catch (IllegalArgumentException ex) {
+            return Map.of();
+        }
+        Object credentialIdValue = root.get("credentialId");
+        Object generationValue = root.get("generationEpochSeconds");
+        if (credentialIdValue == null || !(generationValue instanceof Number)) {
+            return Map.of();
+        }
+        String credentialId = credentialIdValue.toString();
+        long generationEpochSeconds = ((Number) generationValue).longValue();
+        String telemetryId = extractTelemetryId(root);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("event", "mcp.totp.helper.lookup");
+        payload.put("telemetryId", telemetryId);
+        payload.put("credentialId", sha256Hex(credentialId));
+        payload.put("generationEpochSeconds", generationEpochSeconds);
+        payload.put("sanitized", Boolean.TRUE);
+        return payload;
+    }
+
+    private String extractTelemetryId(Map<String, Object> root) {
+        Object metadata = root.get("metadata");
+        if (metadata instanceof Map<?, ?> rawMetadata) {
+            Map<String, Object> normalized = new LinkedHashMap<>();
+            rawMetadata.forEach((key, value) -> normalized.put(String.valueOf(key), value));
+            Object telemetryIdValue = normalized.get("telemetryId");
+            if (telemetryIdValue != null) {
+                String telemetryId = telemetryIdValue.toString().trim();
+                if (!telemetryId.isEmpty()) {
+                    return telemetryId;
+                }
+            }
+        }
+        return "mcp.totp.helper-" + UUID.randomUUID();
+    }
+
+    private Map<String, Object> buildFixturesListTelemetry(RestToolInvocation invocation, String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return Map.of();
+        }
+        Object parsed;
+        try {
+            parsed = Json.parse(responseBody);
+        } catch (IllegalArgumentException ex) {
+            return Map.of();
+        }
+        if (!(parsed instanceof List<?> list)) {
+            return Map.of();
+        }
+        List<String> presetIds = new java.util.ArrayList<>();
+        for (Object element : list) {
+            if (element instanceof Map<?, ?> raw) {
+                Object id = raw.get("id");
+                if (id != null) {
+                    String value = id.toString().trim();
+                    if (!value.isEmpty()) {
+                        presetIds.add(value);
+                    }
+                }
+            }
+        }
+        String protocol = inferProtocol(invocation);
+        String telemetryId = "mcp.fixtures.list-" + UUID.randomUUID();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("event", "mcp.fixtures.list");
+        payload.put("telemetryId", telemetryId);
+        payload.put("protocol", protocol);
+        payload.put("presetCount", presetIds.size());
+        payload.put("presetIds", List.copyOf(presetIds));
+        payload.put("sanitized", Boolean.TRUE);
+        return payload;
+    }
+
+    private String inferProtocol(RestToolInvocation invocation) {
+        String path = invocation.request().uri().getPath();
+        if (path == null || path.isBlank()) {
+            return "unknown";
+        }
+        if (path.contains("/hotp/credentials")) {
+            return "hotp";
+        }
+        if (path.contains("/totp/credentials")) {
+            return "totp";
+        }
+        if (path.contains("/ocra/credentials")) {
+            return "ocra";
+        }
+        if (path.contains("/emv/cap/credentials")) {
+            return "emv";
+        }
+        if (path.contains("/webauthn/credentials")) {
+            return "fido2";
+        }
+        return "unknown";
+    }
+
+    private String computeSchemaHash(List<Map<String, Object>> tools) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("tools", tools);
+        String json = Json.stringify(payload);
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(json.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 MessageDigest not available", ex);
+        }
+    }
+
+    private String sha256Hex(String value) {
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(bytes);
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                builder.append(String.format("%02x", b));
+            }
+            return "sha256:" + builder;
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 MessageDigest not available", ex);
+        }
     }
 
     private void handleShutdown(Object id) throws IOException {

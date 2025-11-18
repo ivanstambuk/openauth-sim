@@ -9,9 +9,9 @@ participant "OCRA client" as Client
 Verifier -> Verifier: ① Build transaction payload\n(amount, destination, reference, ...)
 Verifier -> Verifier: ② Derive session payload S\n(e.g., hash(transaction payload))
 note right of Verifier
-  Mapping from business-level details\n
-  to the session payload S is a\n
-  deployment decision, but both\n
+  Mapping from business-level details
+  to the session payload S is a
+  deployment decision, but both
   sides must derive S consistently.
 end note
 

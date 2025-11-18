@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Draft |
-| Last updated | 2025-11-16 |
+| Last updated | 2025-11-18 |
 | Owners | Ivan (project owner) |
 | Linked plan | `docs/4-architecture/features/015/plan.md` |
 | Linked tasks | `docs/4-architecture/features/015/tasks.md` |
@@ -19,7 +19,7 @@ Model Context Protocol (MCP) is currently documented as a REST proxy, but agents
 - Ship MCP-first helper flows (e.g., credential OTP previews, fixture discovery) that do not clutter REST/CLI/UIs but are available to agents.
 - Provide structured metadata (JSON Schema, prompt hints, version info) so MCP clients can auto-discover and validate tools.
 - Support lightweight session/context APIs that let agents inspect/reset state within a single MCP connection.
-- Harden MCP-specific telemetry, auditing, and rate-limit hooks to satisfy governance requirements for AI-driven automation.
+- Harden MCP-specific telemetry and auditing for AI-driven automation while leaving rate limiting to upstream gateways and LLM platform controls (see ADR-0010).
 
 ## Non-Goals
 - Introducing new REST, CLI, or UI endpoints beyond those required to back MCP helpers (REST remains authoritative for end-user flows).
@@ -33,7 +33,10 @@ Model Context Protocol (MCP) is currently documented as a REST proxy, but agents
 | FR-015-01 | MCP MUST expose a discoverable tool catalogue (via `tools/list`) containing JSON Schema payloads, prompt hints, version metadata, and descriptive text for each tool. | Agent lists tools and receives structured metadata for HOTP/TOTP/OCRA/EMV/FIDO2/EUDIW evaluate flows plus helpers. | Invalid schema requests return `mcp.error.invalid_tool` with details; unknown clients still get the standard list. | Internal catalogue failure returns `mcp.error.catalog_unavailable` framed as MCP error. | Emit `mcp.catalog.listed` with tool count, schema hash, sanitized payload. | Owner directive; MCP capability analysis. |
 | FR-015-02 | MCP MUST provide helper tools (initially `totp.helper.currentOtp`, `fixtures.list`, and future protocol helpers) with explicit request/response contracts and redacted outputs. | Agent invokes helper, receives structured JSON (OTP, timestamps, telemetryId) without exposing shared secrets. | Missing credential or invalid arguments return `mcp.error.validation` with RFC7807 fields. | Backend failure logged as `mcp.error.helper_failed` plus telemetry reason code. | Emit `mcp.totp.helper.lookup`, `mcp.fixtures.list` events referencing protocol, preset IDs, telemetryId. | Feature 013 runbook + new helper strategy. |
 | FR-015-03 | MCP MUST provide session/context tools (`session.describe`, `session.reset`, `capabilities.describe`) so agents can inspect/reset MCP state without leaving the connection. | Agent calls `session.describe` and receives connection metadata (baseUrl, authenticated scopes, pending context). | Unauthorized or malformed calls return `mcp.error.invalid_session`. | Transport failures return `mcp.error.session_unavailable`. | Telemetry `mcp.session.describe` / `mcp.session.reset` with sanitized context IDs. | MCP facade requirements. |
-| FR-015-04 | MCP MUST honour REST-equivalent validation/telemetry for all evaluate/simulate tools while also enforcing MCP-specific rate limits and host approvals. | Tool invocation forwards to REST, returns HTTP payload plus MCP wrapper fields. Rate-limit headers mirrored in MCP metadata. | Invalid REST response surfaces as `mcp.error.rest_proxy` with reason. | Exhausted rate limit yields `mcp.error.rate_limited` plus retry hints. | Log `mcp.proxy.forwarded` with tool name, latency, sanitized status. | Constitution + governance directives. |
+| FR-015-04 | MCP MUST honour REST-equivalent validation/telemetry for all evaluate/simulate tools while emitting proxy/audit telemetry for each forwarded call. Rate limiting, if required, is handled by upstream gateways or LLM platform controls, not by the MCP facade itself. | Tool invocation forwards to REST, returns HTTP payload plus MCP wrapper fields. | Invalid REST response surfaces as `mcp.error.rest_proxy` with reason. | Transport or proxy failures yield `mcp.error.proxy_failed` with sanitized details; no MCP-specific rate-limit errors are emitted. | Log `mcp.proxy.forwarded` with tool name, latency, REST status code, sanitized metadata. | Constitution + governance directives; ADR-0010. |
+| FR-015-05 | MCP MUST provide an `emv.cap.inspect` tool that decodes credential descriptors (CDOL1, bitmaps) into human-readable profiles (e.g., "CAP-1 Identify, ISO-0"). | Agent invokes `inspect` with a preset ID or descriptor; receives text summary of the profile. | Invalid descriptor returns `mcp.error.validation`. | Internal parsing error returns `mcp.error.internal`. | Emit `mcp.emv.inspect` with profile type. | User request (backlog). |
+| FR-015-06 | MCP MUST provide trace analysis capabilities (via `emv.cap.trace` or enhanced `evaluate`) exposing the exact CDOL1 buffer and pre-decimalization CAP block. | Agent requests trace; receives hex dumps of CDOL1 input and intermediate CAP block. | Invalid input returns `mcp.error.validation`. | Engine failure returns `mcp.error.internal`. | Emit `mcp.emv.trace` with context IDs. | User request (backlog). |
+| FR-015-07 | The EMV/CAP engine MUST support CAP-2 (TDS) mode for signing structured/decoupled data. | Agent invokes `evaluate` with CAP-2 parameters; engine correctly computes TDS-based cryptogram. | Invalid TDS format returns `mcp.error.validation`. | Crypto failure returns `mcp.error.internal`. | Emit `mcp.emv.evaluate` with mode=CAP2. | User request (backlog). |
 
 ## Non-Functional Requirements
 
@@ -55,6 +58,9 @@ _Not applicable – no user-facing UI changes._
 | S-015-02 | Agent invokes MCP helper (e.g., TOTP OTP preview) and receives sanitized result plus telemetry IDs. |
 | S-015-03 | Agent inspects/resets MCP session context (describe/reset). |
 | S-015-04 | Agent triggers evaluate/simulate tool via MCP with rate-limit + telemetry behaviour matching spec. |
+| S-015-05 | Agent inspects an EMV credential preset and receives a human-readable profile summary. |
+| S-015-06 | Agent requests a trace of an EMV/CAP calculation and views the raw CDOL1 buffer and CAP block. |
+| S-015-07 | Agent performs a CAP-2 (TDS) signature generation using the simulator engine. |
 
 ## Test Strategy
 - **Core:** No direct changes; reuse existing descriptor/helpers with additional unit tests around helper services (e.g., `TotpCurrentOtpHelperService`).
@@ -101,7 +107,7 @@ _None._
 _None._
 
 ## Telemetry & Observability
-All MCP invocations MUST emit telemetry frames via `TelemetryContracts` with sanitized payloads. Helper events include hashed credential IDs and omit shared secrets. Rate-limit breaches emit `mcp.rate_limited` with retry intervals. Session commands log context IDs but no sensitive tokens. Telemetry snapshots in `docs/3-reference` must be updated when new events or fields are introduced.
+All MCP invocations MUST emit telemetry frames via `TelemetryContracts` with sanitized payloads. Helper events include hashed credential IDs and omit shared secrets. Session commands log context IDs but no sensitive tokens. Proxy calls emit `mcp.proxy.forwarded` with tool name, latency, and REST status. Rate limiting and quota enforcement, when present, are the responsibility of upstream API gateways or LLM platform controls; the MCP facade does not implement in-process rate limits or `mcp.rate_limited` events (see ADR-0010).
 
 ## Documentation Deliverables
 - Update README/AGENTS to list MCP as an official facade with setup/run instructions, helper tool catalogue, and session APIs.

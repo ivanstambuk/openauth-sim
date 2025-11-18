@@ -55,7 +55,7 @@ In CAP Identify mode, the cardholder inserts a chip card into a CAP reader, sele
 
 Identify mode proves card possession and, when PIN verification is performed on-card, provides strong user authentication without binding the code to a specific transaction.
 
-![EMV/CAP Identify mode (cardholder authentication)](diagrams/emv-cap-identify.png)
+<img src="diagrams/emv-cap-identify.png" alt="EMV/CAP Identify mode (cardholder authentication)" width="720" />
 
 #### Sequence
 
@@ -94,7 +94,7 @@ CAP Respond introduces an issuer backend-provided challenge, such as a short num
 
 The issuer backend verifies that the CAP code matches what the card should have produced for the challenge and card, providing a challenge–response style assurance of card possession and cardholder participation.
 
-![EMV/CAP Respond mode (challenge-based)](diagrams/emv-cap-respond.png)
+<img src="diagrams/emv-cap-respond.png" alt="EMV/CAP Respond mode (challenge-based)" width="720" />
 
 #### Sequence
 
@@ -132,7 +132,7 @@ In CAP Sign mode, the issuer backend binds a CAP code to specific transaction de
 
 The issuer backend reconstructs the same transaction payload from its record of the pending transaction and validates the CAP code against that payload, ensuring that the cardholder has explicitly authorised the transaction parameters they were shown.
 
-![EMV/CAP Sign mode (transaction binding)](diagrams/emv-cap-sign.png)
+<img src="diagrams/emv-cap-sign.png" alt="EMV/CAP Sign mode (transaction binding)" width="720" />
 
 #### Sequence
 
@@ -286,6 +286,7 @@ As with other one-time password schemes, EMV/CAP deployments must consider repla
 - CAP readers and issuer backend channels should clearly label modes (Identify/Respond/Sign) and explain what each mode is being used for in the current journey.
 - For Sign flows, the reader display and issuer backend UI must present transaction details in a way that ordinary users can realistically compare (for example, focusing on amount and key pieces of account identity rather than long opaque identifiers).
 - Confusing or inconsistent UX can quietly undermine the intended security properties even when cryptography and configuration are correct.
+- In this simulator, the EMV/CAP operator console reflects that split explicitly: **stored credential** mode hides EMV keys behind SHA‑256 digests and renders card configuration fields (CDOL1, issuer bitmap, ICC payload template, issuer application data) as read‑only values, while **inline** mode keeps all inputs editable for what‑if exploration.
 
 ## Security properties and failure modes
 

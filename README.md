@@ -20,9 +20,9 @@ This is an AI-native, spec-driven codebase: production feature code is generated
 
 Typical use cases include:
 
-- Generating OTPs, assertions, and related responses as part of production customer authentication and authorisation flows in IAM systems.
-- Re-evaluating stored OTP/assertion payloads and shared secrets to validate cryptographic traces for non-repudiation and incident investigation.
-- Seeding test vectors and fixtures for external systems that need deterministic, spec-aligned authentication behaviour.
+- Generating OTPs, assertions, and related responses as part of simulated customer authentication flows in IAM systems.
+- Re-evaluating stored OTP/assertion payloads and shared secrets to validate cryptographic traces for non-repudiation.
+- Seeding credentials for consuming systems, allowing presets to be loaded without exposing underlying secrets while those systems can still generate OTPs and related results.
 
 On a representative workload, the REST inline endpoints sustain:
 
@@ -132,9 +132,9 @@ OpenAPI snapshots live under [docs/3-reference](docs/3-reference) and are enforc
    ```
 
 3. Run the MCP proxy: `./gradlew --no-daemon :tools-mcp-server:run --args="--config ~/.config/openauth-sim/mcp-config.yaml"`.
-4. Connect an MCP-aware client (for example `npx @modelcontextprotocol/cli`) to the spawned process. The server streams JSON-RPC messages over stdin/stdout using the standard `Content-Length` framing, exposing tools such as `hotp.evaluate`, `totp.evaluate`, `totp.helper.currentOtp`, `ocra.evaluate`, `emv.cap.evaluate`, `fido2.assertion.evaluate`, `eudiw.wallet.simulate`, `eudiw.presentation.validate`, and `fixtures.list`.
+4. Connect an MCP-aware client (for example `npx @modelcontextprotocol/cli`) to the spawned process. The server streams JSON-RPC messages over stdin/stdout using the standard `Content-Length` framing. The `tools/list` catalogue advertises tools such as `hotp.evaluate`, `totp.evaluate`, `totp.helper.currentOtp`, `ocra.evaluate`, `emv.cap.evaluate`, `fido2.assertion.evaluate`, `eudiw.wallet.simulate`, `eudiw.presentation.validate`, and `fixtures.list`, each with JSON Schema input definitions, per-tool prompt hints, and version metadata.
 
-Each tool forwards the supplied JSON payload to the documented REST endpoint and returns the HTTP status/body to the MCP client, so assistants see precisely the same behaviour as human operators using the REST API or UI.
+Each tool forwards the supplied JSON payload to the documented REST endpoint and returns the HTTP status/body to the MCP client, so assistants see precisely the same behaviour as human operators using the REST API or UI while also benefiting from the enriched MCP tool metadata.
 
 ## Standalone distribution
 

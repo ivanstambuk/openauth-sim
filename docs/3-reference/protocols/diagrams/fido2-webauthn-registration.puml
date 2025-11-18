@@ -25,11 +25,11 @@ Client -> RP: ⑤ Return attestationObject\nand clientDataJSON
 RP -> RP: Verify challenge, origin,\nRP ID and params
 RP -> RP: Verify attestation statement\naccording to trust policy
 note right of RP
-  Attestation verification uses\n
-  authenticator metadata and trust\n
-  anchors where available.\n
-  Example implementations:\n
-  core/.../WebAuthnAttestationVerifier\n
+  Attestation verification uses
+  authenticator metadata and trust
+  anchors where available.
+  Example implementations:
+  core/.../WebAuthnAttestationVerifier
   application/.../WebAuthnAttestationVerificationApplicationService
 end note
 RP -> RP: Store credentialId, public key,\nuser handle, and metadata

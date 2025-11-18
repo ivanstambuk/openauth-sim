@@ -21,7 +21,7 @@ For AI coding assistants and agents, start with:
   - `cli/` – Picocli entry points (HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW commands). Safe to extend once specs/plans/tasks describe the new commands.
   - `rest-api/` – Spring Boot REST facade and OpenAPI snapshots.
   - `ui/` – operator console HTML/JS; coordinate UI changes with the owning feature (for example Feature 009, Feature 006).
-- ``tools/mcp-server`/` – REST-backed Model Context Protocol (MCP) proxy. Agents run it alongside `:rest-api:bootRun` so MCP-capable clients can invoke simulator endpoints via the tools listed in Feature 013 (hotp/totp/ocra/emv/fido2/eudiw + fixtures). The catalog now also exposes `totp.helper.currentOtp`, which retrieves the active OTP/metadata for a stored credential before calling `totp.evaluate`. See the commands below for instructions.
+- ``tools/mcp-server`/` – REST-backed Model Context Protocol (MCP) proxy. Agents run it alongside `:rest-api:bootRun` so MCP-capable clients can invoke simulator endpoints via the tools listed in Feature 013 (hotp/totp/ocra/emv/fido2/eudiw + fixtures). The MCP `tools/list` catalogue now returns JSON Schema payloads plus per-tool prompt hints and version metadata, and the tool set also includes `totp.helper.currentOtp`, which retrieves the active OTP/metadata for a stored credential before calling `totp.evaluate`. See the commands below for instructions.
   - `docs/` – constitution, roadmap, specs/plans/tasks, protocol reference pages, and how-to guides (including ``docs/2-how-to`/*-from-java.md`).
 - **Build and test commands (canonical)**
   - Full formatting + verification: `./gradlew --no-daemon spotlessApply check`

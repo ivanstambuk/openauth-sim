@@ -82,7 +82,7 @@ In a typical deployment, a secret issuer provisions a subject with an OCRA secre
 
 The issuer stores the secret and suite on the verifier side, tied to an account identifier. Provisioning often happens via QR code, secure file exchange, device personalisation, or other secure channels; RFC 6287 focuses on the algorithm and leaves provisioning mechanisms to deployments. Once provisioning completes, the OCRA client and verifier share the same secret, suite, and input expectations for the subject.
 
-![OCRA secret and suite provisioning](diagrams/ocra-provisioning.png)
+<img src="diagrams/ocra-provisioning.png" alt="OCRA secret and suite provisioning" width="720" />
 
 #### Sequence
 
@@ -117,7 +117,7 @@ During authentication, the verifier and OCRA client use the provisioned suite an
 
 The client returns the response to the verifier, which reconstructs the data inputs according to the suite, recomputes the expected response from its copy of `K`, and compares the results. If the values match and any replay or timestamp checks succeed, the verifier accepts the authentication; otherwise, it rejects the attempt and may apply lockout or throttling policies.
 
-![OCRA challenge-response authentication (basic)](diagrams/ocra-challenge-response-basic.png)
+<img src="diagrams/ocra-challenge-response-basic.png" alt="OCRA challenge-response authentication (basic)" width="720" />
 
 #### Sequence
 
@@ -158,7 +158,7 @@ Beyond basic authentication, OCRA is often used to sign transaction details or o
 
 The OCRA response is then bound not only to the subject and challenge, but also to the transaction details encoded in `S`. When the verifier recomputes the expected response, any change to the transaction payload will cause a mismatch and the request will be rejected.
 
-![OCRA transaction signing](diagrams/ocra-transaction-signing.png)
+<img src="diagrams/ocra-transaction-signing.png" alt="OCRA transaction signing" width="720" />
 
 #### Sequence
 

@@ -62,7 +62,7 @@ The wallet obtains the authorization request (often by scanning a QR code or fol
 > [!NOTE]
 > In HAIP flows, the authorization request (or referenced request object) and subsequent response often rely on signed and encrypted `direct_post.jwt` payloads. Baseline flows may allow simpler response modes such as `direct_post`, but HAIP tightening tends to drive simulator defaults.
 
-![EUDIW OpenID4VP authorization request (cross-device)](diagrams/eudiw-openid4vp-authorization-request.png)
+<img src="diagrams/eudiw-openid4vp-authorization-request.png" alt="EUDIW OpenID4VP authorization request (cross-device)" width="720" />
 
 #### Sequence
 
@@ -121,7 +121,7 @@ After the wallet receives the authorization request and the holder consents, the
 
 The wallet then returns the response to the verifier according to the chosen `response_mode` (for example, form post or `direct_post.jwt`), including the `state` so the verifier can correlate it with the original request.
 
-![EUDIW OpenID4VP wallet response](diagrams/eudiw-openid4vp-wallet-response.png)
+<img src="diagrams/eudiw-openid4vp-wallet-response.png" alt="EUDIW OpenID4VP wallet response" width="720" />
 
 > [!NOTE]
 > Under HAIP, wallet responses are typically wrapped in signed and encrypted `direct_post.jwt` payloads; Baseline flows may allow plainer `direct_post` form posts, but simulators often default to the stricter profile.
@@ -185,7 +185,7 @@ Once the verifier receives a wallet response, it must validate the presentations
 
 The verifier maps the received presentations to a set of Trusted Authority policies and decides whether the presented credentials are acceptable. Validation may yield success, a Trusted Authority mismatch, or other failures such as invalid proofs or missing claims.
 
-![EUDIW OpenID4VP validation with Trusted Authorities](diagrams/eudiw-openid4vp-validation.png)
+<img src="diagrams/eudiw-openid4vp-validation.png" alt="EUDIW OpenID4VP validation with Trusted Authorities" width="720" />
 
 #### Sequence
 

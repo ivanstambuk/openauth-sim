@@ -141,7 +141,7 @@ During registration, the relying party and authenticator establish a new credent
 
 The registration flow binds a credential to a specific RP identifier and origin, enabling phishing-resistant authentication in later flows.
 
-![WebAuthn registration / credential creation](diagrams/fido2-webauthn-registration.png)
+<img src="diagrams/fido2-webauthn-registration.png" alt="WebAuthn registration / credential creation" width="720" />
 
 #### Sequence
 
@@ -187,7 +187,7 @@ During authentication, the RP asks the client to obtain an assertion from an aut
 
 This flow consumes the public key stored during registration and demonstrates possession of the private key bound to the RP identifier.
 
-![WebAuthn authentication / assertion](diagrams/fido2-webauthn-authentication.png)
+<img src="diagrams/fido2-webauthn-authentication.png" alt="WebAuthn authentication / assertion" width="720" />
 
 #### Sequence
 

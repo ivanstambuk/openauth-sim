@@ -2,7 +2,7 @@
 
 _Linked specification:_ `docs/4-architecture/features/015/spec.md`  
 _Status:_ Draft  
-_Last updated:_ 2025-11-16
+_Last updated:_ 2025-11-18
 
 > Guardrail: Keep this plan traceable back to the governing spec. Reference FR/NFR/Scenario IDs from `spec.md` where relevant, log any new high- or medium-impact questions in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md), and assume clarifications are resolved only when the spec’s normative sections (requirements/NFR/behaviour/telemetry) and, where applicable, ADRs under `docs/6-decisions/` have been updated.
 
@@ -10,11 +10,11 @@ _Last updated:_ 2025-11-16
 Deliver an MCP-first agent facade that:
 - Surfaces a curated, versioned tool catalogue with discoverable metadata (FR-015-01).
 - Implements helper tools and session APIs that provide tangible value beyond REST (FR-015-02/03).
-- Preserves REST behaviour while enforcing MCP-specific telemetry, rate limits, and auditing (FR-015-04, NFR-015-01..04).
+- Preserves REST behaviour while enforcing MCP-specific telemetry and auditing (FR-015-04, NFR-015-01..04), leaving rate limiting to upstream gateways and LLM platform controls per ADR-0010.
 - Ships documentation/how-to content so AI agents can integrate with zero bespoke glue.
 
 ## Scope Alignment
-- **In scope:** MCP catalogue metadata, helper flows (initially fixtures + TOTP), session/context APIs, telemetry/rate limits, documentation, roadmap updates, and transcripts.
+- **In scope:** MCP catalogue metadata, helper flows (initially fixtures + TOTP), session/context APIs, telemetry/auditing, documentation, roadmap updates, and transcripts.
 - **Out of scope:** Non-agent facades (CLI/REST/UI) except where helper endpoints must be exposed for MCP; Native Java API changes; persistence redesigns; new REST contracts unrelated to MCP helpers.
 
 ## Dependencies & Interfaces
@@ -59,6 +59,7 @@ Deliver an MCP-first agent facade that:
      - Update transcripts + documentation.
    - _Commands:_ `./gradlew --no-daemon :application:test --tests "*Helper*"`, `./gradlew --no-daemon :rest-api:test --tests "*Helper*"`, `./gradlew --no-daemon :tools-mcp-server:test`, `./gradlew --no-daemon generateJsonLd check`.
    - _Exit:_ Helpers callable via MCP, REST remains untouched except supporting endpoints, docs updated.
+   - **Implementation status (2025-11-18):** Reused `TotpCurrentOtpHelperService` and the `/api/v1/totp/helper/current` endpoint, extended `McpServer` to attach sanitized telemetry for `totp.helper.currentOtp` (`mcp.totp.helper.lookup`) and `fixtures.list` (`mcp.fixtures.list`), and updated MCP tests/transcripts so helper flows now satisfy NFR-015-01 without adding non-JDK dependencies.
 
 3. **I3 – Session & Capabilities APIs (FR-015-03, S-015-03)**
    - _Goal:_ Provide `session.describe`, `session.reset`, `capabilities.describe` tools.
@@ -69,14 +70,13 @@ Deliver an MCP-first agent facade that:
    - _Commands:_ `./gradlew --no-daemon :tools-mcp-server:test`, `./gradlew --no-daemon generateJsonLd check`.
    - _Exit:_ Session APIs available with governance-compliant telemetry.
 
-4. **I4 – Rate Limits, Auditing, and Quality Gate (FR-015-04, NFR-015-01..04, S-015-04)**
-   - _Goal:_ Align MCP proxy behaviour with REST while enforcing MCP-specific rate limits + audit logs.
+4. **I4 – Auditing and Quality Gate (FR-015-04, NFR-015-01..04, S-015-04)**
+   - _Goal:_ Align MCP proxy behaviour with REST while emitting proxy/audit telemetry and satisfying governance/quality gates (no in-process rate limiting).
    - _Steps:_
-     - Implement rate-limit middleware + tests; surface `mcp.error.rate_limited`.
-     - Ensure audit logs & telemetry include tool name, caller hash, latency.
+     - Ensure audit logs & telemetry include tool name, caller hash (where applicable), latency, and REST status for forwarded calls.
      - Run full `qualityGate` + `reflectionScan`; finalize docs/how-to + roadmap update.
    - _Commands:_ `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon reflectionScan`, `./gradlew --no-daemon generateJsonLd check`.
-   - _Exit:_ MCP facade meets governance requirements and documentation is complete.
+   - _Exit:_ MCP facade meets governance requirements (per ADR-0010) and documentation is complete.
 
 ## Scenario Tracking
 

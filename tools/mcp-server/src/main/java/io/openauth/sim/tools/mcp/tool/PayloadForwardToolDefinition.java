@@ -6,6 +6,7 @@ import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -44,7 +45,17 @@ final class PayloadForwardToolDefinition implements RestToolDefinition {
         schema.put("type", "object");
         schema.put("properties", properties);
         schema.put("required", java.util.List.of("payload"));
-        return Map.of("name", name, "description", description, "inputSchema", schema);
+        Map<String, Object> descriptor = new LinkedHashMap<>();
+        descriptor.put("name", name);
+        descriptor.put("description", description);
+        descriptor.put("inputSchema", schema);
+        descriptor.put("schema", schema);
+        List<String> promptHints = McpToolMetadata.promptHints(name);
+        if (!promptHints.isEmpty()) {
+            descriptor.put("promptHints", promptHints);
+        }
+        descriptor.put("version", McpToolMetadata.catalogVersion());
+        return descriptor;
     }
 
     @Override

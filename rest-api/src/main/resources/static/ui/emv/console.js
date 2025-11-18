@@ -1121,6 +1121,14 @@
           if (key === 'previewWindowBackward' || key === 'previewWindowForward') {
             continue;
           }
+          if (
+            key === 'cdol1' ||
+            key === 'issuerProprietaryBitmap' ||
+            key === 'iccDataTemplate' ||
+            key === 'issuerApplicationData'
+          ) {
+            continue;
+          }
           if (baselineSnapshot[key] !== current[key]) {
             return true;
           }
@@ -2092,11 +2100,19 @@
     }
     if (field.mask) {
       if (hidden && showMaskOnlyWhenHidden) {
+        // Stored mode: mask should be visible so operators can see the SHA-256 digest.
         field.mask.removeAttribute('hidden');
         field.mask.removeAttribute('aria-hidden');
+        if (field.mask.style) {
+          field.mask.style.display = '';
+        }
       } else {
+        // Inline mode: mask stays in the DOM but is hidden via attributes and CSS.
         field.mask.setAttribute('hidden', 'hidden');
         field.mask.setAttribute('aria-hidden', 'true');
+        if (field.mask.style) {
+          field.mask.style.display = 'none';
+        }
       }
     }
   }

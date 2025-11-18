@@ -9,9 +9,9 @@ actor "Holder" as Holder
 
 Verifier -> Verifier: ① Build presentation_definition\nand authorization request parameters
 note right of Verifier
-  The verifier expresses requirements\n
-  via presentation_definition and\n
-  trust policies. Nonce and state\n
+  The verifier expresses requirements
+  via presentation_definition and
+  trust policies. Nonce and state
   protect against replay and CSRF.
 end note
 
