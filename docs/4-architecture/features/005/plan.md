@@ -30,7 +30,7 @@ _Last updated:_ 2025-11-13
   - Operator console tooling (Node harness + Selenium) continues to run in CI/local environments.
 - **Risks / Mitigations:**
   - **Limited test vectors:** Coordinate with the owner for new samples; enforce fixture-driven tests so additional vectors drop in quickly.
-  - **Secret leakage in traces:** Redact sensitive fields in telemetry frames and guard verbose traces behind request toggles; extend SHA-256 hashing to EMV master keys while leaving session keys visible only in verbose traces.
+  - **Secret leakage in traces:** Redact sensitive fields in telemetry frames and guard verbose traces behind request toggles; extend SHA-256 hashing to EMV master keys while leaving session keys visible only in verbose traces, and treat card configuration fields (CDOL1, issuer bitmap, ICC payload template, issuer application data) as non-secret configuration that can be rendered read-only in the operator console for stored credentials.
   - **UI toggle drift:** Removing EMV-specific controls must preserve `includeTrace` behaviour—add targeted UI/Selenium coverage so global toggle changes propagate to evaluation and replay requests.
   - **Crypto implementation errors:** Use independent derivation verification (calculator outputs) and add property-based tests for mask application and MAC derivation.
 

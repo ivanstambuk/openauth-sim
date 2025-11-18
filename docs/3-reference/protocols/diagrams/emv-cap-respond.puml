@@ -33,9 +33,9 @@ Issuer -> Issuer: ⑨ Rebuild EMV/CAP input\nusing challenge and card data
 Issuer -> Issuer: ⑩ Validate CAP code\nagainst expected result
 
 alt Code valid and risk checks pass
-  Issuer --> User: ⑪ Authentication success
+  Issuer --> User: 11. Authentication success
 else Code invalid or risk checks fail
-  Issuer --> User: ⑪ Authentication failure
+  Issuer --> User: 11. Authentication failure
 end alt
 
 @enduml

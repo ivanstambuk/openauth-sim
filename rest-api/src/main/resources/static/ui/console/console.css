@@ -1738,37 +1738,19 @@ a:focus {
 }
 
 .emv-stored-mode [data-testid='emv-master-key'],
-.emv-stored-mode [data-testid='emv-cdol1'],
-.emv-stored-mode [data-testid='emv-ipb'],
-.emv-stored-mode [data-testid='emv-icc-template'],
-.emv-stored-mode [data-testid='emv-issuer-application-data'],
-.emv-stored-mode [data-testid='emv-replay-master-key'],
-.emv-stored-mode [data-testid='emv-replay-cdol1'],
-.emv-stored-mode [data-testid='emv-replay-issuer-bitmap'],
-.emv-stored-mode [data-testid='emv-replay-icc-template'],
-.emv-stored-mode [data-testid='emv-replay-issuer-application-data'] {
+.emv-stored-mode [data-testid='emv-replay-master-key'] {
   display: none;
 }
 
 .emv-stored-mode .field-group:has([data-testid='emv-master-key']),
-.emv-stored-mode .field-group:has([data-testid='emv-cdol1']),
-.emv-stored-mode .field-group:has([data-testid='emv-ipb']),
-.emv-stored-mode .field-group:has([data-testid='emv-icc-template']),
-.emv-stored-mode .field-group:has([data-testid='emv-issuer-application-data']),
-.emv-stored-mode .field-group:has([data-testid='emv-replay-master-key']),
-.emv-stored-mode .field-group:has([data-testid='emv-replay-cdol1']),
-.emv-stored-mode .field-group:has([data-testid='emv-replay-issuer-bitmap']),
-.emv-stored-mode .field-group:has([data-testid='emv-replay-icc-template']),
-.emv-stored-mode .field-group:has([data-testid='emv-replay-issuer-application-data']) {
+.emv-stored-mode .field-group:has([data-testid='emv-replay-master-key']) {
   display: none;
 }
 
-.emv-stored-mode [data-testid='emv-master-key-mask'],
 .emv-stored-mode [data-testid='emv-cdol1-mask'],
 .emv-stored-mode [data-testid='emv-ipb-mask'],
 .emv-stored-mode [data-testid='emv-icc-template-mask'],
 .emv-stored-mode [data-testid='emv-issuer-application-data-mask'],
-.emv-stored-mode [data-testid='emv-replay-master-key-mask'],
 .emv-stored-mode [data-testid='emv-replay-cdol1-mask'],
 .emv-stored-mode [data-testid='emv-replay-ipb-mask'],
 .emv-stored-mode [data-testid='emv-replay-icc-template-mask'],

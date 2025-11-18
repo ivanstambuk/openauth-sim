@@ -167,7 +167,7 @@ The OCRA response is then bound not only to the subject and challenge, but also 
 3. The user verifies the displayed transaction details on the OCRA client and confirms them (diagram step ④).
 4. The OCRA client builds `DataInput(C, Q, P, S, T)` according to the suite, computes the OCRA response, and displays or returns it (diagram steps ⑤–⑥).
 5. The user submits the OCRA response back to the verifier (diagram step ⑦).
-6. The verifier reconstructs `S` from its own view of the transaction, recomputes the expected response, and either approves or rejects the transaction based on the comparison and replay checks (diagram steps ⑧–⑪).
+6. The verifier reconstructs `S` from its own view of the transaction, recomputes the expected response, and either approves or rejects the transaction based on the comparison and replay checks (diagram steps 8–11).
 
 #### Key parameters
 

@@ -35,9 +35,9 @@ Issuer -> Issuer: ⑨ Rebuild transaction\npayload from pending request
 Issuer -> Issuer: ⑩ Validate CAP code\nagainst expected result
 
 alt Code valid and risk checks pass
-  Issuer --> User: ⑪ Transaction approved
+  Issuer --> User: 11. Transaction approved
 else Code invalid or risk checks fail
-  Issuer --> User: ⑪ Transaction rejected
+  Issuer --> User: 11. Transaction rejected
 end alt
 
 @enduml

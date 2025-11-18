@@ -29,9 +29,9 @@ Linked plan: [docs/4-architecture/features/005/plan.md](docs/4-architecture/feat
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
   - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon spotlessApply check`
 
-- [x] T-005-03 – Stored preset secret hiding (S39-03): `toggleSensitiveFields` now applies `hidden`/`aria-hidden` to sensitive `.field-group` containers and mask wrappers whenever stored mode is active so ICC master key, CDOL1, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data rows vanish; inline mode removes the attributes and restores the inputs. Added Node + Selenium assertions proving stored presets hide rows while inline mode keeps them editable. Commands: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon spotlessApply check --console=plain`.
-  _Intent:_ Stored preset secret hiding (S39-03):
-  _Verification commands:_
+- [x] T-005-03 – Stored preset secret hiding (S39-03): `toggleSensitiveFields` initially applied `hidden`/`aria-hidden` to sensitive `.field-group` containers and mask wrappers whenever stored mode was active so ICC master key, CDOL1, Issuer Proprietary Bitmap, ICC payload template, and Issuer Application Data rows vanished; inline mode removed the attributes and restored the inputs. This behaviour has since been refined by T-005-73 so stored mode now hides only EMV keys while rendering card configuration fields as read-only values.
+  _Intent:_ Stored preset secret hiding (S39-03) – superseded by T-005-73; see that task for the current UI contract.
+  _Verification commands (original implementation):_
   - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
   - `./gradlew --no-daemon spotlessApply check --console=plain`
 
@@ -298,6 +298,15 @@ Linked plan: [docs/4-architecture/features/005/plan.md](docs/4-architecture/feat
   - [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md)
   - `:rest-api:test`
   - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`
+
+- [ ] T-005-73 – Stored credential card configuration visibility (S39-03, FR-005-05): update EMV/CAP operator UI so stored mode masks only EMV keys while rendering card configuration fields (CDOL1, issuer bitmap, ICC payload template, issuer application data) as read-only values in the existing “Card configuration” and “Transaction” fieldsets for both Evaluate and Replay panels; keep inline mode fully editable. Extend Node JS tests ([rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)) and Selenium coverage (`EmvCapOperatorUiSeleniumTest`) to assert read-only behaviour and master-key masking, then rerun:
+  _Intent:_ Stored credential card configuration visibility (S39-03, FR-005-05) – align UI with Q005-01 Option A (read-only config, masked keys).
+  _Verification commands:_
+  - `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :rest-api:test`
+  - `OPENAUTH_SIM_PERSISTENCE_DATABASE_PATH=build/tmp/test-credentials.db ./gradlew --no-daemon :ui:test`
+  - `./gradlew --no-daemon spotlessApply check`
 
 - [x] T-005-43 – Replay scaffolding & red tests (S39-05, S39-06): extended the fixture catalogue with stored/inline replay vectors ([docs/test-vectors/emv-cap/replay-fixtures.json](docs/test-vectors/emv-cap/replay-fixtures.json)), introduced failing coverage across application (`EmvCapReplayApplicationServiceTest`), REST (`EmvCapReplayEndpointTest`), CLI (`EmvCliReplayTest`), and UI (`EmvCapOperatorUiSeleniumTest`) suites, and documented pending implementation here prior to activation. Commands: `./gradlew --no-daemon :application:test :rest-api:test :cli:test :ui:test` (targeted classes), `./gradlew --no-daemon spotlessApply check` (expected red).
   _Intent:_ Replay scaffolding & red tests (S39-05, S39-06): extended the fixture catalogue with stored/inline replay vectors (

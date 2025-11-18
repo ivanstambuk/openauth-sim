@@ -39,10 +39,10 @@ Verifier -> Verifier: ⑨ Recompute expected OTP\nusing stored K, Suite, and inp
 
 alt OTP matches and checks pass
   Verifier -> Verifier: ⑩ Approve transaction
-  Verifier --> Client: ⑪ Transaction approved
+  Verifier --> Client: 11. Transaction approved
 else OTP mismatch or checks fail
   Verifier -> Verifier: ⑩ Reject transaction
-  Verifier --> Client: ⑪ Transaction rejected
+  Verifier --> Client: 11. Transaction rejected
 end alt
 
 @enduml

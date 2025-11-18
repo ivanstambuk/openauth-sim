@@ -171,6 +171,161 @@ val pitTargets = mapOf(
 
 val pitSkip = providers.gradleProperty("pit.skip").map(String::toBoolean).getOrElse(false)
 
+// Lightweight wrapper to run the REST inline performance harness via Gradle.
+tasks.register<Exec>("restInlineLoadTest") {
+    group = "verification"
+    description = "Runs the REST inline evaluation load harness (tools/perf/rest-inline-node-load.js)."
+    // Allow overriding Node and harness parameters via Gradle properties if needed.
+    val nodeExecutable = providers.gradleProperty("nodeExecutable").orElse("node")
+    val baseUrl = providers.gradleProperty("restInlineBaseUrl").orElse("http://localhost:8080")
+    val duration = providers.gradleProperty("restInlineDurationSeconds").orElse("30")
+    val concurrency = providers.gradleProperty("restInlineConcurrency").orElse("32")
+    val targetTps = providers.gradleProperty("restInlineTargetTps").orElse("500")
+    val maxP95 = providers.gradleProperty("restInlineMaxP95").orElse("50")
+    val maxP99 = providers.gradleProperty("restInlineMaxP99").orElse("100")
+    val baselineFile = providers.gradleProperty("restInlineBaselineFile").orNull
+    val baselineTolerance = providers.gradleProperty("restInlineBaselineTolerance").orElse("0.2")
+
+    commandLine = buildList {
+        add(nodeExecutable.get())
+        add("tools/perf/rest-inline-node-load.js")
+        addAll(
+            listOf(
+                "--baseUrl", baseUrl.get(),
+                "--durationSeconds", duration.get(),
+                "--concurrency", concurrency.get(),
+                "--targetTps", targetTps.get(),
+                "--maxP95", maxP95.get(),
+                "--maxP99", maxP99.get(),
+                "--baselineTolerance", baselineTolerance.get(),
+            ),
+        )
+        if (!baselineFile.isNullOrBlank()) {
+            add("--baselineFile")
+            add(baselineFile!!)
+        }
+    }
+}
+
+fun waitForRestApi(baseUrl: String, timeoutSeconds: Int, serverProcess: Process) {
+    val deadline = System.currentTimeMillis() + timeoutSeconds * 1000L
+    while (System.currentTimeMillis() < deadline) {
+        if (!serverProcess.isAlive) {
+            throw org.gradle.api.GradleException(
+                "REST API process terminated before becoming ready (exit code=${serverProcess.exitValue()})"
+            )
+        }
+        try {
+            val url = java.net.URL(baseUrl)
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 2_000
+            conn.readTimeout = 2_000
+            conn.requestMethod = "GET"
+            conn.useCaches = false
+            val code = conn.responseCode
+            conn.disconnect()
+            if (code in 200..499) {
+                return
+            }
+        } catch (_: Exception) {
+            // keep trying until timeout
+        }
+        Thread.sleep(500)
+    }
+    throw org.gradle.api.GradleException("REST API at $baseUrl did not become ready within $timeoutSeconds seconds")
+}
+
+tasks.register("restInlinePerfSuite") {
+    group = "verification"
+    description =
+        "Starts the REST API, waits for readiness, runs the REST inline performance harness, then stops the server."
+
+    // This task shells out and uses ProcessBuilder; keep it out of configuration cache.
+    notCompatibleWithConfigurationCache("Uses cross-process orchestration via ProcessBuilder")
+
+    doLast {
+        val baseUrl = providers.gradleProperty("restInlineBaseUrl").orElse("http://localhost:8080").get()
+
+        val serverCommand = listOf(
+            "./gradlew",
+            "--no-daemon",
+            "--no-configuration-cache",
+            "--init-script",
+            "tools/run-rest-api.init.gradle.kts",
+            "runRestApi",
+        )
+
+        val processBuilder = ProcessBuilder(serverCommand)
+            .directory(rootProject.projectDir)
+            .redirectErrorStream(true)
+
+        println("Starting REST API for perf suite at $baseUrl via: ${serverCommand.joinToString(" ")}")
+        val serverProcess = processBuilder.start()
+
+        try {
+            waitForRestApi(baseUrl, 60, serverProcess)
+            println("REST API is ready, running rest-inline harness ...")
+
+            val nodeExecutable = providers.gradleProperty("nodeExecutable").orElse("node").get()
+            val duration = providers.gradleProperty("restInlineDurationSeconds").orElse("30").get()
+            val concurrency = providers.gradleProperty("restInlineConcurrency").orElse("32").get()
+            val targetTps = providers.gradleProperty("restInlineTargetTps").orElse("500").get()
+            val maxP95 = providers.gradleProperty("restInlineMaxP95").orElse("50").get()
+            val maxP99 = providers.gradleProperty("restInlineMaxP99").orElse("100").get()
+            val baselineFile = providers.gradleProperty("restInlineBaselineFile").orNull
+            val baselineTolerance =
+                providers.gradleProperty("restInlineBaselineTolerance").orElse("0.2").get()
+
+            val nodeCommand = buildList {
+                add(nodeExecutable)
+                add("tools/perf/rest-inline-node-load.js")
+                addAll(
+                    listOf(
+                        "--baseUrl",
+                        baseUrl,
+                        "--durationSeconds",
+                        duration,
+                        "--concurrency",
+                        concurrency,
+                        "--targetTps",
+                        targetTps,
+                        "--maxP95",
+                        maxP95,
+                        "--maxP99",
+                        maxP99,
+                        "--baselineTolerance",
+                        baselineTolerance,
+                    ),
+                )
+                if (!baselineFile.isNullOrBlank()) {
+                    add("--baselineFile")
+                    add(baselineFile!!)
+                }
+            }
+
+            println("Running REST inline harness: ${nodeCommand.joinToString(" ")}")
+            val harnessProcess = ProcessBuilder(nodeCommand)
+                .directory(rootProject.projectDir)
+                .inheritIO()
+                .start()
+            val exitCodeHarness = harnessProcess.waitFor()
+            if (exitCodeHarness != 0) {
+                throw org.gradle.api.GradleException(
+                    "REST inline harness failed with exit code $exitCodeHarness",
+                )
+            }
+        } finally {
+            if (serverProcess.isAlive) {
+                println("Stopping REST API process ...")
+                serverProcess.destroy()
+                if (serverProcess.isAlive) {
+                    serverProcess.destroyForcibly()
+                }
+            }
+        }
+    }
+}
+
 subprojects {
     apply(plugin = "java")
     apply(plugin = "jacoco")

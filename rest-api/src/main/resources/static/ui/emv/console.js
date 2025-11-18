@@ -160,10 +160,6 @@
       : null;
   var evaluateSensitiveFields = buildSensitiveFields([
     { input: masterKeyInput, mask: form.querySelector('[data-testid="emv-master-key-mask"]'), formatter: formatMasterKeyMask },
-    { input: cdol1Input, mask: form.querySelector('[data-testid="emv-cdol1-mask"]'), formatter: formatHexMaskFactory('cdol1') },
-    { input: ipbInput, mask: form.querySelector('[data-testid="emv-ipb-mask"]'), formatter: formatHexMaskFactory('issuerProprietaryBitmap') },
-    { input: iccTemplateInput, mask: form.querySelector('[data-testid="emv-icc-template-mask"]'), formatter: formatHexMaskFactory('iccDataTemplate') },
-    { input: issuerApplicationDataInput, mask: form.querySelector('[data-testid="emv-issuer-application-data-mask"]'), formatter: formatHexMaskFactory('issuerApplicationData') },
   ]);
 
   var replaySensitiveFields = buildSensitiveFields([
@@ -171,26 +167,6 @@
       input: replayMasterKeyInput,
       mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-master-key-mask"]') : null,
       formatter: formatMasterKeyMask,
-    },
-    {
-      input: replayCdol1Input,
-      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-cdol1-mask"]') : null,
-      formatter: formatHexMaskFactory('cdol1'),
-    },
-    {
-      input: replayIssuerBitmapInput,
-      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-ipb-mask"]') : null,
-      formatter: formatHexMaskFactory('issuerProprietaryBitmap'),
-    },
-    {
-      input: replayIccTemplateInput,
-      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-icc-template-mask"]') : null,
-      formatter: formatHexMaskFactory('iccDataTemplate'),
-    },
-    {
-      input: replayIssuerApplicationDataInput,
-      mask: replayForm ? replayForm.querySelector('[data-testid="emv-replay-issuer-application-data-mask"]') : null,
-      formatter: formatHexMaskFactory('issuerApplicationData'),
     },
   ]);
 
@@ -220,6 +196,9 @@
       if (storedSelect.value) {
         var modeBeforeSelection = selectedEvaluateMode();
         applyCredential(storedSelect.value);
+        if (selectedEvaluateMode() === 'stored') {
+          applyCardConfigurationFromDetails(storedSelect.value, 'evaluate');
+        }
         if (modeBeforeSelection !== 'stored') {
           updateStoredControls();
         }
@@ -479,6 +458,28 @@
     return loadCredentialDetails(credentialId).then(function () {
       hydrateEvaluateFromCache(credentialId);
       hydrateReplayFromCache(credentialId);
+    });
+  }
+
+  function applyCardConfigurationFromDetails(credentialId, target) {
+    if (!credentialId) {
+      return;
+    }
+    loadCredentialDetails(credentialId).then(function (details) {
+      if (!details) {
+        return;
+      }
+      if (target === 'evaluate') {
+        setValue(cdol1Input, details.cdol1);
+        setValue(ipbInput, details.issuerProprietaryBitmap);
+        setValue(iccTemplateInput, details.iccDataTemplate);
+        setValue(issuerApplicationDataInput, details.issuerApplicationData);
+      } else if (target === 'replay') {
+        setValue(replayCdol1Input, details.cdol1);
+        setValue(replayIssuerBitmapInput, details.issuerProprietaryBitmap);
+        setValue(replayIccTemplateInput, details.iccDataTemplate);
+        setValue(replayIssuerApplicationDataInput, details.issuerApplicationData);
+      }
     });
   }
 
@@ -1962,6 +1963,7 @@
   function updateEvaluateSensitiveFields(mode) {
     var hideInputs = mode === 'stored';
     toggleSensitiveFields(evaluateSensitiveFields, hideInputs, hideInputs ? currentStoredSummary : null);
+    updateEvaluateCardConfigurationReadOnly(mode);
   }
 
   function updateReplaySensitiveFields() {
@@ -1972,6 +1974,7 @@
     if (!storedMode && replayForm) {
       replayForm.classList.remove('emv-stored-mode');
     }
+    updateReplayCardConfigurationReadOnly(selectedReplayMode());
   }
 
   function refreshSensitiveMasks(fields, summary) {
@@ -1987,18 +1990,10 @@
 
   function clearEvaluateSensitiveInputs() {
     setValue(masterKeyInput, '');
-    setValue(cdol1Input, '');
-    setValue(ipbInput, '');
-    setValue(iccTemplateInput, '');
-    setValue(issuerApplicationDataInput, '');
   }
 
   function clearReplaySensitiveInputs() {
     setValue(replayMasterKeyInput, '');
-    setValue(replayCdol1Input, '');
-    setValue(replayIssuerBitmapInput, '');
-    setValue(replayIccTemplateInput, '');
-    setValue(replayIssuerApplicationDataInput, '');
   }
 
   function toggleSensitiveFields(fields, hideInputs, summary) {
@@ -2023,8 +2018,45 @@
     });
   }
 
+  function setReadOnlyInput(input, readOnly) {
+    if (!input) {
+      return;
+    }
+    if (readOnly) {
+      input.setAttribute('readonly', 'readonly');
+      input.readOnly = true;
+      input.setAttribute('aria-readonly', 'true');
+    } else {
+      input.removeAttribute('readonly');
+      input.readOnly = false;
+      input.removeAttribute('aria-readonly');
+    }
+  }
+
+  function updateEvaluateCardConfigurationReadOnly(mode) {
+    var readOnly = mode === 'stored';
+    setReadOnlyInput(cdol1Input, readOnly);
+    setReadOnlyInput(ipbInput, readOnly);
+    setReadOnlyInput(iccTemplateInput, readOnly);
+    setReadOnlyInput(issuerApplicationDataInput, readOnly);
+    if (readOnly && storedSelect && storedSelect.value) {
+      applyCardConfigurationFromDetails(storedSelect.value, 'evaluate');
+    }
+  }
+
+  function updateReplayCardConfigurationReadOnly(mode) {
+    var readOnly = mode === 'stored';
+    setReadOnlyInput(replayCdol1Input, readOnly);
+    setReadOnlyInput(replayIssuerBitmapInput, readOnly);
+    setReadOnlyInput(replayIccTemplateInput, readOnly);
+    setReadOnlyInput(replayIssuerApplicationDataInput, readOnly);
+    if (readOnly && replayStoredSelect && replayStoredSelect.value) {
+      applyCardConfigurationFromDetails(replayStoredSelect.value, 'replay');
+    }
+  }
+
   function applyStoredVisibility(field) {
-    setFieldVisibility(field, true);
+    setFieldVisibility(field, true, true);
     field.input.setAttribute('aria-hidden', 'true');
     field.input.style.opacity = '';
     field.input.style.pointerEvents = 'none';
@@ -2032,13 +2064,10 @@
     field.input.style.display = '';
     field.input.setAttribute('tabindex', '-1');
     field.input.setAttribute('data-secret-mode', 'stored');
-    if (field.mask) {
-      field.mask.style.display = 'none';
-    }
   }
 
   function applyInlineVisibility(field) {
-    setFieldVisibility(field, false);
+    setFieldVisibility(field, false, false);
     field.input.removeAttribute('aria-hidden');
     field.input.style.opacity = '';
     field.input.style.pointerEvents = '';
@@ -2046,12 +2075,12 @@
     field.input.style.display = '';
     field.input.removeAttribute('tabindex');
     field.input.setAttribute('data-secret-mode', 'inline');
-    if (field.mask) {
+    if (field.mask && field.mask.style) {
       field.mask.style.display = 'none';
     }
   }
 
-  function setFieldVisibility(field, hidden) {
+  function setFieldVisibility(field, hidden, showMaskOnlyWhenHidden) {
     if (field.container) {
       if (hidden) {
         field.container.setAttribute('hidden', 'hidden');
@@ -2062,12 +2091,12 @@
       }
     }
     if (field.mask) {
-      if (hidden) {
-        field.mask.setAttribute('hidden', 'hidden');
-        field.mask.setAttribute('aria-hidden', 'true');
-      } else {
+      if (hidden && showMaskOnlyWhenHidden) {
         field.mask.removeAttribute('hidden');
         field.mask.removeAttribute('aria-hidden');
+      } else {
+        field.mask.setAttribute('hidden', 'hidden');
+        field.mask.setAttribute('aria-hidden', 'true');
       }
     }
   }

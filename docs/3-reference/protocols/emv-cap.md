@@ -64,7 +64,7 @@ Identify mode proves card possession and, when PIN verification is performed on-
 3. The reader sends EMV commands to verify the PIN on the card and to request an application cryptogram without explicit amount/currency fields (diagram step ③).
 4. The card verifies the PIN, computes an application cryptogram over the EMV input using the application cryptogram key, and returns the cryptogram and EMV response data (including ATC) to the reader (diagram steps ④–⑤).
 5. The reader derives a CAP code from the cryptogram, ATC, and configured Identify-mode parameters and displays the code to the cardholder (diagram steps ⑥–⑦).
-6. The cardholder enters the CAP code into the issuer backend’s online channel; the issuer backend reconstructs the EMV/CAP input for Identify mode and validates the CAP code and risk checks (diagram steps ⑧–⑪).
+6. The cardholder enters the CAP code into the issuer backend’s online channel; the issuer backend reconstructs the EMV/CAP input for Identify mode and validates the CAP code and risk checks (diagram steps 8–11).
 
 #### Key parameters
 
@@ -103,7 +103,7 @@ The issuer backend verifies that the CAP code matches what the card should have 
 3. The reader embeds the challenge into EMV input (for example, via the unpredictable number or related CDOL1 fields) and sends EMV commands to the card (diagram step ③).
 4. The card verifies the PIN, computes an application cryptogram over the EMV inputs (including challenge-derived data), and returns the cryptogram and EMV response data (diagram steps ④–⑤).
 5. The reader derives a CAP code from the cryptogram, challenge-derived fields, ATC, and mode parameters and displays it to the cardholder (diagram steps ⑥–⑦).
-6. The cardholder types the CAP code (and often the challenge) into the issuer backend’s channel; the issuer backend reconstructs the EMV/CAP input using its record of the challenge and card data and validates the CAP code and risk checks (diagram steps ⑧–⑪).
+6. The cardholder types the CAP code (and often the challenge) into the issuer backend’s channel; the issuer backend reconstructs the EMV/CAP input using its record of the challenge and card data and validates the CAP code and risk checks (diagram steps 8–11).
 
 #### Key parameters
 
@@ -141,7 +141,7 @@ The issuer backend reconstructs the same transaction payload from its record of 
 3. The reader canonicalises the transaction details (for example, minor units for amount, ISO 4217 currency, normalised beneficiary identifiers) and encodes them into EMV input fields or the CAP payload, then sends EMV commands to the card (diagram step ③).
 4. The card verifies the PIN, computes an application cryptogram over the EMV inputs (including transaction-derived data), and returns the cryptogram and EMV response data (diagram steps ④–⑤).
 5. The reader derives a CAP code from the cryptogram, ATC, and transaction-derived fields and displays the code to the cardholder (diagram steps ⑥–⑦).
-6. The cardholder submits the CAP code to the issuer backend’s channel; the issuer backend rebuilds the canonical transaction payload from the pending transaction record, reconstructs the EMV/CAP input, and validates the CAP code and risk checks before approving or rejecting the transaction (diagram steps ⑧–⑪).
+6. The cardholder submits the CAP code to the issuer backend’s channel; the issuer backend rebuilds the canonical transaction payload from the pending transaction record, reconstructs the EMV/CAP input, and validates the CAP code and risk checks before approving or rejecting the transaction (diagram steps 8–11).
 
 #### Key parameters
 
@@ -211,6 +211,32 @@ Issuer-side recomputation:
 6. Rebuild `B` from the issuer backend’s view of card and transaction data, recompute `C` and CAP block `X` using issuer backend keys, and derive the expected CAP code. If the recomputed code matches the received code and risk rules (such as ATC progression, timeouts, and replay checks) are satisfied, the issuer backend accepts the operation.
 
 Because CAP profiles are issuer- and scheme-specific, this document does not define a single normative CAP decimalisation algorithm. Instead, it describes the common structure so that readers can relate the simulator’s inputs (master key, ATC, CDOL1, amount, currency, challenge, etc.) back to the EMV building blocks that drive CAP code derivation.
+
+#### Mapping the simulator trace to this derivation
+
+When you enable verbose tracing in the simulator (for example, via the EMV/CAP tab or `includeTrace=true` on REST/CLI), the trace sections correspond directly to the steps above:
+
+- **Key derivation:** `Protocol Context` (`atc`, `branchFactor`, `height`) and `Key Derivation` (`masterFamily = IMK-AC`, `derivationAlgorithm = EMV-3DES-ATC-split`, `sessionKey`, `masterKeySha256`) capture how the per-card session key is derived from the issuer master key and EMV data.
+- **Generate AC:** `generate_ac.input` (`terminal`, `iccTemplate`, `iccResolved`) and `generate_ac.result.generateAcResult`, together with `MAC Transcript` (`algorithm = 3DES-CBC-MAC (ISO9797-1 Alg 3)`, `paddingRule`, `iv`, `blockCount`, `cidFlags`), describe how the card computes the EMV application cryptogram over the CDOL1 buffer.
+- **CAP block and decimalisation source:** `Decimalization Overlay.sourceHex` and `sourceDecimal` show the intermediate CAP block `X` and its decimalised form `N` before masking or truncation.
+- **Masking and preview window:** `Decimalization Overlay.maskPattern`, `overlaySteps`, `maskLength`, `maskedDigitsOverlay`, and the preview window fields (`previewWindowBackward`, `previewWindowForward`) describe how issuer policy selects which digits are visible, how many digits the CAP code contains, and how replay windows are scanned.
+- **Final CAP code:** `Decimalization Overlay.otp` and `digits` are the final CAP code and its length (for example, a 9-digit Identify code), which the reader shows to the cardholder and which the issuer backend recomputes for validation.
+
+#### Baseline CAP scheme modelled by the presets
+
+The canonical EMV/CAP fixtures shipped with the simulator (for example, the Identify baseline used in the EMV/CAP tab) model a CAP-1-style configuration:
+
+- `Protocol Context` reports `profile = CAP-Identify`, `mode = IDENTIFY`, `emvVersion = 4.3 Book 3`, `acType = ARQC`, and an issuer policy such as `issuerPolicyNotes = CAP-1, ISO-0 decimalization, mask 9-digit preview`.
+- `Key Derivation` uses an EMV 3DES ATC-split algorithm: `masterFamily = IMK-AC`, `derivationAlgorithm = EMV-3DES-ATC-split`, fixed IV, and a 16-byte session key (`sessionKeyBytes = 16`).
+- `Decimalization Overlay` shows `table = ISO-0`, a derived `sourceHex`/`sourceDecimal` pair, a mask pattern like `....1F...........FFFFF..........8...`, and a 9-digit `otp` (for example, `140456438`) for the baseline Identify example.
+
+For these presets, the conceptual EMV/CAP calculation described above applies directly:
+
+- derive the same session key from the issuer master key and EMV inputs (IMK-AC with EMV 3DES ATC-split),
+- compute the same application cryptogram from the CDOL1 buffer and ATC,
+- construct the same CAP block, apply ISO-0 decimalisation, then apply the configured mask pattern and digit length.
+
+An external implementation that follows the same steps and inputs will reproduce the same CAP codes as the simulator for the corresponding fixtures.
 
 #### Example (symbolic, not scheme-specific)
 

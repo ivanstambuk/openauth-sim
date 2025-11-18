@@ -1099,7 +1099,7 @@ async function invokeStoredSubmit(env) {
   await Promise.resolve();
 }
 
-test('stored credential mode hides sensitive inputs and masks while leaving values blank', async () => {
+test('stored credential mode masks only master key and renders card configuration as read-only', async () => {
   const env = createEnvironment({ verboseEnabled: true });
   await flushMicrotasks();
   if (typeof env.hooks.setEvaluateMode === 'function') {
@@ -1112,13 +1112,6 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
   }
   await flushMicrotasks();
   assert.equal(env.inputs.masterKey.value, '', 'Stored master key input should remain blank');
-  assert.equal(env.inputs.cdol1.value, '', 'Stored CDOL1 textarea should remain blank');
-  assert.equal(
-    env.inputs.issuerApplicationData.value,
-    '',
-    'Stored issuer application data input should remain blank',
-  );
-  assert.equal(env.inputs.iccTemplate.value, '', 'Stored ICC template textarea should remain blank');
   assert.equal(
     env.containers.masterKey.getAttribute('hidden'),
     'hidden',
@@ -1128,26 +1121,6 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     env.containers.masterKey.getAttribute('aria-hidden'),
     'true',
     'Master key field group should be marked aria-hidden in stored mode',
-  );
-  assert.equal(
-    env.containers.cdol1.getAttribute('hidden'),
-    'hidden',
-    'CDOL1 field group should be hidden in stored mode',
-  );
-  assert.equal(
-    env.containers.issuerApplicationData.getAttribute('hidden'),
-    'hidden',
-    'Issuer application data field group should be hidden in stored mode',
-  );
-  assert.equal(
-    env.containers.iccTemplate.getAttribute('hidden'),
-    'hidden',
-    'ICC template field group should be hidden in stored mode',
-  );
-  assert.equal(
-    env.containers.iccTemplate.getAttribute('aria-hidden'),
-    'true',
-    'ICC template field group should be marked aria-hidden in stored mode',
   );
   assert.equal(
     env.containers.atc.getAttribute('hidden'),
@@ -1175,16 +1148,6 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'Master key input should be marked aria-hidden in stored mode',
   );
   assert.equal(
-    env.inputs.cdol1.style.pointerEvents,
-    'none',
-    'CDOL1 textarea should disable pointer events in stored mode',
-  );
-  assert.equal(
-    env.inputs.issuerApplicationData.style.pointerEvents,
-    'none',
-    'Issuer application data textarea should disable pointer events in stored mode',
-  );
-  assert.equal(
     env.inputs.atc.style.pointerEvents || '',
     '',
     'ATC input should remain interactive so operators can adjust stored derivation values',
@@ -1195,54 +1158,14 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'ATC input should remain visible/accessible during stored mode',
   );
   assert.equal(
-    env.inputs.iccTemplate.style.pointerEvents,
-    'none',
-    'ICC template textarea should disable pointer events in stored mode',
-  );
-  assert.equal(
-    env.inputs.iccTemplate.getAttribute('aria-hidden'),
-    'true',
-    'ICC template input should be marked aria-hidden in stored mode',
-  );
-  assert.equal(
     env.masks.masterKey.getAttribute('hidden'),
-    'hidden',
-    'Master key mask should remain hidden in stored mode',
+    null,
+    'Master key mask should be visible in stored mode',
   );
   assert.equal(
     env.masks.masterKey.getAttribute('aria-hidden'),
-    'true',
-    'Master key mask should be marked aria-hidden in stored mode',
-  );
-  assert.equal(
-    env.masks.cdol1.getAttribute('hidden'),
-    'hidden',
-    'CDOL1 mask should remain hidden in stored mode',
-  );
-  assert.equal(
-    env.masks.iccTemplate.getAttribute('hidden'),
-    'hidden',
-    'ICC template mask should remain hidden in stored mode',
-  );
-  assert.equal(
-    env.masks.iccTemplate.getAttribute('aria-hidden'),
-    'true',
-    'ICC template mask should be marked aria-hidden in stored mode',
-  );
-  assert.equal(
-    env.masks.cdol1.getAttribute('aria-hidden'),
-    'true',
-    'CDOL1 mask should be marked aria-hidden in stored mode',
-  );
-  assert.equal(
-    env.masks.issuerApplicationData.getAttribute('hidden'),
-    'hidden',
-    'Issuer application data mask should remain hidden in stored mode',
-  );
-  assert.equal(
-    env.masks.issuerApplicationData.getAttribute('aria-hidden'),
-    'true',
-    'Issuer application data mask should be marked aria-hidden in stored mode',
+    null,
+    'Master key mask should clear aria-hidden in stored mode',
   );
   assert.equal(
     env.masks.masterKey.valueNode.textContent,
@@ -1250,14 +1173,19 @@ test('stored credential mode hides sensitive inputs and masks while leaving valu
     'Digest metadata should still be populated for diagnostics',
   );
   assert.equal(
-    env.masks.cdol1.valueNode.textContent,
-    `Hidden (${SANITIZED_SUMMARIES[0].cdol1HexLength} hex chars)`,
-    'CDOL1 mask metadata should still be populated behind the scenes',
+    env.inputs.cdol1.getAttribute('readonly'),
+    'readonly',
+    'CDOL1 textarea should be read-only in stored mode',
   );
   assert.equal(
-    env.masks.issuerApplicationData.valueNode.textContent,
-    `Hidden (${SANITIZED_SUMMARIES[0].issuerApplicationDataHexLength} hex chars)`,
-    'Issuer application data metadata should still be populated behind the scenes',
+    env.inputs.issuerApplicationData.getAttribute('readonly'),
+    'readonly',
+    'Issuer application data input should be read-only in stored mode',
+  );
+  assert.equal(
+    env.inputs.iccTemplate.getAttribute('readonly'),
+    'readonly',
+    'ICC template textarea should be read-only in stored mode',
   );
 });
 
@@ -1479,13 +1407,13 @@ test('selecting a preset while inline mode is active keeps inline controls edita
   );
   assert.equal(
     env.masks.masterKey.getAttribute('hidden'),
-    null,
-    'Master key mask should clear hidden attribute when inline mode is active',
+    'hidden',
+    'Master key mask should keep hidden attribute when inline mode is active',
   );
   assert.equal(
     env.masks.masterKey.getAttribute('aria-hidden'),
-    null,
-    'Master key mask should clear aria-hidden when inline mode is active',
+    'true',
+    'Master key mask should keep aria-hidden=true when inline mode is active',
   );
   assert.equal(
     env.masks.masterKey.style.display,

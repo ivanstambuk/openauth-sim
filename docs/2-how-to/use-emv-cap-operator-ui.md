@@ -12,7 +12,7 @@ The operator console exposes an EMV/CAP tab that mirrors the REST contract while
 
 ## Navigate to the EMV/CAP tab
 1. Open the console and select **EMV/CAP** from the protocol picker.
-2. Choose a preset from the “Stored credential (optional)” dropdown (for example `identify-baseline` or `sign-amount-50375`). Presets populate the ICC master key, ATC, branch factor, height, IV, CDOL1, and issuer bitmap fields automatically.
+2. Choose a preset from the “Stored credential (optional)” dropdown (for example `identify-baseline` or `sign-amount-50375`). Presets populate the ICC master key, ATC, branch factor, height, IV, CDOL1, issuer bitmap, ICC payload template, and issuer application data fields automatically—inline mode keeps all of these fields editable, while stored mode treats card configuration fields as read-only and continues to hide only EMV keys.
 3. Confirm the customer input controls reflect the active mode:
    - Identify hides challenge/reference/amount.
    - Respond only enables the challenge input.
