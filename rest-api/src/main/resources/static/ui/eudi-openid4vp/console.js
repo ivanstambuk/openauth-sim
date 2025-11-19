@@ -1692,20 +1692,6 @@
     meta.textContent = metaParts.join(' · ');
     summary.appendChild(meta);
 
-    var badges = documentRef.createElement('span');
-    badges.className = 'presentation-card__badges';
-    var holderBadge = documentRef.createElement('span');
-    holderBadge.className = 'presentation-card__badge';
-    holderBadge.textContent = presentation && presentation.holderBinding ? 'Holder binding' : 'No holder binding';
-    badges.appendChild(holderBadge);
-    if (traceEntry && traceEntry.vpTokenHash) {
-      var traceBadge = documentRef.createElement('span');
-      traceBadge.className = 'presentation-card__badge';
-      traceBadge.textContent = 'Trace ready';
-      badges.appendChild(traceBadge);
-    }
-    summary.appendChild(badges);
-
     return summary;
   }
 
@@ -1733,28 +1719,7 @@
     }
     body.appendChild(details);
 
-    var actions = documentRef.createElement('div');
-    actions.className = 'presentation-card__actions';
     var jsonText = formatVpTokenPayload(presentation && presentation.vpToken);
-    var copyButton = createActionButton('Copy JSON');
-    copyButton.setAttribute(
-        'data-testid',
-        options && options.kind === 'replay' ? 'eudiw-replay-copy' : 'eudiw-result-copy');
-    copyButton.addEventListener('click', function () {
-      handleCopy(jsonText, traceId);
-    });
-    actions.appendChild(copyButton);
-
-    var downloadButton = createActionButton('Download JSON');
-    downloadButton.setAttribute(
-        'data-testid',
-        options && options.kind === 'replay' ? 'eudiw-replay-download' : 'eudiw-result-download');
-    downloadButton.addEventListener('click', function () {
-      var filename = (presentation && presentation.credentialId ? presentation.credentialId : 'presentation') + '.json';
-      handleDownload(filename, jsonText, { presentationId: traceId });
-    });
-    actions.appendChild(downloadButton);
-    body.appendChild(actions);
 
     var codeBlock = documentRef.createElement('textarea');
     codeBlock.className = 'code-textarea presentation-card__token';
@@ -1790,114 +1755,6 @@
       return JSON.stringify(vpToken, null, 2);
     } catch (error) {
       return String(vpToken);
-    }
-  }
-
-  function createActionButton(label) {
-    var button = documentRef.createElement('button');
-    button.type = 'button';
-    button.className = 'button-secondary presentation-card__action';
-    button.textContent = label;
-    return button;
-  }
-
-  function handleCopy(value) {
-    if (!value) {
-      return;
-    }
-    var clipboard = global.navigator && global.navigator.clipboard;
-    if (clipboard && typeof clipboard.writeText === 'function') {
-      clipboard.writeText(value).catch(function () {
-        fallbackCopy(value);
-      });
-      return;
-    }
-    fallbackCopy(value);
-  }
-
-  function fallbackCopy(value) {
-    var scratch = documentRef.createElement('textarea');
-    scratch.value = value;
-    scratch.setAttribute('aria-hidden', 'true');
-    scratch.style.position = 'absolute';
-    scratch.style.left = '-9999px';
-    scratch.style.top = '0';
-    var host = documentRef.body || panel;
-    host.appendChild(scratch);
-    if (typeof scratch.select === 'function') {
-      scratch.select();
-    }
-    if (typeof documentRef.execCommand === 'function') {
-      try {
-        documentRef.execCommand('copy');
-      } catch (error) {
-        // no-op
-      }
-    }
-    if (typeof scratch.remove === 'function') {
-      scratch.remove();
-    } else {
-      host.removeChild(scratch);
-    }
-  }
-
-  function handleDownload(filename, jsonPayload, metadata) {
-    if (!jsonPayload) {
-      return;
-    }
-    try {
-      if (typeof Blob === 'function' && global.URL && typeof global.URL.createObjectURL === 'function') {
-        var blob = new Blob([jsonPayload], { type: 'application/json' });
-        var link = documentRef.createElement('a');
-        var url = global.URL.createObjectURL(blob);
-        link.href = url;
-        link.download = filename;
-        (documentRef.body || panel).appendChild(link);
-        if (typeof link.click === 'function') {
-          link.click();
-        }
-        if (typeof link.remove === 'function') {
-          link.remove();
-        } else {
-          (documentRef.body || panel).removeChild(link);
-        }
-        global.URL.revokeObjectURL(url);
-      } else {
-        var fallbackLink = documentRef.createElement('a');
-        fallbackLink.href =
-            'data:application/json;charset=utf-8,' + encodeURIComponent(jsonPayload);
-        fallbackLink.download = filename;
-        (documentRef.body || panel).appendChild(fallbackLink);
-        if (typeof fallbackLink.click === 'function') {
-          fallbackLink.click();
-        }
-        if (typeof fallbackLink.remove === 'function') {
-          fallbackLink.remove();
-        } else {
-          (documentRef.body || panel).removeChild(fallbackLink);
-        }
-      }
-      notifyDownloadHook({ presentationId: metadata && metadata.presentationId, payload: jsonPayload });
-    } catch (error) {
-      notifyDownloadHook({
-        presentationId: metadata && metadata.presentationId,
-        error: error && error.message ? error.message : String(error),
-      });
-    }
-  }
-
-  function notifyDownloadHook(event) {
-    if (
-      global.EudiwConsoleTestHooks
-      && typeof global.EudiwConsoleTestHooks.onDownload === 'function'
-    ) {
-      try {
-        global.EudiwConsoleTestHooks.onDownload(event);
-      } catch (hookError) {
-        if (global.console && typeof global.console.warn === 'function') {
-          global.console.warn('[eudiw] download hook failed', hookError);
-        }
-      }
     }
   }
 

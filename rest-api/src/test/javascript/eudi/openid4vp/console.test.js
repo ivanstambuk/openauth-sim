@@ -340,8 +340,12 @@ test('EUDIW console renders multi-presentation sections with trace IDs and actio
       'summary should include credential identifier',
   );
 
-  const copyButton = findDescendantByTestId(firstSection, 'eudiw-result-copy');
-  assert.ok(copyButton, 'expected copy button with data-testid="eudiw-result-copy"');
+  const tokenField = findDescendantByTestId(firstSection, 'eudiw-result-vp-token');
+  assert.ok(tokenField, 'expected VP Token textarea result');
+  assert.ok(
+      tokenField.value && tokenField.value.length > 0,
+      'expected VP Token textarea to contain JSON payload',
+  );
 });
 
 test('Deep-link parameters hydrate tab and mode state', () => {

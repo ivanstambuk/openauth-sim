@@ -384,6 +384,7 @@ button {
 .field-group--stacked {
   display: grid;
   gap: var(--ocra-spacing-xs);
+  margin-top: var(--ocra-spacing-md);
 }
 
 .field-group--stacked textarea,
@@ -697,6 +698,10 @@ fieldset {
   box-shadow: 0 0 0 1px var(--ocra-color-outline);
 }
 
+.mode-toggle + .field-grid {
+  margin-top: var(--ocra-spacing-lg);
+}
+
 .field-grid input[readonly],
 .field-grid textarea[readonly],
 .field-group input[readonly],
@@ -906,24 +911,6 @@ fieldset {
   color: var(--ocra-color-text-muted);
 }
 
-.presentation-card__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ocra-spacing-xs);
-}
-
-.presentation-card__badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.75rem;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid rgba(22, 211, 243, 0.35);
-  color: rgba(143, 228, 255, 0.95);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .presentation-card__body {
   padding: var(--ocra-spacing-md) var(--ocra-spacing-lg) var(--ocra-spacing-lg);
   display: flex;
@@ -952,19 +939,19 @@ fieldset {
   color: var(--ocra-color-text);
 }
 
-.presentation-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ocra-spacing-sm);
-}
-
-.presentation-card__action {
-  flex: 0 0 auto;
-}
-
 .presentation-card__token {
   width: 100%;
-  min-height: 8rem;
+  min-height: 12rem;
+  background: var(--ocra-color-surface-muted);
+  color: var(--ocra-color-text);
+  border: 1px solid var(--ocra-color-border);
+  border-radius: var(--ocra-radius-sm);
+  font-family: var(--ocra-font-family-mono);
+  padding: var(--ocra-spacing-sm);
+  resize: vertical;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: pre;
 }
 
 .status-badge {

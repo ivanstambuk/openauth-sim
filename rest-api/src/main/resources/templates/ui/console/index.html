@@ -155,6 +155,10 @@
       <th:block th:replace="~{ui/fido2/panel :: fido2Panel(${activeProtocol}=='fido2')}"></th:block>
       <th:block th:replace="~{ui/emv/panel :: emvPanel(${activeProtocol}=='emv')}"></th:block>
 
+      <th:block
+          th:replace="~{ui/eudi/openid4vp/panel :: eudiwPanel(${activeProtocol}=='eudi-openid4vp', ${eudiwConsoleData})}"
+        ></th:block>
+
       <section
           class="verbose-trace-controls"
           data-testid="verbose-trace-controls"
@@ -199,10 +203,6 @@
           <pre class="verbose-trace-panel__content" data-testid="verbose-trace-content"></pre>
         </details>
       </section>
-
-      <th:block
-          th:replace="~{ui/eudi/openid4vp/panel :: eudiwPanel(${activeProtocol}=='eudi-openid4vp', ${eudiwConsoleData})}"
-        ></th:block>
 
       <section
           id="protocol-panel-eudi-iso-18013-5"

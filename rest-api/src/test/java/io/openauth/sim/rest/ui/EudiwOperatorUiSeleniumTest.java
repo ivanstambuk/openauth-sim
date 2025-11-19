@@ -163,10 +163,9 @@ final class EudiwOperatorUiSeleniumTest {
     }
 
     @Test
-    @DisplayName("Multi-presentation results render collapsible cards with copy/download controls")
+    @DisplayName("Multi-presentation results render collapsible cards with VP token output")
     void multiPresentationResultsRenderCollapsibleSections() {
         navigateToEudiwConsole();
-        injectClipboardAndDownloadHooks();
         injectMultiPresentationFetchStub();
         enableVerboseTrace();
         selectStoredWalletPreset();
@@ -185,17 +184,10 @@ final class EudiwOperatorUiSeleniumTest {
         WebElement summary = firstSection.findElement(By.cssSelector("summary"));
         summary.click();
 
-        WebElement copyButton = firstSection.findElement(By.cssSelector("[data-testid='eudiw-result-copy']"));
-        copyButton.click();
-        waitForJavascriptCondition("return (window.__eudiwCopiedValues || []).length;");
-        Object copiedPayload = executeScript("return window.__eudiwCopiedValues.slice(-1)[0];");
-        assertThat(String.valueOf(copiedPayload)).contains("wallet-sdjwt");
-
-        WebElement downloadButton = firstSection.findElement(By.cssSelector("[data-testid='eudiw-result-download']"));
-        downloadButton.click();
-        waitForJavascriptCondition("return (window.__eudiwDownloadEvents || []).length;");
-        Object downloadPayload = executeScript("return window.__eudiwDownloadEvents.slice(-1)[0];");
-        assertThat(String.valueOf(downloadPayload)).contains("wallet-sdjwt");
+        WebElement tokenField = firstSection.findElement(By.cssSelector("[data-testid='eudiw-result-vp-token']"));
+        assertThat(tokenField.getAttribute("value"))
+                .as("VP token textarea should contain the presentation JSON")
+                .contains("wallet-sdjwt");
     }
 
     @Test
@@ -318,52 +310,6 @@ final class EudiwOperatorUiSeleniumTest {
                 .until(d -> d.findElements(By.cssSelector("[data-testid='eudiw-result-presentation']"))
                                 .size()
                         >= 2);
-    }
-
-    private void waitForJavascriptCondition(String script) {
-        new WebDriverWait(driver, WAIT_TIMEOUT).until(d -> {
-            Object value = ((JavascriptExecutor) d).executeScript(script);
-            if (value instanceof Number number) {
-                return number.longValue() > 0;
-            }
-            if (value instanceof Boolean bool) {
-                return bool;
-            }
-            return value != null;
-        });
-    }
-
-    private Object executeScript(String script) {
-        if (!(driver instanceof JavascriptExecutor)) {
-            return null;
-        }
-        return ((JavascriptExecutor) driver).executeScript(script);
-    }
-
-    private void injectClipboardAndDownloadHooks() {
-        if (!(driver instanceof JavascriptExecutor)) {
-            return;
-        }
-        ((JavascriptExecutor) driver).executeScript("""
-                (function () {
-                  window.__eudiwCopiedValues = [];
-                  window.__eudiwDownloadEvents = [];
-                  if (!window.navigator) {
-                    window.navigator = {};
-                  }
-                  if (!window.navigator.clipboard) {
-                    window.navigator.clipboard = {};
-                  }
-                  window.navigator.clipboard.writeText = function (value) {
-                    window.__eudiwCopiedValues.push(String(value));
-                    return Promise.resolve();
-                  };
-                  window.EudiwConsoleTestHooks = window.EudiwConsoleTestHooks || {};
-                  window.EudiwConsoleTestHooks.onDownload = function (event) {
-                    window.__eudiwDownloadEvents.push(event);
-                  };
-                })();
-                """);
     }
 
     private void injectMultiPresentationFetchStub() {

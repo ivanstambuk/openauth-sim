@@ -2,12 +2,22 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-11-18
+- Date: 2025-11-19
 - Primary branch: `main`
 - Other active branches: none
 
 ## Governance & Tooling
 
+- Governance log (2025-11-19, user request "EUDIW verbose toggle alignment"): `git config core.hooksPath` → `githooks` (session guard before adjusting the operator console template order).
+- Verification log (2025-11-19, user request "EUDIW verbose toggle alignment"): `./gradlew --no-daemon spotlessApply check` (PASS – 7m 55s, confirms the console template reorder keeps the repo-wide quality gate green).
+- Verification log (2025-11-19, user request "Remove EUDIW copy/download buttons"): `./gradlew --no-daemon :rest-api:eudiwConsoleJsTest` (initial red – JS harness still expected copy/download controls; used failure to drive UI/test updates).
+- Verification log (2025-11-19, user request "Remove EUDIW copy/download buttons"): `./gradlew --no-daemon spotlessApply check` (PASS – 6m 32s, full repo gate after dropping the action buttons + updating CSS/JS, Node harness, and Selenium coverage).
+- Verification log (2025-11-19, user request "Remove holder binding/trace ready badges"): `./gradlew --no-daemon spotlessApply check` (PASS – 6m 47s, confirms removing the badges + CSS cleanup kept Node/Selenium suites and the repo gate green).
+- Verification log (2025-11-19, user request "Darken VP token textarea"): `./gradlew --no-daemon spotlessApply check` (PASS – 6m 38s, confirms the updated textarea styling + Node/Selenium sweeps remain green).
+- Verification log (2025-11-19, user request "EUDIW VP token scrollbars/height"): `./gradlew --no-daemon spotlessApply check` (PASS – 7m 41s, confirms the larger textarea with horizontal scrolling keeps Node/Selenium suites green).
+- Verification log (2025-11-19, user request "Profile spacing tweak"): `./gradlew --no-daemon spotlessApply check` (PASS – 7m 32s, confirms the field-group spacing change stays green across Node/Selenium suites).
+- Verification log (2025-11-19, FIDO2 Selenium flake while spacing profile field): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.Fido2OperatorUiSeleniumTest"` (PASS – rerun after HtmlUnit null pointer to confirm the suite is green).
+- Verification log (2025-11-19, user request "Profile spacing tweak" – final gate): `./gradlew --no-daemon spotlessApply check` (PASS – 6m 30s, full repo gate after spacing + FIDO2 rerun).
 - Governance log (2025-11-18, session reset "read project context"): `git config core.hooksPath` → `githooks` (session reset guard for this Codex CLI run).
 - Verification log (2025-11-18, user request ":rest-api:test failures – EMV CAP UI & WebAuthn persistence"): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest.inlineModeRetainsEditableStateAfterSampleSelection"` (expected red – reproduces EMV/CAP operator Selenium regression before fixing stored/inline masking and card-configuration read-only behaviour).
 - Verification log (2025-11-18, EMV/CAP UI masking + read-only sweep): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.EmvCapOperatorUiSeleniumTest"` (PASS – confirms stored vs inline mode behaviour, master-key masking, and card-configuration read-only semantics now align with Q005-01 Option A and Feature 005 tasks).
