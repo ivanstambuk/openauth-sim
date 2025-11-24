@@ -417,8 +417,8 @@ subprojects {
             "org.junit.platform:junit-platform-launcher:$junitPlatformVersion",
             "io.micrometer:micrometer-observation:1.13.4",
             "io.micrometer:micrometer-commons:1.13.4",
-            "net.bytebuddy:byte-buddy:1.17.7",
-            "net.bytebuddy:byte-buddy-agent:1.17.7",
+            "net.bytebuddy:byte-buddy:1.17.8",
+            "net.bytebuddy:byte-buddy-agent:1.17.8",
             "org.hamcrest:hamcrest:3.0",
             "org.jspecify:jspecify:1.0.0",
             "net.minidev:json-smart:2.6.0"
