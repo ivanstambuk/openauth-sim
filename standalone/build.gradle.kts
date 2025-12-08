@@ -30,6 +30,7 @@ dependencies {
     implementation(projects.restApi)
     implementation(projects.ui)
     implementation(projects.toolsMcpServer)
+    implementation(libs.picocli)
 }
 
 tasks.named<Jar>("jar") {
@@ -46,7 +47,7 @@ tasks.named<Jar>("jar") {
     }
 
     manifest {
-        attributes("Main-Class" to "io.openauth.sim.cli.MaintenanceCli")
+        attributes("Main-Class" to "io.openauth.sim.cli.StandaloneLauncher")
     }
 }
 

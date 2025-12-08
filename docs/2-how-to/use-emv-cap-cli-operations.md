@@ -9,23 +9,21 @@ The CLI uses the same `includeTrace` toggle as the REST API and operator UI. The
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointing at a JDK 17 install.
-- Gradle dependencies resolved (`./gradlew spotlessApply check` should already pass).
+- The standalone fat JAR built or downloaded (`openauth-sim-standalone-<version>.jar`).
 - Optional: run the REST API (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`) when you want to inspect responses through Swagger UI or seed credentials over HTTP—the CLI shares the same MapDB database.
 - `jq` (optional) for pretty-printing JSON output.
-
-Run Picocli commands from the repository root. Set `GRADLE_USER_HOME=$PWD/.gradle` to keep Gradle caches within the workspace.
 
 ## Seed the canonical fixtures
 Load the curated CAP credentials and transcripts so stored-mode evaluations succeed immediately:
 ```bash
-./gradlew --quiet :cli:run --args=$'emv cap seed --preset all'
+java -jar openauth-sim-standalone-<version>.jar emv cap seed --preset all
 ```
 The command prints sanitized telemetry (for example `{"event":"cli.emv.cap.seed","status":"success",...}`) listing which credential IDs were created. Subsequent runs are idempotent; the command reports `already_seeded` when presets exist.
 
 ## Evaluate a stored Identify preset
 Preset identifiers align with the JSON fixtures under ``docs/test-vectors/emv-cap`/`. Use `identify-baseline` after seeding:
 ```bash
-./gradlew --quiet :cli:run --args=$'emv cap evaluate --preset-id identify-baseline'
+java -jar openauth-sim-standalone-<version>.jar emv cap evaluate --preset-id identify-baseline
 ```
 Output (truncated):
 ```
@@ -39,7 +37,7 @@ Pass `--output-json` to receive the REST-style payload, including the verbose tr
 ## Evaluate inline Respond inputs
 Inline mode accepts the same flags the REST endpoint expects. The example below exercises the `respond-challenge8` vector captured in T3908c:
 ```bash
-./gradlew --quiet :cli:run --args=$'emv cap evaluate \
+java -jar openauth-sim-standalone-<version>.jar emv cap evaluate \
   --mode RESPOND \
   --master-key 0123456789ABCDEF0123456789ABCDEF \
   --atc 00C8 \
@@ -51,14 +49,14 @@ Inline mode accepts the same flags the REST endpoint expects. The example below 
   --challenge 12345678 \
   --icc-data-template 1000xxxxA50006040000 \
   --issuer-application-data 06770A03A48000 \
-  --include-trace false'
+  --include-trace false
 ```
 Setting `--include-trace false` suppresses derivation details; the CLI still prints sanitized telemetry so you can correlate requests across tooling.
 
 ## Inspect Sign mode with JSON output
 Switch to Sign mode and request JSON output to mirror the REST facade:
 ```bash
-./gradlew --quiet :cli:run --args=$'emv cap evaluate \
+java -jar openauth-sim-standalone-<version>.jar emv cap evaluate \
   --mode SIGN \
   --master-key 0123456789ABCDEF0123456789ABCDEF \
   --atc 0142 \
@@ -72,19 +70,19 @@ Switch to Sign mode and request JSON output to mirror the REST facade:
   --amount 50375 \
   --icc-data-template 1000xxxxA50006040000 \
   --issuer-application-data 06770A03A48000 \
-  --output-json' | jq
+  --output-json | jq
 ```
 The JSON payload includes the OTP, mask metadata, verbose trace (session key, Generate AC buffers, masked overlay), and sanitized telemetry (`event = cli.emv.cap.sign`).
 
 ## Replay stored credentials
 After running `emv cap seed`, use the replay command to validate calculator entries against the stored presets. Supply the credential ID, mode, OTP, and optional preview-window bounds:
 ```bash
-./gradlew --quiet :cli:run --args=$'emv cap replay \
+java -jar openauth-sim-standalone-<version>.jar emv cap replay \
   --credential-id emv-cap:respond-baseline \
   --mode RESPOND \
   --otp 94644592 \
   --search-backward 1 \
-  --search-forward 1'
+  --search-forward 1
 ```
 Text output shows a sanitized telemetry frame followed by the replay summary:
 ```
@@ -97,7 +95,7 @@ Add `--output-json` to mirror the REST payload, including the verbose trace when
 ## Replay inline OTPs
 When you need to verify an OTP without seeding a preset, pass the same inputs you would use for evaluation plus the OTP you observed:
 ```bash
-./gradlew --quiet :cli:run --args=$'emv cap replay \
+java -jar openauth-sim-standalone-<version>.jar emv cap replay \
   --mode SIGN \
   --master-key 0123456789ABCDEF0123456789ABCDEF \
   --atc 0142 \
@@ -113,7 +111,7 @@ When you need to verify an OTP without seeding a preset, pass the same inputs yo
   --issuer-application-data 06770A03A48000 \
   --otp 00000000 \
   --search-forward 1 \
-  --include-trace false'
+  --include-trace false
 ```
 Mismatched OTPs print a `status=mismatch` summary while keeping all secrets redacted. Set `--include-trace true` whenever you want the masked-digit overlay and Generate AC buffers to troubleshoot derivation issues. Preview window bounds (`--search-backward/forward`) control how far the replay service searches around the supplied ATC.
 

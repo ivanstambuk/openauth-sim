@@ -7,19 +7,18 @@ The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline au
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointed at a JDK 17 install.
-- Resolve dependencies once via `./gradlew --no-daemon spotlessApply check`.
-- Run commands from the repo root; add `--quiet` to keep Gradle output minimal. Example wrapper: `./gradlew --quiet :cli:run --args=$'eudiw …'`.
+- The standalone fat JAR built or downloaded (`openauth-sim-standalone-<version>.jar`).
 - Optional: run the REST API in parallel so you can fetch QR links or inspect Swagger, but it is not required for CLI-only runs.
 
 ## Create a HAIP authorization request
 ```bash
-./gradlew --quiet :cli:run --args=$'eudiw request create \
+java -jar openauth-sim-standalone-<version>.jar eudiw request create \
   --dcql-preset pid-haip-baseline \
   --profile HAIP \
   --response-mode DIRECT_POST_JWT \
   --include-qr \
   --verbose \
-  --output-json' | jq
+  --output-json | jq
 ```
 Output (trimmed):
 ```json
@@ -45,13 +44,13 @@ Notes:
 ## Generate a wallet response
 ### Stored preset
 ```bash
-./gradlew --quiet :cli:run --args=$'eudiw wallet simulate \
+java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate \
   --request-id OID4VP-REQ-000101 \
   --wallet-preset pid-haip-baseline \
   --trusted-authority aki:s9tIpP7qrS9= \
   --response-mode DIRECT_POST_JWT \
   --verbose \
-  --output-json' | jq '.presentations[0]'
+  --output-json | jq '.presentations[0]'
 ```
 Key fields:
 - `presentation.vpToken.vp_token` – the compact SD-JWT minted by the simulator.
@@ -61,34 +60,34 @@ Key fields:
 ### Inline credentials
 Provide a compact SD-JWT plus optional disclosures/KB-JWT. If a path exists on disk, the CLI reads it; otherwise the literal string is used.
 ```bash
-./gradlew --quiet :cli:run --args=$'eudiw wallet simulate \
+java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate \
   --request-id OID4VP-REQ-000202 \
   --profile BASELINE \
   --inline-sdjwt docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/sdjwt.txt \
   --disclosure docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/disclosures.json \
   --kb-jwt docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/kb-jwt.json \
   --verbose \
-  --output-json'
+  --output-json
 ```
 If you omit `--wallet-preset`, the CLI synthesizes `credentialId = inline-credential` unless you override it inside the JSON payload.
 
 ## Validate VP Tokens
 ### Stored presentation (`--preset`)
 ```bash
-./gradlew --quiet :cli:run --args=$'eudiw validate \
+java -jar openauth-sim-standalone-<version>.jar eudiw validate \
   --preset pid-haip-baseline \
   --trusted-authority aki:s9tIpP7qrS9= \
-  --output-json' | jq '.presentations[0].trustedAuthorityMatch'
+  --output-json | jq '.presentations[0].trustedAuthorityMatch'
 ```
 The CLI generates a request ID automatically when you omit `--request-id`.
 
 ### Inline VP Token (`--vp-token`)
 ```bash
-./gradlew --quiet :cli:run --args=$'eudiw validate \
+java -jar openauth-sim-standalone-<version>.jar eudiw validate \
   --vp-token /tmp/inline-vp-token.json \
   --trusted-authority aki:s9tIpP7qrS9= \
   --verbose \
-  --output-json' | jq '.trace'
+  --output-json | jq '.trace'
 ```
 The inline file must be a JSON object with `vp_token`, `presentation_submission`, optional `disclosures[]`, and optional `keyBindingJwt`. Validation errors return exit code `2` and print the RFC 7807 payload.
 
