@@ -11,10 +11,10 @@ Use this checklist whenever you want to publish a new `io.github.ivanstambuk:ope
    ```bash
    ./gradlew --no-daemon spotlessApply check
    ```
-4. **Commit the version bump + docs.**
+4. **Commit the version bump.**
    ```bash
-   git add README.md docs/_current-session.md gradle.properties standalone/build.gradle.kts
-   git commit -m "chore: prepare standalone <version> release" -m "Spec impact: docs/4-architecture/features/010/tasks.md"
+   git add -A
+   git commit -m "chore: bump version to <version>" --timeout=300000
    ```
    (Add any other touched files to `git add` as needed.)
 5. **Push to main.**
