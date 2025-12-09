@@ -92,6 +92,33 @@ final class HotpCliVerboseTraceTest {
         assertFalse(stdout.contains("operation=hotp.evaluate.stored"), stdout);
     }
 
+    @Test
+    void evaluateInlineEmitsVerboseTrace() {
+        CommandHarness harness = CommandHarness.create(tempDir.resolve("hotp-inline.db"));
+        HotpJsonVector vector = vector(1L);
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--secret",
+                vector.secret().asHex(),
+                "--digits",
+                String.valueOf(vector.digits()),
+                "--counter",
+                String.valueOf(vector.counter()),
+                "--algorithm",
+                vector.algorithm().name(),
+                "--verbose");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("operation=hotp.evaluate.inline"), stdout);
+        assertTrue(stdout.contains("metadata.mode=inline"), stdout);
+        assertTrue(stdout.contains("metadata.protocol=HOTP"), stdout);
+        assertTrue(stdout.contains("generatedOtp=" + vector.otp()), stdout);
+        assertTrue(stdout.contains("=== Verbose Trace ==="), stdout);
+        assertTrue(stdout.contains("=== End Verbose Trace ==="), stdout);
+    }
+
     private static HotpJsonVector vector(long counter) {
         return HotpJsonVectorFixtures.loadAll()
                 .filter(v -> v.digits() == 6 && v.counter() == counter)

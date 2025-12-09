@@ -9,9 +9,11 @@ The CLI uses the same `includeTrace` toggle as the REST API and operator UI. The
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointing at a JDK 17 install.
-- The standalone fat JAR built or downloaded (`openauth-sim-standalone-<version>.jar`).
+- The standalone thin JAR (`openauth-sim-standalone-<version>.jar`), which now bundles only Picocli + deterministic JSON fixtures (no embedded dependency classpath).
 - Optional: run the REST API (`./gradlew --no-daemon --init-script [tools/run-rest-api.init.gradle.kts](tools/run-rest-api.init.gradle.kts) runRestApi`) when you want to inspect responses through Swagger UI or seed credentials over HTTP—the CLI shares the same MapDB database.
 - `jq` (optional) for pretty-printing JSON output.
+  - Stored-mode commands rely on MapDB at [data/credentials.db](data/credentials.db) or whatever you pass via `--database`.
+  - Inline-mode commands do not require MapDB; they run against the in-memory EphemeralCredentialStore.
 
 ## Seed the canonical fixtures
 Load the curated CAP credentials and transcripts so stored-mode evaluations succeed immediately:
@@ -25,12 +27,30 @@ Preset identifiers align with the JSON fixtures under ``docs/test-vectors/emv-ca
 ```bash
 java -jar openauth-sim-standalone-<version>.jar emv cap evaluate --preset-id identify-baseline
 ```
-Output (truncated):
+Sample output:
 ```
-OTP: 42511495
-Mask length: 8
-Masked digits: 8
-Telemetry: {"event":"cli.emv.cap.identify","status":"success","fields":{"mode":"IDENTIFY","atc":"00B4","ipbMaskLength":8,"maskedDigitsCount":8}}
+event=cli.emv.cap.identify status=success mode=IDENTIFY atc=00B4 ipbMaskLength=18 maskedDigitsCount=8 branchFactor=4 height=8 previewWindowBackward=0 previewWindowForward=0 reasonCode=generated sanitized=true credentialSource=stored credentialId=emv-cap-identify-baseline
+otp=42511495
+maskLength=8
+Preview window:
+ Counter Δ   OTP
+> 00B4    [0] 42511495
+trace.atc=00B4
+trace.branchFactor=4
+trace.height=8
+trace.maskLength=8
+trace.previewWindowBackward=0
+trace.previewWindowForward=0
+trace.masterKeySha256=sha256:223E0A160AF9DA0A03E6DD2C4719C56F5D66A633CBE84E78AAA9F3735865522A
+trace.sessionKey=5EC8B98ABC8F9E7597647CBCB9A75402
+trace.generateAcInput.terminal=0000000000000000000000000000800000000000000000000000000000
+trace.generateAcInput.icc=100000B4A50006040000
+trace.generateAcResult=8000B47F32A79FDA94564306770A03A48000
+trace.bitmask=....1F...........FFFFF..........8...
+trace.maskedDigitsOverlay=....14...........45643..........8...
+trace.issuerApplicationData=06770A03A48000
+trace.iccPayloadTemplate=1000XXXXA50006040000
+trace.iccPayloadResolved=100000B4A50006040000
 ```
 Pass `--output-json` to receive the REST-style payload, including the verbose trace.
 

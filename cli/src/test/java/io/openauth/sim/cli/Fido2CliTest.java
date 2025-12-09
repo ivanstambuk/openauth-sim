@@ -89,14 +89,14 @@ final class Fido2CliTest {
         java.nio.file.Files.writeString(privateKeyFile, PRIVATE_KEY_JWK, StandardCharsets.UTF_8);
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--relying-party-id",
                 "example.org",
                 "--origin",
                 "https://example.org",
                 "--type",
                 "webauthn.get",
-                "--credential-id",
+                "--inline-credential-id",
                 encode(fixture.storedCredential().credentialId()),
                 "--signature-counter",
                 Long.toString(fixture.storedCredential().signatureCounter()),
@@ -186,7 +186,7 @@ final class Fido2CliTest {
 
         Sample sample = WebAuthnGeneratorSamples.samples().get(0);
 
-        int exitCode = harness.execute("evaluate-inline", "--preset-id", sample.key());
+        int exitCode = harness.execute("evaluate", "--preset-id", sample.key());
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         assertTrue(harness.stdout().contains("\"type\":\"public-key\""));
@@ -204,14 +204,14 @@ final class Fido2CliTest {
         WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--relying-party-id",
                 "example.org",
                 "--origin",
                 "https://example.org",
                 "--type",
                 "webauthn.get",
-                "--credential-id",
+                "--inline-credential-id",
                 encode(fixture.storedCredential().credentialId()),
                 "--signature-counter",
                 Long.toString(fixture.storedCredential().signatureCounter()),

@@ -32,7 +32,7 @@ _Last updated:_ 2025-11-18_
   _Notes:_ Update `build/mcp-feedback.json` with session flows and document governance expectations.
 
 - [ ] T-015-04 – Auditing and governance updates (FR-015-04, NFR-015-02..04, S-015-04).  
-  _Intent:_ Implement MCP proxy auditing and telemetry (no in-process rate limiting), then run full `qualityGate` and update roadmap/knowledge map/how-to docs per ADR-0010.  
+  _Intent:_ Implement MCP proxy auditing and telemetry (no in-process rate limiting), then run full `qualityGate` and update roadmap/knowledge map/how-to docs per ADR-0013.  
   _Verification commands:_  
   - `./gradlew --no-daemon qualityGate`  
   - `./gradlew --no-daemon reflectionScan`  

@@ -122,7 +122,7 @@ final class TotpCliTest {
         Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--secret",
                 INLINE_SECRET.asHex(),
                 "--algorithm",
@@ -158,7 +158,7 @@ final class TotpCliTest {
         Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--secret-base32",
                 INLINE_SECRET_BASE32,
                 "--algorithm",
@@ -186,7 +186,7 @@ final class TotpCliTest {
         CommandHarness harness = CommandHarness.create(database);
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--secret",
                 INLINE_SECRET.asHex(),
                 "--secret-base32",

@@ -1,4 +1,4 @@
-# ADR-0010 – MCP Rate Limiting Responsibility
+# ADR-0013 – MCP Rate Limiting Responsibility
 
 ## Status
 - Proposed on: 2025-11-18  
@@ -58,4 +58,3 @@ This is a governance/security boundary decision that affects how future features
 - Plan: `docs/4-architecture/features/015/plan.md`  
 - Tasks: `docs/4-architecture/features/015/tasks.md`  
 - Governance: `AGENTS.md`, `docs/6-decisions/project-constitution.md` (unchanged; this ADR refines how governance is applied to MCP).
-

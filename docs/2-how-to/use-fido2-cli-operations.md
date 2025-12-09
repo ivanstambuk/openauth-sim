@@ -63,10 +63,10 @@ Stored mode relies on a credential that already lives in MapDB. The CLI resolves
    The CLI merges your overrides with the preset metadata before generating the assertion.
 
 ## Generate Inline Assertions
-Inline mode skips persistence—you provide the credential descriptor, challenge, and private key directly. Presets make it easy to start with realistic defaults.
+Inline mode skips persistence—you provide the credential descriptor, challenge, and private key directly. Use the same `evaluate` command **without** `--credential-id`; presence of `--credential-id` selects stored mode.
 
 ```bash
-java -jar openauth-sim-standalone-<version>.jar fido2 evaluate-inline \
+java -jar openauth-sim-standalone-<version>.jar fido2 evaluate \
   --preset-id packed-es256 \
   --credential-name inline-demo \
   --origin https://rp.example
@@ -77,9 +77,9 @@ The CLI returns the signed `PublicKeyCredential` JSON followed by a sanitized te
 To craft assertions manually, omit `--preset-id` and provide the required parameters:
 
 ```bash
-java -jar openauth-sim-standalone-<version>.jar fido2 evaluate-inline \
+java -jar openauth-sim-standalone-<version>.jar fido2 evaluate \
   --credential-name smoke-test \
-  --credential-id "$(printf inline-id | base64 -w0)" \
+  --inline-credential-id "$(printf inline-id | base64 -w0)" \
   --relying-party-id example.org \
   --origin https://example.org \
   --type webauthn.get \
@@ -91,6 +91,27 @@ java -jar openauth-sim-standalone-<version>.jar fido2 evaluate-inline \
 ```
 
 Any validation failure (for example an invalid JWK) exits with status `2` and prints a sanitized `reasonCode` such as `private_key_invalid`.
+
+### Sample output (inline preset)
+Command:
+```bash
+java -jar openauth-sim-standalone-<version>.jar fido2 evaluate --preset-id packed-es256
+```
+Output (inline preset, trimmed to core fields):
+```json
+{
+  "type": "public-key",
+  "id": "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU",
+  "rawId": "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU",
+  "response": {
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic1JCdnBHcFh2dkY0RlJIQVZYM0ltS0EwRTlYdzhYMGtSakRCbE1maHJiVSIsIm9yaWdpbiI6Imh0dHBzOi8vZXhhbXBsZS5vcmcifQ",
+    "authenticatorData": "v6vDdDKViwYzYNOtZGHJxHNa5_jt1GWSpeDwFFKy5LUBAAAAAA",
+    "signature": "MEQCIFI39qW0VR9gynmr9BZB8C5Ekbt4Zr_hoSnSi3q5w0S3AiBETckWKn0D2f8qZXfqVHqARrhdsjrrasvCo-0P4htTUg"
+  },
+  "signature": "MEQCIFI39qW0VR9gynmr9BZB8C5Ekbt4Zr_hoSnSi3q5w0S3AiBETckWKn0D2f8qZXfqVHqARrhdsjrrasvCo-0P4htTUg"
+}
+event=cli.fido2.evaluate status=success telemetryId=cli-fido2-118cf4f3-181c-4c63-8c83-c94d9ffeb4cd credentialSource=inline credentialReference=false credentialId=yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU relyingPartyId=example.org origin=https://example.org algorithm=ES256 userVerificationRequired=false signatureCounter=0 reasonCode=generated sanitized=true
+```
 
 ## Replay Stored Assertions
 Replays run the same verification logic without mutating counters—use them for incident response or forensic drills.

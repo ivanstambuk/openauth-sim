@@ -14,26 +14,72 @@ The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline au
 ```bash
 java -jar openauth-sim-standalone-<version>.jar eudiw request create \
   --dcql-preset pid-haip-baseline \
-  --profile HAIP \
-  --response-mode DIRECT_POST_JWT \
   --include-qr \
-  --verbose \
-  --output-json | jq
+  --output-json
 ```
-Output (trimmed):
+Captured output:
 ```json
 {
-  "requestId": "OID4VP-REQ-000101",
+  "requestId": "HAIP-0001",
+  "profile": "HAIP",
+  "requestUri": "https://sim.openauth.local/oid4vp/request/HAIP-0001",
   "authorizationRequest": {
     "clientId": "x509_hash:pid-haip-verifier",
-    "nonce": "******C1F29",
-    "state": "******7RZ1",
-    "presentationDefinition": { "input_descriptors": ["pid-haip-baseline"] }
+    "nonce": "eudiw-openid4vp-nonce-seed-v1-0001",
+    "state": "eudiw-openid4vp-state-seed-v1-0001",
+    "responseMode": "direct_post.jwt",
+    "presentationDefinition": "{\n  \"type\": \"pid-haip-baseline\",\n  \"credentials\": [\n    {\n      \"credential_id\": \"pid-haip-baseline\",\n      \"format\": \"dc+sd-jwt\",\n      \"required_claims\": [\n        { \"path\": \"vc.credentialSubject.given_name\" },\n        { \"path\": \"vc.credentialSubject.family_name\" },\n        { \"path\": \"vc.credentialSubject.nationality\" }\n      ]\n    }\n  ],\n  \"trusted_authorities\": [\n    {\n      \"type\": \"aki\",\n      \"values\": [ \"s9tIpP7qrS9=\" ]\n    },\n    {\n      \"type\": \"etsi_tl\",\n      \"values\": [ \"lotl-373\", \"de-149\", \"si-78\" ]\n    }\n  ]\n}\n"
   },
-  "qr": { "ascii": "████ ███ …" },
+  "qr": {
+    "uri": "openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001",
+    "ascii": "QR::openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001"
+  },
   "telemetry": {
-    "event": "oid4vp.request.created",
-    "fields": { "haipMode": true, "trustedAuthorities": ["aki:s9tIpP7qrS9="] }
+    "fields": {
+      "requestId": "HAIP-0001",
+      "nonceMasked": "******1-0001",
+      "responseMode": "DIRECT_POST_JWT",
+      "requestUri": "https://sim.openauth.local/oid4vp/request/HAIP-0001",
+      "telemetryId": "oid4vp-1afbc578-69ba-4a14-83fc-a6062a19a934",
+      "trustedAuthorities": [
+        "aki:s9tIpP7qrS9=",
+        "etsi_tl:lotl-373",
+        "etsi_tl:de-149",
+        "etsi_tl:si-78"
+      ],
+      "haipMode": true,
+      "trustedAuthorityMetadata": [
+        {
+          "value": "s9tIpP7qrS9=",
+          "type": "aki",
+          "policy": "aki:s9tIpP7qrS9=",
+          "label": "EU PID Issuer"
+        },
+        {
+          "value": "lotl-373",
+          "type": "etsi_tl",
+          "policy": "etsi_tl:lotl-373",
+          "label": "EU LOTL seq 373 (2025-10-15)"
+        },
+        {
+          "value": "de-149",
+          "type": "etsi_tl",
+          "policy": "etsi_tl:de-149",
+          "label": "Germany TL seq 149 (2025-10-07)"
+        },
+        {
+          "value": "si-78",
+          "type": "etsi_tl",
+          "policy": "etsi_tl:si-78",
+          "label": "Slovenia TL seq 78 (2025-07-02)"
+        }
+      ],
+      "stateMasked": "******1-0001",
+      "qrUri": "openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001",
+      "qrAscii": "QR::openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001",
+      "profile": "HAIP"
+    },
+    "event": "oid4vp.request.created"
   }
 }
 ```
@@ -45,17 +91,44 @@ Notes:
 ### Stored preset
 ```bash
 java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate \
-  --request-id OID4VP-REQ-000101 \
+  --request-id HAIP-0001 \
   --wallet-preset pid-haip-baseline \
-  --trusted-authority aki:s9tIpP7qrS9= \
-  --response-mode DIRECT_POST_JWT \
-  --verbose \
-  --output-json | jq '.presentations[0]'
+  --output-json
 ```
-Key fields:
-- `presentation.vpToken.vp_token` – the compact SD-JWT minted by the simulator.
-- `presentation.disclosureHashes[]` – deterministic SHA-256 digests (prefixed with `sha-256:`).
-- `trace.trustedAuthorityMatch.policy` – confirms which Trusted Authority satisfied the request.
+Captured output:
+```json
+{
+  "requestId": "HAIP-0001",
+  "status": "SUCCESS",
+  "profile": "HAIP",
+  "responseMode": "DIRECT_POST_JWT",
+  "presentations": [
+    {
+      "credentialId": "pid-haip-baseline",
+      "format": "dc+sd-jwt",
+      "holderBinding": true,
+      "trustedAuthorityMatch": null,
+      "vpToken": {
+        "vp_token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsInNkX2FsZyI6InNoYS0yNTYifQ.eyJpc3MiOiJodHRwczovL3BpZC1pc3N1ZXIuZXhhbXBsZS5ldS9pc3N1ZXJzL2hhaXAiLCJzdWIiOiJkaWQ6ZXhhbXBsZTpob2xkZXItMDAwMSIsImF1ZCI6Imh0dHBzOi8vdmVyaWZpZXIuZXhhbXBsZS5ldS9vcGVuaWQ0dnAiLCJ2YyI6eyJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiZXUuZXVyb3BhLmVjLmV1ZGkucGlkLjEiXX19fQ.RW1UZXN0U2lnbmF0dXJlLXN5bmN0aGV0aWMtaHR0cC1wbGFjZWhvbGRlcg==",
+        "presentation_submission": { "presentation_definition_id": "pid-haip-baseline" }
+      },
+      "disclosureHashes": [
+        "sha-256:92eda87cc8cd487acb12471ab92d4c48fec0a568475bf8d16aeb326f066c8fc5",
+        "sha-256:0f4f64c052f2322c030df3e1a3ad5d8f501e591a19374fe107fcaca6247a68b0",
+        "sha-256:9651f9e53bbf121c26742ed5321ab360b0c07a7593040ac1d6d86af1a1eae044"
+      ]
+    }
+  ],
+  "telemetry": {
+    "fields": {
+      "requestId": "HAIP-0001",
+      "telemetryId": "oid4vp-690d1d47-ef17-4b8e-b3ea-e6c984a78046",
+      "presentations": 1
+    },
+    "event": "oid4vp.wallet.responded"
+  }
+}
+```
 
 ### Inline credentials
 Provide a compact SD-JWT plus optional disclosures/KB-JWT. If a path exists on disk, the CLI reads it; otherwise the literal string is used.
@@ -76,8 +149,54 @@ If you omit `--wallet-preset`, the CLI synthesizes `credentialId = inline-creden
 ```bash
 java -jar openauth-sim-standalone-<version>.jar eudiw validate \
   --preset pid-haip-baseline \
-  --trusted-authority aki:s9tIpP7qrS9= \
-  --output-json | jq '.presentations[0].trustedAuthorityMatch'
+  --request-id HAIP-0001 \
+  --output-json
+```
+Captured output:
+```json
+{
+  "requestId": "HAIP-0001",
+  "status": "SUCCESS",
+  "profile": "HAIP",
+  "responseMode": "DIRECT_POST_JWT",
+  "presentations": [
+    {
+      "credentialId": "pid-haip-baseline",
+      "format": "dc+sd-jwt",
+      "holderBinding": true,
+      "trustedAuthorityMatch": null,
+      "vpToken": {
+        "vp_token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsInNkX2FsZyI6InNoYS0yNTYifQ.eyJpc3MiOiJodHRwczovL3BpZC1pc3N1ZXIuZXhhbXBsZS5ldS9pc3N1ZXJzL2hhaXAiLCJzdWIiOiJkaWQ6ZXhhbXBsZTpob2xkZXItMDAwMSIsImF1ZCI6Imh0dHBzOi8vdmVyaWZpZXIuZXhhbXBsZS5ldS9vcGVuaWQ0dnAiLCJ2YyI6eyJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiZXUuZXVyb3BhLmVjLmV1ZGkucGlkLjEiXX19fQ.RW1UZXN0U2lnbmF0dXJlLXN5bmN0aGV0aWMtaHR0cC1wbGFjZWhvbGRlcg==",
+        "presentation_submission": {
+          "descriptor_map": [
+            {
+              "id": "pid-haip-baseline",
+              "format": "dc+sd-jwt",
+              "path": "$.vp_token"
+            }
+          ]
+        }
+      },
+      "disclosureHashes": [
+        "sha-256:92eda87cc8cd487acb12471ab92d4c48fec0a568475bf8d16aeb326f066c8fc5",
+        "sha-256:0f4f64c052f2322c030df3e1a3ad5d8f501e591a19374fe107fcaca6247a68b0",
+        "sha-256:9651f9e53bbf121c26742ed5321ab360b0c07a7593040ac1d6d86af1a1eae044"
+      ]
+    }
+  ],
+  "telemetry": {
+    "event": "oid4vp.response.validated",
+    "fields": {
+      "responseMode": "DIRECT_POST_JWT",
+      "telemetryId": "oid4vp-74cca818-242d-44a9-9336-f1cd055b3dc6",
+      "profile": "HAIP",
+      "requestId": "HAIP-0001",
+      "walletPreset": "pid-haip-baseline",
+      "presentations": 1,
+      "dcqlPreview": "{\n  \"type\": \"pid-haip-baseline\",\n  \"credentials\": [\n    {\n      \"credential_id\": \"pid-haip-baseline\",\n      \"format\": \"dc+sd-jwt\",\n      \"required_claims\": [\n        { \"path\": \"vc.credentialSubject.given_name\" },\n        { \"path\": \"vc.credentialSubject.family_name\" },\n        { \"path\": \"vc.credentialSubject.nationality\" }\n      ]\n    }\n  ],\n  \"trusted_authorities\": [\n    { \"type\": \"aki\", \"values\": [ \"s9tIpP7qrS9=\" ] },\n    { \"type\": \"etsi_tl\", \"values\": [ \"lotl-373\", \"de-149\", \"si-78\" ] }\n  ]\n}\n"
+    }
+  }
+}
 ```
 The CLI generates a request ID automatically when you omit `--request-id`.
 

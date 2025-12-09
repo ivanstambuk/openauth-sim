@@ -2,6 +2,7 @@ package io.openauth.sim.core.fido2;
 
 import io.openauth.sim.core.json.SimpleJson;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,12 +65,13 @@ public final class WebAuthnAttestationFixtures {
         Map<WebAuthnAttestationFormat, List<WebAuthnAttestationVector>> byFormat =
                 new EnumMap<>(WebAuthnAttestationFormat.class);
         for (WebAuthnAttestationFormat format : WebAuthnAttestationFormat.values()) {
-            Path path = resolveFixturePath(format.label());
-            if (!Files.exists(path)) {
+            String resourcePath = "docs/webauthn_attestation/" + format.label() + ".json";
+            Optional<String> json = readFixtureJson(format.label(), resourcePath);
+            if (json.isEmpty()) {
                 byFormat.put(format, List.of());
                 continue;
             }
-            byFormat.put(format, Collections.unmodifiableList(parseFixtureFile(path, format)));
+            byFormat.put(format, Collections.unmodifiableList(parseFixtureJson(json.get(), resourcePath, format)));
         }
         return Collections.unmodifiableMap(byFormat);
     }
@@ -89,15 +91,16 @@ public final class WebAuthnAttestationFixtures {
         return Collections.unmodifiableMap(index);
     }
 
-    private static List<WebAuthnAttestationVector> parseFixtureFile(Path path, WebAuthnAttestationFormat format) {
-        Object parsed = parseJson(readFile(path));
+    private static List<WebAuthnAttestationVector> parseFixtureJson(
+            String json, String sourceLabel, WebAuthnAttestationFormat format) {
+        Object parsed = parseJson(json);
         if (!(parsed instanceof List<?> entries)) {
-            throw new IllegalStateException("Expected top-level array in " + path);
+            throw new IllegalStateException("Expected top-level array in " + sourceLabel);
         }
 
         List<WebAuthnAttestationVector> vectors = new ArrayList<>();
         for (Object entry : entries) {
-            Map<String, Object> root = asObject(entry, path + " entry");
+            Map<String, Object> root = asObject(entry, sourceLabel + " entry");
 
             String vectorId = requireString(root, "vector_id");
             String section = requireString(root, "w3c_section");
@@ -629,6 +632,26 @@ public final class WebAuthnAttestationFixtures {
             }
         }
         return direct;
+    }
+
+    private static Optional<String> readFixtureJson(String formatLabel, String resourcePath) {
+        Path path = resolveFixturePath(formatLabel);
+        if (Files.exists(path)) {
+            return Optional.of(readFile(path));
+        }
+        return readResource(resourcePath);
+    }
+
+    private static Optional<String> readResource(String resourcePath) {
+        try (InputStream stream =
+                WebAuthnAttestationFixtures.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (stream == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to read WebAuthn attestation fixtures from classpath", ex);
+        }
     }
 
     private static WebAuthnSignatureAlgorithm resolveAlgorithm(String label) {

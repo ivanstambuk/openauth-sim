@@ -9,6 +9,7 @@ import io.openauth.sim.application.hotp.HotpIssuanceApplicationService.IssuanceR
 import io.openauth.sim.application.telemetry.HotpTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.cli.support.EphemeralCredentialStore;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
@@ -267,9 +268,40 @@ public final class HotpCli implements Callable<Integer> {
         @CommandLine.Option(
                 names = "--credential-id",
                 paramLabel = "<id>",
-                required = true,
-                description = "Identifier for the stored credential")
+                defaultValue = "",
+                description = "When set, evaluate the stored credential; omit for inline mode")
         String credentialId;
+
+        @CommandLine.Option(names = "--secret", paramLabel = "<hex>", description = "Shared secret in hex (inline)")
+        String secretHex;
+
+        @CommandLine.Option(
+                names = "--digits",
+                paramLabel = "<digits>",
+                defaultValue = "6",
+                description = "Number of digits (inline; ignored for stored)")
+        int digits;
+
+        @CommandLine.Option(
+                names = "--counter",
+                paramLabel = "<counter>",
+                description = "Moving factor counter (required for inline)")
+        Long counter;
+
+        @CommandLine.Option(
+                names = "--algorithm",
+                paramLabel = "<name>",
+                defaultValue = "SHA1",
+                description = "HOTP hash algorithm for inline mode (e.g. SHA1, SHA256)")
+        String algorithm;
+
+        @CommandLine.Option(
+                names = "--metadata",
+                paramLabel = "key=value",
+                split = ",",
+                description = "Optional metadata entries for inline mode",
+                mapFallbackValue = "")
+        Map<String, String> metadata;
 
         @CommandLine.Option(
                 names = "--window-backward",
@@ -291,6 +323,24 @@ public final class HotpCli implements Callable<Integer> {
         @Override
         public Integer call() {
             String event = event("evaluate");
+            boolean storedMode = hasText(credentialId);
+            Map<String, Object> fields = new LinkedHashMap<>();
+            fields.put("credentialReference", storedMode);
+            if (storedMode) {
+                fields.put("credentialId", credentialId);
+                if (hasInlineInputs()) {
+                    return parent.failValidation(
+                            event,
+                            EVALUATION_TELEMETRY,
+                            fields,
+                            "Inline inputs cannot be combined with --credential-id");
+                }
+                return handleStored(event, fields);
+            }
+            return handleInline(event, fields);
+        }
+
+        private Integer handleStored(String event, Map<String, Object> fields) {
             try (CredentialStore store = openStore()) {
                 HotpEvaluationApplicationService service = new HotpEvaluationApplicationService(store);
                 EvaluationCommand command =
@@ -312,14 +362,62 @@ public final class HotpCli implements Callable<Integer> {
                     case ERROR -> CommandLine.ExitCode.SOFTWARE;
                 };
             } catch (IllegalArgumentException ex) {
-                Map<String, Object> fields = new LinkedHashMap<>();
-                fields.put("credentialId", credentialId);
                 return parent.failValidation(event, EVALUATION_TELEMETRY, fields, ex.getMessage());
             } catch (Exception ex) {
-                Map<String, Object> fields = new LinkedHashMap<>();
-                fields.put("credentialId", credentialId);
                 return parent.failUnexpected(event, EVALUATION_TELEMETRY, fields, ex.getMessage());
             }
+        }
+
+        private Integer handleInline(String event, Map<String, Object> fields) {
+            if (!hasText(secretHex)) {
+                return parent.failValidation(event, EVALUATION_TELEMETRY, fields, "--secret is required for inline");
+            }
+            if (counter == null) {
+                return parent.failValidation(event, EVALUATION_TELEMETRY, fields, "--counter is required for inline");
+            }
+
+            try (CredentialStore store = new EphemeralCredentialStore()) {
+                HotpEvaluationApplicationService service = new HotpEvaluationApplicationService(store);
+                HotpHashAlgorithm hashAlgorithm =
+                        HotpHashAlgorithm.valueOf(algorithm.trim().toUpperCase(Locale.ROOT));
+                Map<String, String> normalizedMetadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+                EvaluationCommand command = new EvaluationCommand.Inline(
+                        secretHex.trim(),
+                        hashAlgorithm,
+                        digits,
+                        counter,
+                        normalizedMetadata,
+                        windowBackward,
+                        windowForward);
+                EvaluationResult result = service.evaluate(command, verbose);
+                TelemetryFrame frame = result.telemetry().emit(EVALUATION_TELEMETRY, nextTelemetryId());
+                HotpEvaluationApplicationService.TelemetryStatus status =
+                        result.telemetry().status();
+                PrintWriter writer = status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS ? out() : err();
+                writeFrame(writer, event, frame);
+                if (status == HotpEvaluationApplicationService.TelemetryStatus.SUCCESS) {
+                    OtpPreviewTableFormatter.print(writer, result.previews());
+                    writer.printf(Locale.ROOT, "generatedOtp=%s%n", result.otp());
+                }
+                result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
+                return switch (status) {
+                    case SUCCESS -> CommandLine.ExitCode.OK;
+                    case INVALID -> CommandLine.ExitCode.USAGE;
+                    case ERROR -> CommandLine.ExitCode.SOFTWARE;
+                };
+            } catch (IllegalArgumentException ex) {
+                return parent.failValidation(event, EVALUATION_TELEMETRY, fields, ex.getMessage());
+            } catch (Exception ex) {
+                return parent.failUnexpected(event, EVALUATION_TELEMETRY, fields, ex.getMessage());
+            }
+        }
+
+        private boolean hasInlineInputs() {
+            return hasText(secretHex) || counter != null || metadata != null;
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
         }
     }
 }

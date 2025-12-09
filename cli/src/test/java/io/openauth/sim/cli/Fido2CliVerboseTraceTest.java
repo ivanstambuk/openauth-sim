@@ -108,14 +108,14 @@ final class Fido2CliVerboseTraceTest {
         Files.writeString(privateKeyFile, fixture.credentialPrivateKeyJwk(), StandardCharsets.UTF_8);
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--relying-party-id",
                 "example.org",
                 "--origin",
                 "https://example.org",
                 "--type",
                 fixture.request().expectedType(),
-                "--credential-id",
+                "--inline-credential-id",
                 encode(fixture.storedCredential().credentialId()),
                 "--signature-counter",
                 Long.toString(fixture.storedCredential().signatureCounter()),

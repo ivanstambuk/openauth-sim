@@ -10,7 +10,7 @@ _Last updated:_ 2025-11-18
 Deliver an MCP-first agent facade that:
 - Surfaces a curated, versioned tool catalogue with discoverable metadata (FR-015-01).
 - Implements helper tools and session APIs that provide tangible value beyond REST (FR-015-02/03).
-- Preserves REST behaviour while enforcing MCP-specific telemetry and auditing (FR-015-04, NFR-015-01..04), leaving rate limiting to upstream gateways and LLM platform controls per ADR-0010.
+- Preserves REST behaviour while enforcing MCP-specific telemetry and auditing (FR-015-04, NFR-015-01..04), leaving rate limiting to upstream gateways and LLM platform controls per ADR-0013.
 - Ships documentation/how-to content so AI agents can integrate with zero bespoke glue.
 
 ## Scope Alignment
@@ -76,7 +76,7 @@ Deliver an MCP-first agent facade that:
      - Ensure audit logs & telemetry include tool name, caller hash (where applicable), latency, and REST status for forwarded calls.
      - Run full `qualityGate` + `reflectionScan`; finalize docs/how-to + roadmap update.
    - _Commands:_ `./gradlew --no-daemon qualityGate`, `./gradlew --no-daemon reflectionScan`, `./gradlew --no-daemon generateJsonLd check`.
-   - _Exit:_ MCP facade meets governance requirements (per ADR-0010) and documentation is complete.
+   - _Exit:_ MCP facade meets governance requirements (per ADR-0013) and documentation is complete.
 
 ## Scenario Tracking
 

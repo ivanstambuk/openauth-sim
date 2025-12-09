@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,8 +67,7 @@ import picocli.CommandLine;
         description =
                 "Evaluate stored/inline WebAuthn assertions, verify attestation payloads, and replay diagnostics.",
         subcommands = {
-            Fido2Cli.EvaluateStoredCommand.class,
-            Fido2Cli.EvaluateInlineCommand.class,
+            Fido2Cli.EvaluateCommand.class,
             Fido2Cli.ReplayStoredCommand.class,
             Fido2Cli.AttestCommand.class,
             Fido2Cli.AttestReplayCommand.class,
@@ -80,18 +80,17 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     private static final String DEFAULT_DATABASE_FILE = "credentials.db";
     private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
-    private static final Map<String, WebAuthnJsonVector> JSON_VECTOR_INDEX = loadVectorIndex();
-    private static final List<WebAuthnJsonVector> JSON_VECTOR_LIST = JSON_VECTOR_INDEX.values().stream()
-            .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
-            .collect(Collectors.toUnmodifiableList());
-    private static final List<WebAuthnAttestationVector> ATTESTATION_VECTOR_LIST = WebAuthnAttestationSamples.vectors();
-    private static final Map<String, Sample> GENERATOR_SAMPLE_INDEX = loadGeneratorSampleIndex();
 
     private static final Fido2TelemetryAdapter EVALUATION_TELEMETRY = new Fido2TelemetryAdapter("fido2.evaluate");
     private static final Fido2TelemetryAdapter REPLAY_TELEMETRY = new Fido2TelemetryAdapter("fido2.replay");
     private static final Fido2TelemetryAdapter ATTEST_TELEMETRY = new Fido2TelemetryAdapter("fido2.attest");
     private static final Fido2TelemetryAdapter ATTEST_REPLAY_TELEMETRY =
             new Fido2TelemetryAdapter("fido2.attestReplay");
+
+    private Map<String, WebAuthnJsonVector> jsonVectorIndex;
+    private List<WebAuthnJsonVector> jsonVectorList;
+    private List<WebAuthnAttestationVector> attestationVectorList;
+    private Map<String, Sample> generatorSampleIndex;
 
     private final WebAuthnAssertionVerifier verifier = new WebAuthnAssertionVerifier();
     private final WebAuthnAttestationVerifier attestationVerifier = new WebAuthnAttestationVerifier();
@@ -188,24 +187,26 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         if (!hasText(vectorId)) {
             return Optional.empty();
         }
-        return Optional.ofNullable(JSON_VECTOR_INDEX.get(vectorId));
+        return Optional.ofNullable(jsonVectorIndex().get(vectorId));
     }
 
     private Optional<Sample> findPreset(String presetId) {
         if (!hasText(presetId)) {
             return Optional.empty();
         }
-        return Optional.ofNullable(GENERATOR_SAMPLE_INDEX.get(presetId));
+        return Optional.ofNullable(generatorSampleIndex().get(presetId));
     }
 
     private void printVectorSummaries(PrintWriter writer) {
-        if (JSON_VECTOR_LIST.isEmpty() && ATTESTATION_VECTOR_LIST.isEmpty()) {
+        List<WebAuthnJsonVector> vectors = jsonVectorList();
+        List<WebAuthnAttestationVector> attestationVectors = attestationVectorList();
+        if (vectors.isEmpty() && attestationVectors.isEmpty()) {
             writer.println("No WebAuthn fixture vectors available.");
             return;
         }
-        if (!JSON_VECTOR_LIST.isEmpty()) {
+        if (!vectors.isEmpty()) {
             writer.println("vectorId\talgorithm\tuvRequired\trelyingPartyId\torigin");
-            JSON_VECTOR_LIST.forEach(vector -> writer.printf(
+            vectors.forEach(vector -> writer.printf(
                     "%s\t%s\t%s\t%s\t%s%n",
                     vector.vectorId(),
                     vector.algorithm().label(),
@@ -213,12 +214,12 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     vector.storedCredential().relyingPartyId(),
                     vector.assertionRequest().origin()));
         }
-        if (!ATTESTATION_VECTOR_LIST.isEmpty()) {
-            if (!JSON_VECTOR_LIST.isEmpty()) {
+        if (!attestationVectors.isEmpty()) {
+            if (!vectors.isEmpty()) {
                 writer.println();
             }
             writer.println("attestationId\tformat\talgorithm\trelyingPartyId\torigin\tsection");
-            ATTESTATION_VECTOR_LIST.forEach(vector -> writer.printf(
+            attestationVectors.forEach(vector -> writer.printf(
                     "%s\t%s\t%s\t%s\t%s\t%s%n",
                     vector.vectorId(),
                     vector.format().label(),
@@ -229,7 +230,37 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         }
     }
 
-    private void applyStoredPresetDefaults(EvaluateStoredCommand command, Sample sample) {
+    private Map<String, WebAuthnJsonVector> jsonVectorIndex() {
+        if (jsonVectorIndex == null) {
+            jsonVectorIndex = loadVectorIndex();
+        }
+        return jsonVectorIndex;
+    }
+
+    private List<WebAuthnJsonVector> jsonVectorList() {
+        if (jsonVectorList == null) {
+            jsonVectorList = jsonVectorIndex().values().stream()
+                    .sorted(Comparator.comparing(WebAuthnJsonVector::vectorId, String.CASE_INSENSITIVE_ORDER))
+                    .collect(Collectors.toUnmodifiableList());
+        }
+        return jsonVectorList;
+    }
+
+    private List<WebAuthnAttestationVector> attestationVectorList() {
+        if (attestationVectorList == null) {
+            attestationVectorList = List.copyOf(WebAuthnAttestationSamples.vectors());
+        }
+        return attestationVectorList;
+    }
+
+    private Map<String, Sample> generatorSampleIndex() {
+        if (generatorSampleIndex == null) {
+            generatorSampleIndex = loadGeneratorSampleIndex();
+        }
+        return generatorSampleIndex;
+    }
+
+    private void applyStoredPresetDefaults(EvaluateCommand command, Sample sample) {
         if (!hasText(command.credentialId)) {
             command.credentialId = sample.key();
         }
@@ -253,7 +284,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         }
     }
 
-    private void applyInlinePresetDefaults(EvaluateInlineCommand command, Sample sample) {
+    private void applyInlinePresetDefaults(EvaluateCommand command, Sample sample) {
         if (!hasText(command.credentialName) || "cli-fido2-inline".equals(command.credentialName)) {
             command.credentialName = sample.label();
         }
@@ -266,8 +297,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         if (!hasText(command.expectedType)) {
             command.expectedType = sample.expectedType();
         }
-        if (!hasText(command.credentialId)) {
-            command.credentialId = sample.credentialIdBase64Url();
+        if (!hasText(command.inlineCredentialId)) {
+            command.inlineCredentialId = sample.credentialIdBase64Url();
         }
         if (command.signatureCounter == null) {
             command.signatureCounter = sample.signatureCounter();
@@ -284,6 +315,12 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         if (!hasText(command.privateKey)) {
             command.privateKey = sample.privateKeyJwk();
         }
+    }
+
+    String generateInlineCredentialId() {
+        byte[] bytes = new byte[16];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private void applyReplayVectorDefaults(ReplayStoredCommand command, WebAuthnJsonVector vector) {
@@ -564,8 +601,11 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         }
     }
 
-    @CommandLine.Command(name = "evaluate", description = "Generate a WebAuthn assertion using a stored credential.")
-    static final class EvaluateStoredCommand extends AbstractFido2Command {
+    @CommandLine.Command(
+            name = "evaluate",
+            description =
+                    "Generate a WebAuthn assertion from a stored credential (with --credential-id) or inline parameters.")
+    static final class EvaluateCommand extends AbstractFido2Command {
 
         @CommandLine.Option(
                 names = "--preset-id",
@@ -577,14 +617,14 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 names = "--credential-id",
                 defaultValue = "",
                 paramLabel = "<id>",
-                description = "Stored credential identifier")
+                description = "When set, evaluate the stored credential; omit for inline mode")
         String credentialId;
 
         @CommandLine.Option(
                 names = "--relying-party-id",
                 defaultValue = "",
                 paramLabel = "<rpId>",
-                description = "Override relying party identifier (defaults to stored value)")
+                description = "Relying party identifier")
         String relyingPartyId;
 
         @CommandLine.Option(
@@ -611,7 +651,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         @CommandLine.Option(
                 names = "--signature-counter",
                 paramLabel = "<counter>",
-                description = "Override signature counter in the generated authenticator data")
+                description = "Signature counter value (inline) or override (stored)")
         Long signatureCounter;
 
         @CommandLine.Option(
@@ -619,17 +659,52 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 paramLabel = "<bool>",
                 arity = "0..1",
                 fallbackValue = "true",
-                description = "Override user verification requirement (true/false)")
+                description = "Whether the credential requires user verification (true/false)")
         Boolean userVerificationRequired;
 
         @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the generation steps")
         boolean verbose;
 
+        // Inline-only options
+        @CommandLine.Option(
+                names = "--inline-credential-id",
+                paramLabel = "<base64url>",
+                description = "Credential ID for inline mode (defaults to a random value)")
+        String inlineCredentialId;
+
+        @CommandLine.Option(
+                names = "--credential-name",
+                paramLabel = "<name>",
+                defaultValue = "cli-fido2-inline",
+                description = "Display name for the inline credential (telemetry only)")
+        String credentialName;
+
+        @CommandLine.Option(
+                names = "--algorithm",
+                defaultValue = "",
+                paramLabel = "<name>",
+                description = "Signature algorithm label (e.g., ES256, RS256)")
+        String algorithm;
+
+        @CommandLine.Option(
+                names = "--private-key",
+                paramLabel = "<jwk-or-pem>",
+                description = "Authenticator private key as JWK (preferred) or PEM/PKCS#8")
+        String privateKey;
+
+        @CommandLine.Option(
+                names = "--private-key-file",
+                paramLabel = "<path>",
+                description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
+        Path privateKeyFile;
+
         @Override
         public Integer call() {
+            boolean storedMode = hasText(credentialId);
             Map<String, Object> baseFields = new LinkedHashMap<>();
-            baseFields.put("credentialSource", "stored");
-            baseFields.put("credentialReference", true);
+            baseFields.put("credentialSource", storedMode ? "stored" : "inline");
+            baseFields.put("credentialReference", storedMode);
+
             if (hasText(presetId)) {
                 baseFields.put("presetId", presetId);
                 Optional<Sample> preset = parent.findPreset(presetId);
@@ -640,14 +715,25 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                             "Unknown generator preset " + presetId,
                             Map.copyOf(baseFields));
                 }
-                parent.applyStoredPresetDefaults(this, preset.get());
+                if (storedMode) {
+                    parent.applyStoredPresetDefaults(this, preset.get());
+                } else {
+                    parent.applyInlinePresetDefaults(this, preset.get());
+                }
             }
 
+            if (storedMode) {
+                return handleStored(baseFields);
+            }
+            return handleInline(baseFields);
+        }
+
+        private Integer handleStored(Map<String, Object> baseFields) {
+            baseFields.put("credentialId", credentialId);
             if (!hasText(credentialId)) {
                 return parent.failValidation(
                         event("evaluate"), "missing_option", "--credential-id is required", Map.copyOf(baseFields));
             }
-            baseFields.put("credentialId", credentialId);
             if (!hasText(origin)) {
                 return parent.failValidation(
                         event("evaluate"), "missing_option", "--origin is required", Map.copyOf(baseFields));
@@ -656,7 +742,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 return parent.failValidation(
                         event("evaluate"), "missing_option", "--type is required", Map.copyOf(baseFields));
             }
-
             if (!hasText(challenge)) {
                 return parent.failValidation(
                         event("evaluate"), "missing_option", "--challenge is required", Map.copyOf(baseFields));
@@ -707,116 +792,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         "Generation failed: " + sanitizeMessage(ex.getMessage()));
             }
         }
-    }
 
-    @CommandLine.Command(
-            name = "evaluate-inline",
-            description = "Generate a WebAuthn assertion using inline credential parameters.")
-    static final class EvaluateInlineCommand extends AbstractFido2Command {
-
-        @CommandLine.Option(
-                names = "--preset-id",
-                paramLabel = "<preset>",
-                description = "Load default values from a generator preset")
-        String presetId;
-
-        @CommandLine.Option(
-                names = "--credential-name",
-                paramLabel = "<name>",
-                defaultValue = "cli-fido2-inline",
-                description = "Display name for the inline credential (used for telemetry only)")
-        String credentialName;
-
-        @CommandLine.Option(
-                names = "--relying-party-id",
-                defaultValue = "",
-                paramLabel = "<rpId>",
-                description = "Relying party identifier")
-        String relyingPartyId;
-
-        @CommandLine.Option(
-                names = "--origin",
-                defaultValue = "",
-                paramLabel = "<origin>",
-                description = "Origin to embed in clientDataJSON")
-        String origin;
-
-        @CommandLine.Option(
-                names = "--type",
-                defaultValue = "",
-                paramLabel = "<type>",
-                description = "Client data type (for example, webauthn.get)")
-        String expectedType;
-
-        @CommandLine.Option(
-                names = "--credential-id",
-                defaultValue = "",
-                paramLabel = "<base64url>",
-                description = "Credential ID in Base64URL form")
-        String credentialId;
-
-        @CommandLine.Option(
-                names = "--signature-counter",
-                paramLabel = "<counter>",
-                description = "Signature counter value")
-        Long signatureCounter;
-
-        @CommandLine.Option(
-                names = "--user-verification-required",
-                paramLabel = "<bool>",
-                arity = "0..1",
-                fallbackValue = "true",
-                description = "Whether the credential requires user verification (true/false)")
-        Boolean userVerificationRequired;
-
-        @CommandLine.Option(
-                names = "--algorithm",
-                defaultValue = "",
-                paramLabel = "<name>",
-                description = "Signature algorithm label (e.g., ES256, RS256)")
-        String algorithm;
-
-        @CommandLine.Option(
-                names = "--challenge",
-                defaultValue = "",
-                paramLabel = "<base64url>",
-                description = "Challenge to sign in Base64URL form")
-        String challenge;
-
-        @CommandLine.Option(
-                names = "--private-key",
-                paramLabel = "<jwk-or-pem>",
-                description = "Authenticator private key as JWK (preferred) or PEM/PKCS#8")
-        String privateKey;
-
-        @CommandLine.Option(
-                names = "--private-key-file",
-                paramLabel = "<path>",
-                description = "Path to a file containing the authenticator private key (JWK or PEM/PKCS#8)")
-        Path privateKeyFile;
-
-        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the generation steps")
-        boolean verbose;
-
-        @Override
-        public Integer call() {
-            Map<String, Object> baseFields = new LinkedHashMap<>();
-            baseFields.put("credentialSource", "inline");
-            baseFields.put("credentialReference", false);
-
-            if (hasText(presetId)) {
-                baseFields.put("presetId", presetId);
-                Optional<Sample> preset = parent.findPreset(presetId);
-                if (preset.isEmpty()) {
-                    return parent.failValidation(
-                            event("evaluate"),
-                            "preset_not_found",
-                            "Unknown generator preset " + presetId,
-                            Map.copyOf(baseFields));
-                }
-                parent.applyInlinePresetDefaults(this, preset.get());
-            }
-
+        private Integer handleInline(Map<String, Object> baseFields) {
             if (!hasText(relyingPartyId) || !hasText(origin)) {
                 return parent.failValidation(
                         event("evaluate"),
@@ -827,10 +804,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             if (!hasText(expectedType)) {
                 return parent.failValidation(
                         event("evaluate"), "missing_option", "--type is required", Map.copyOf(baseFields));
-            }
-            if (!hasText(credentialId)) {
-                return parent.failValidation(
-                        event("evaluate"), "missing_option", "--credential-id is required", Map.copyOf(baseFields));
             }
             if (!hasText(algorithm)) {
                 return parent.failValidation(
@@ -852,7 +825,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 return parent.failValidation(
                         event("evaluate"), "private_key_invalid", ex.getMessage(), Map.copyOf(baseFields));
             }
-
             if (!hasText(resolvedPrivateKey)) {
                 return parent.failValidation(
                         event("evaluate"),
@@ -866,9 +838,12 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             WebAuthnSignatureAlgorithm parsedAlgorithm;
 
             try {
-                credentialIdBytes = decodeBase64Url("credential-id", credentialId);
+                String inlineId =
+                        hasText(inlineCredentialId) ? inlineCredentialId : parent.generateInlineCredentialId();
+                credentialIdBytes = decodeBase64Url("inline-credential-id", inlineId);
                 challengeBytes = decodeBase64Url("challenge", challenge);
                 parsedAlgorithm = WebAuthnSignatureAlgorithm.fromLabel(algorithm);
+                baseFields.put("credentialId", inlineId);
             } catch (IllegalArgumentException ex) {
                 return parent.failValidation(
                         event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));

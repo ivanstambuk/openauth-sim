@@ -117,6 +117,67 @@ final class HotpCliTest {
     }
 
     @Test
+    void evaluateInlineGeneratesOtp() {
+        CommandHarness harness = harness(databasePath());
+        HotpJsonVector sample = vector(0L);
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--secret",
+                sample.secret().asHex(),
+                "--digits",
+                String.valueOf(sample.digits()),
+                "--counter",
+                String.valueOf(sample.counter()),
+                "--algorithm",
+                sample.algorithm().name(),
+                "--window-forward",
+                "1");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("event=cli.hotp.evaluate status=success"));
+        assertTrue(stdout.contains("credentialSource=inline"));
+        assertTrue(stdout.contains("previousCounter=0"));
+        assertTrue(stdout.contains("nextCounter=1"));
+        assertTrue(stdout.contains("generatedOtp=" + sample.otp()));
+        assertTrue(stdout.contains("Preview window:"), () -> stdout);
+        assertTrue(stdout.contains("+1"), () -> stdout);
+    }
+
+    @Test
+    void evaluateInlineRequiresSecretAndCounter() {
+        CommandHarness harness = harness(databasePath());
+
+        int exitCode = harness.execute("evaluate");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode);
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("event=cli.hotp.evaluate"));
+        assertTrue(stderr.contains("validation_error"));
+        assertTrue(stderr.contains("--secret is required"), () -> stderr);
+    }
+
+    @Test
+    void evaluateRejectsMixingStoredAndInlineInputs() {
+        CommandHarness harness = harness(databasePath());
+        HotpJsonVector sample = vector(0L);
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--credential-id",
+                "stored-id",
+                "--secret",
+                sample.secret().asHex(),
+                "--counter",
+                String.valueOf(sample.counter()));
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode);
+        String stderr = harness.stderr();
+        assertTrue(stderr.contains("Inline inputs cannot be combined with --credential-id"), stderr);
+    }
+
+    @Test
     void listFailsWhenDatabasePathCannotResolve() {
         Path failing = TestPaths.failingAbsolutePath(tempDir.resolve("list.db"), new IllegalStateException());
         CommandHarness harness = CommandHarness.create();

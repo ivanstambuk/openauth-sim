@@ -2,6 +2,7 @@ package io.openauth.sim.core.fido2;
 
 import io.openauth.sim.core.json.SimpleJson;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -99,11 +101,16 @@ public final class WebAuthnJsonVectorFixtures {
 
     private static String readBundle() {
         Path path = resolveBundlePath();
-        try {
-            return Files.readString(path, StandardCharsets.UTF_8);
-        } catch (IOException ioe) {
-            throw new IllegalStateException("Unable to read WebAuthn JSON vector bundle", ioe);
+        if (Files.exists(path)) {
+            try {
+                return Files.readString(path, StandardCharsets.UTF_8);
+            } catch (IOException ioe) {
+                throw new IllegalStateException("Unable to read WebAuthn JSON vector bundle", ioe);
+            }
         }
+        return readResource("docs/webauthn_assertion_vectors.json")
+                .orElseThrow(() -> new IllegalStateException(
+                        "Unable to read WebAuthn JSON vector bundle from filesystem or classpath"));
     }
 
     private static Path resolveBundlePath() {
@@ -120,6 +127,18 @@ public final class WebAuthnJsonVectorFixtures {
             }
         }
         return direct;
+    }
+
+    private static Optional<String> readResource(String resourcePath) {
+        try (InputStream stream =
+                WebAuthnJsonVectorFixtures.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (stream == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException ioe) {
+            throw new IllegalStateException("Unable to read WebAuthn JSON vector bundle from classpath", ioe);
+        }
     }
 
     private static Map<String, Object> asObject(Object value, String context) {

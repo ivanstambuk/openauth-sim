@@ -3,6 +3,7 @@ package io.openauth.sim.core.fido2;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -494,11 +495,16 @@ public final class WebAuthnFixtures {
 
     private static String readFixturesFile() {
         Path path = resolveFixturesPath();
-        try {
-            return Files.readString(path);
-        } catch (IOException ioe) {
-            throw new IllegalStateException("Unable to read W3C WebAuthn fixture bundle", ioe);
+        if (Files.exists(path)) {
+            try {
+                return Files.readString(path);
+            } catch (IOException ioe) {
+                throw new IllegalStateException("Unable to read W3C WebAuthn fixture bundle", ioe);
+            }
         }
+        return readResource("docs/" + FIXTURE_FILE)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Unable to read W3C WebAuthn fixture bundle from filesystem or classpath"));
     }
 
     private static Path resolveFixturesPath() {
@@ -515,6 +521,17 @@ public final class WebAuthnFixtures {
             }
         }
         return direct;
+    }
+
+    private static Optional<String> readResource(String resourcePath) {
+        try (var stream = WebAuthnFixtures.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (stream == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException ioe) {
+            throw new IllegalStateException("Unable to read W3C WebAuthn fixture bundle from classpath", ioe);
+        }
     }
 
     private static String normalize(String value) {

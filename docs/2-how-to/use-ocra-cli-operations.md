@@ -4,8 +4,8 @@ This guide is for operators who manage the simulator from the command line. It c
 
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it per the project constitution).
-- The standalone fat JAR built or downloaded (`openauth-sim-standalone-<version>.jar`).
-- Ensure the default MapDB database path ([data/credentials.db](data/credentials.db)) is writable. Override with `--database` when needed; rename legacy filenames (for example data/ocra-credentials.db) or pass them explicitly because automatic detection has been removed.
+- The standalone thin JAR (`openauth-sim-standalone-<version>.jar`) which bundles Picocli + deterministic JSON fixtures; it no longer ships a fat classpath.
+- Stored mode uses MapDB; ensure [data/credentials.db](data/credentials.db) is writable or pass `--database`. Inline mode runs against the in-memory EphemeralCredentialStore and does not require MapDB.
 
 ## Command Summary
 | Command | Purpose |
@@ -22,7 +22,7 @@ Invoke commands via the standalone JAR:
 ```bash
 java -jar openauth-sim-standalone-<version>.jar ocra [--database <path>] <command> [options]
 ```
-If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to [data/credentials.db](data/credentials.db) (shared with REST/UI facades). Provide an explicit `--database` when you need to retain a legacy file name.
+If `--database` is omitted, the CLI asks `CredentialStoreFactory` to resolve the path and defaults to [data/credentials.db](data/credentials.db) (shared with REST/UI facades). Inline commands skip MapDB entirely; stored commands require the file to exist or be created.
 
 All commands emit structured telemetry lines (see [docs/3-reference/cli-ocra-telemetry-snapshot.md](docs/3-reference/cli-ocra-telemetry-snapshot.md)) with `sanitized=true`.
 
@@ -60,6 +60,22 @@ java -jar openauth-sim-standalone-<version>.jar ocra evaluate \
   --session-hex 00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567
 ```
 Successful evaluations print the OTP and telemetry ID. If required parameters are missing, the CLI returns `reasonCode` values such as `session_required`, `counter_required`, or `credential_conflict`.
+
+#### Sample inline evaluation output
+Command:
+```bash
+java -jar openauth-sim-standalone-<version>.jar ocra evaluate \
+  --suite OCRA-1:HOTP-SHA1-6:QN08 \
+  --secret 3132333435363738393031323334353637383930 \
+  --challenge 00000000
+```
+Output:
+```
+event=cli.ocra.evaluate status=success reasonCode=success sanitized=true mode=inline suite=OCRA-1:HOTP-SHA1-6:QN08 otp=237653
+Preview window:
+ Counter Δ   OTP
+> -       [0] 237653
+```
 
 ## 4. Verify Historical OTPs
 Replays confirm whether a supplied OTP matches what the simulator would have produced previously. The verifier never mutates counters or session state, so you can run it repeatedly for audits.

@@ -8,6 +8,7 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationResult;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetryStatus;
+import io.openauth.sim.cli.support.EphemeralCredentialStore;
 import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -37,11 +38,7 @@ import picocli.CommandLine;
         name = "totp",
         mixinStandardHelpOptions = true,
         description = "Validate TOTP credentials and inspect stored entries.",
-        subcommands = {
-            TotpCli.ListCommand.class,
-            TotpCli.EvaluateStoredCommand.class,
-            TotpCli.EvaluateInlineCommand.class
-        })
+        subcommands = {TotpCli.ListCommand.class, TotpCli.EvaluateCommand.class})
 public final class TotpCli implements Callable<Integer> {
 
     private static final String EVENT_PREFIX = "cli.totp.";
@@ -195,15 +192,48 @@ public final class TotpCli implements Callable<Integer> {
         }
     }
 
-    @CommandLine.Command(name = "evaluate", description = "Generate a stored TOTP credential's current OTP.")
-    static final class EvaluateStoredCommand extends AbstractTotpCommand {
+    @CommandLine.Command(
+            name = "evaluate",
+            description =
+                    "Generate a TOTP code from a stored credential (with --credential-id) or inline parameters (without).")
+    static final class EvaluateCommand extends AbstractTotpCommand {
 
         @CommandLine.Option(
                 names = "--credential-id",
-                required = true,
+                defaultValue = "",
                 paramLabel = "<id>",
-                description = "Identifier of the stored credential")
+                description = "Identifier of the stored credential; omit to evaluate inline parameters")
         String credentialId;
+
+        @CommandLine.Option(names = "--secret", paramLabel = "<hex>", description = "Shared secret in hexadecimal")
+        String secretHex;
+
+        @CommandLine.Option(
+                names = "--secret-base32",
+                paramLabel = "<base32>",
+                description = "Shared secret in Base32 (RFC 4648)")
+        String secretBase32;
+
+        @CommandLine.Option(
+                names = "--algorithm",
+                defaultValue = "SHA1",
+                paramLabel = "<name>",
+                description = "TOTP hash algorithm (e.g. SHA1, SHA256)")
+        String algorithm;
+
+        @CommandLine.Option(
+                names = "--digits",
+                defaultValue = "6",
+                paramLabel = "<digits>",
+                description = "Number of digits expected from the authenticator")
+        int digits;
+
+        @CommandLine.Option(
+                names = "--step-seconds",
+                defaultValue = "30",
+                paramLabel = "<seconds>",
+                description = "Time-step duration in seconds")
+        long stepSeconds;
 
         @CommandLine.Option(
                 names = "--timestamp",
@@ -236,21 +266,44 @@ public final class TotpCli implements Callable<Integer> {
 
         @Override
         public Integer call() {
+            boolean storedMode = hasText(credentialId);
             TotpDriftWindow window = TotpDriftWindow.of(windowBackward, windowForward);
             Instant evaluationInstant = timestamp != null ? Instant.ofEpochSecond(timestamp) : null;
             Optional<Instant> override = timestampOverride != null
                     ? Optional.of(Instant.ofEpochSecond(timestampOverride))
                     : Optional.empty();
+            Map<String, Object> fields = new LinkedHashMap<>();
+            fields.put("credentialReference", storedMode);
+            if (storedMode) {
+                fields.put("credentialId", credentialId);
+                if (hasInlineSecrets()) {
+                    return failValidation(
+                            event("evaluate"),
+                            new TelemetrySignal(
+                                    TelemetryStatus.INVALID,
+                                    "validation_error",
+                                    "Inline secrets cannot be combined with --credential-id",
+                                    true,
+                                    fields),
+                            fields,
+                            "Inline secrets cannot be combined with --credential-id");
+                }
+                return handleStored(window, evaluationInstant, override, fields);
+            }
+            return handleInline(window, evaluationInstant, override, fields);
+        }
 
+        private Integer handleStored(
+                TotpDriftWindow window,
+                Instant evaluationInstant,
+                Optional<Instant> override,
+                Map<String, Object> fields) {
             try (CredentialStore store = openStore()) {
                 TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
                 EvaluationResult result = service.evaluate(
                         new EvaluationCommand.Stored(credentialId, "", window, evaluationInstant, override), verbose);
                 return handleResult(result, event("evaluate"), true);
             } catch (Exception ex) {
-                Map<String, Object> fields = new LinkedHashMap<>();
-                fields.put("credentialReference", true);
-                fields.put("credentialId", credentialId);
                 return failUnexpected(
                         event("evaluate"), fields, "Evaluation failed: " + sanitizeMessage(ex.getMessage()));
             }
@@ -300,88 +353,24 @@ public final class TotpCli implements Callable<Integer> {
             merged.put("valid", result.valid());
             merged.put("matchedSkewSteps", result.matchedSkewSteps());
             merged.put("reasonCode", result.telemetry().reasonCode());
+            if (result.credentialId() != null && !result.credentialId().isBlank()) {
+                merged.put("credentialId", result.credentialId());
+            }
             if (result.otp() != null && !result.otp().isBlank()) {
                 merged.put("otp", result.otp());
             }
             return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
         }
-    }
 
-    @CommandLine.Command(
-            name = "evaluate-inline",
-            description = "Generate an inline TOTP code without referencing stored credentials.")
-    static final class EvaluateInlineCommand extends AbstractTotpCommand {
-
-        @CommandLine.Option(names = "--secret", paramLabel = "<hex>", description = "Shared secret in hexadecimal")
-        String secretHex;
-
-        @CommandLine.Option(
-                names = "--secret-base32",
-                paramLabel = "<base32>",
-                description = "Shared secret in Base32 (RFC 4648)")
-        String secretBase32;
-
-        @CommandLine.Option(
-                names = "--algorithm",
-                defaultValue = "SHA1",
-                paramLabel = "<name>",
-                description = "TOTP hash algorithm (e.g. SHA1, SHA256)")
-        String algorithm;
-
-        @CommandLine.Option(
-                names = "--digits",
-                defaultValue = "6",
-                paramLabel = "<digits>",
-                description = "Number of digits expected from the authenticator")
-        int digits;
-
-        @CommandLine.Option(
-                names = "--step-seconds",
-                defaultValue = "30",
-                paramLabel = "<seconds>",
-                description = "Time-step duration in seconds")
-        long stepSeconds;
-
-        @CommandLine.Option(
-                names = "--window-backward",
-                defaultValue = "0",
-                paramLabel = "<steps>",
-                description = "Preview window size before the evaluated OTP")
-        int windowBackward;
-
-        @CommandLine.Option(
-                names = "--window-forward",
-                defaultValue = "0",
-                paramLabel = "<steps>",
-                description = "Preview window size after the evaluated OTP")
-        int windowForward;
-
-        @CommandLine.Option(
-                names = "--timestamp",
-                paramLabel = "<epochSeconds>",
-                description = "Timestamp (Unix seconds) for evaluation")
-        Long timestamp;
-
-        @CommandLine.Option(
-                names = "--timestamp-override",
-                paramLabel = "<epochSeconds>",
-                description = "Authenticator-supplied timestamp override")
-        Long timestampOverride;
-
-        @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
-        boolean verbose;
-
-        @Override
-        public Integer call() {
-            TotpHashAlgorithm hashAlgorithm = TotpHashAlgorithm.valueOf(algorithm.toUpperCase(Locale.ROOT));
-            TotpDriftWindow window = TotpDriftWindow.of(windowBackward, windowForward);
-            Instant evaluationInstant = timestamp != null ? Instant.ofEpochSecond(timestamp) : null;
-            Optional<Instant> override = timestampOverride != null
-                    ? Optional.of(Instant.ofEpochSecond(timestampOverride))
-                    : Optional.empty();
+        private Integer handleInline(
+                TotpDriftWindow window,
+                Instant evaluationInstant,
+                Optional<Instant> override,
+                Map<String, Object> fields) {
             try {
                 String resolvedSecretHex = resolveSecret(secretHex, secretBase32);
-                try (CredentialStore store = openStore()) {
+                TotpHashAlgorithm hashAlgorithm = TotpHashAlgorithm.valueOf(algorithm.toUpperCase(Locale.ROOT));
+                try (CredentialStore store = new EphemeralCredentialStore()) {
                     TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
                     EvaluationResult result = service.evaluate(
                             new EvaluationCommand.Inline(
@@ -394,66 +383,22 @@ public final class TotpCli implements Callable<Integer> {
                                     evaluationInstant,
                                     override),
                             verbose);
-                    return handleResult(result, event("evaluate"));
+                    return handleResult(result, event("evaluate"), false);
                 }
             } catch (IllegalArgumentException ex) {
-                Map<String, Object> fields = Map.of("credentialReference", false);
                 return failValidation(
                         event("evaluate"),
                         new TelemetrySignal(TelemetryStatus.INVALID, "validation_error", ex.getMessage(), true, fields),
                         fields,
                         ex.getMessage());
             } catch (Exception ex) {
-                Map<String, Object> fields = Map.of("credentialReference", false);
                 return failUnexpected(
                         event("evaluate"), fields, "Evaluation failed: " + sanitizeMessage(ex.getMessage()));
             }
         }
 
-        private Integer handleResult(EvaluationResult result, String event) {
-            TelemetrySignal signal = result.telemetry();
-            switch (signal.status()) {
-                case SUCCESS -> {
-                    TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
-                    PrintWriter writer = out();
-                    writeFrame(writer, event, addResultFields(frame, result));
-                    OtpPreviewTableFormatter.print(writer, result.previews());
-                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
-                    return CommandLine.ExitCode.OK;
-                }
-                case INVALID -> {
-                    Map<String, Object> fields = new LinkedHashMap<>(signal.fields());
-                    fields.put("credentialReference", false);
-                    fields.put("matchedSkewSteps", result.matchedSkewSteps());
-                    int exitCode = failValidation(
-                            event,
-                            signal,
-                            fields,
-                            Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()));
-                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
-                    return exitCode;
-                }
-                case ERROR -> {
-                    Map<String, Object> fields = Map.of("credentialReference", false);
-                    int exitCode = failUnexpected(
-                            event, fields, Optional.ofNullable(signal.reason()).orElse("TOTP evaluation failed"));
-                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
-                    return exitCode;
-                }
-            }
-            throw new IllegalStateException("Unhandled telemetry status: " + signal.status());
-        }
-
-        private TelemetryFrame addResultFields(TelemetryFrame frame, EvaluationResult result) {
-            Map<String, Object> merged = new LinkedHashMap<>(frame.fields());
-            merged.put("credentialReference", false);
-            merged.put("valid", result.valid());
-            merged.put("matchedSkewSteps", result.matchedSkewSteps());
-            merged.put("reasonCode", result.telemetry().reasonCode());
-            if (result.otp() != null && !result.otp().isBlank()) {
-                merged.put("otp", result.otp());
-            }
-            return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
+        private boolean hasInlineSecrets() {
+            return hasText(secretHex) || hasText(secretBase32);
         }
 
         private static String resolveSecret(String secretHex, String secretBase32) {

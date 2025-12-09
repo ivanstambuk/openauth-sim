@@ -127,7 +127,7 @@ final class TotpCliVerboseTraceTest {
         Instant issuedAt = Instant.ofEpochSecond(1_234_567_890L);
 
         int exitCode = harness.execute(
-                "evaluate-inline",
+                "evaluate",
                 "--secret",
                 INLINE_SECRET.asHex(),
                 "--algorithm",

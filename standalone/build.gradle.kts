@@ -1,4 +1,5 @@
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.jvm.tasks.Jar
@@ -38,12 +39,36 @@ tasks.named<Jar>("jar") {
     archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    val projectArtifacts = configurations.runtimeClasspath.get().incoming.artifactView {
-        componentFilter { identifier -> identifier is ProjectComponentIdentifier }
+    val bundledArtifacts = configurations.runtimeClasspath.get().incoming.artifactView {
+        componentFilter { identifier ->
+            identifier is ProjectComponentIdentifier ||
+                (identifier is ModuleComponentIdentifier &&
+                        identifier.group == "info.picocli" &&
+                        identifier.module == "picocli")
+        }
     }.artifacts
 
-    projectArtifacts.artifactFiles.files.forEach { artifactFile ->
+    bundledArtifacts.artifactFiles.files.forEach { artifactFile ->
         from(zipTree(artifactFile))
+    }
+
+    from(rootProject.layout.projectDirectory.file("docs/webauthn_assertion_vectors.json")) {
+        into("docs")
+    }
+    from(rootProject.layout.projectDirectory.file("docs/webauthn_w3c_vectors.json")) {
+        into("docs")
+    }
+    from(rootProject.layout.projectDirectory.file("docs/ocra_validation_vectors.json")) {
+        into("docs")
+    }
+    from(rootProject.layout.projectDirectory.file("docs/totp_validation_vectors.json")) {
+        into("docs")
+    }
+    from(rootProject.layout.projectDirectory.dir("docs/webauthn_attestation")) {
+        into("docs/webauthn_attestation")
+    }
+    from(rootProject.layout.projectDirectory.dir("docs/test-vectors/eudiw/openid4vp")) {
+        into("docs/test-vectors/eudiw/openid4vp")
     }
 
     manifest {
@@ -96,7 +121,10 @@ publishing {
                     val runtimeDeps = configurations.runtimeClasspath.get()
                         .resolvedConfiguration
                         .firstLevelModuleDependencies
-                        .filter { dep -> dep.moduleGroup != "openauth-sim" }
+                        .filter { dep ->
+                            dep.moduleGroup != "openauth-sim" &&
+                                !(dep.moduleGroup == "info.picocli" && dep.moduleName == "picocli")
+                        }
 
                     if (runtimeDeps.isNotEmpty()) {
                         val dependenciesNode = root.appendNode("dependencies")

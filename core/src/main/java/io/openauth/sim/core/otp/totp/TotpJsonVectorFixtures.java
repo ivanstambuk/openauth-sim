@@ -3,6 +3,7 @@ package io.openauth.sim.core.otp.totp;
 import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.SecretMaterial;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,10 +47,16 @@ public final class TotpJsonVectorFixtures {
     private static List<TotpJsonVector> loadCatalog() {
         Path bundle = resolveBundlePath();
         String json;
-        try {
-            json = Files.readString(bundle, StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read TOTP validation vectors", ex);
+        if (Files.exists(bundle)) {
+            try {
+                json = Files.readString(bundle, StandardCharsets.UTF_8);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Unable to read TOTP validation vectors", ex);
+            }
+        } else {
+            json = readResource("docs/totp_validation_vectors.json")
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Unable to read TOTP validation vectors from filesystem or classpath"));
         }
 
         Object parsed = SimpleJson.parse(json);
@@ -86,6 +93,17 @@ public final class TotpJsonVectorFixtures {
         }
         throw new IllegalStateException("Unable to locate docs/totp_validation_vectors.json from working directory "
                 + Path.of("").toAbsolutePath());
+    }
+
+    private static Optional<String> readResource(String resourcePath) {
+        try (InputStream stream = TotpJsonVectorFixtures.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (stream == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to read TOTP validation vectors from classpath", ex);
+        }
     }
 
     private static TotpJsonVector toVector(Map<String, Object> root) {

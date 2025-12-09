@@ -54,6 +54,7 @@ Document deterministic runbooks for common tasks across all four consumption sur
 - [Operate the OCRA CLI](use-ocra-cli-operations.md)
 - [Use the FIDO2/WebAuthn CLI](use-fido2-cli-operations.md)
 - [Use the EMV/CAP CLI](use-emv-cap-cli-operations.md)
+- HOTP CLI (note): use a single `hotp evaluate` command for both stored and inline; include `--credential-id` for stored mode, omit it and supply `--secret` + `--counter` for inline (no separate inline command).
 
 ### Supporting tools & operations
 - [Generate OCRA test vectors](generate-ocra-test-vectors.md)
