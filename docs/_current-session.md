@@ -8,6 +8,14 @@
 
 ## Governance & Tooling
 
+- Governance log (2025-12-09, session reset "Read project context" – this chat): `git config core.hooksPath` → `githooks`; `git status -sb` → `## main...origin/main [ahead 1]` with modified CLI JSON-output docs/tests (`cli/src/test/java/io/openauth/sim/cli/Fido2CliTest.java`, `docs/2-how-to/*-cli-operations.md`, `docs/2-how-to/README.md`, `docs/4-architecture/features/004/tasks.md`, `docs/_current-session.md`) and untracked `docs/3-reference/cli-flags-matrix.md`.
+- Governance log (2025-12-09, CLI how-to failure drills): added stored/inline/JSON + failure command snippets to HOTP/TOTP/OCRA/EMV-CAP/FIDO2/EUDIW CLI guides; no build commands run for this doc-only change.
+- Governance log (2025-12-09, CLI README clarifications): expanded [docs/2-how-to/README.md](docs/2-how-to/README.md) with a MapDB vs inline quick reference and a pointer to the CLI flags matrix; no commands run.
+- Governance log (2025-12-09, CLI output schemas): replaced standalone CLI JSON examples with Draft-07 schemas under `docs/3-reference/cli/output-schemas/*.schema.json`, embedded real examples inside each schema, and updated `JsonShapeAsserter` to validate CLI output against the schemas (no external deps). Removed the old example files.
+- Verification log (2025-12-09, CLI output schema tests): `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.*" --tests "io.openauth.sim.cli.eudi.openid4vp.Oid4vpCliContractTest"` (PASS – schema validation now backs all CLI JSON outputs).
+- Governance log (2025-12-09, CLI docs link schemas): linked CLI how-to pages and the flags matrix to the new output schema directory; no build commands needed beyond the reused CLI test run above.
+- Governance log (2025-12-09, FIDO2 CLI --output-json parity): added JSON-output coverage tests across evaluate/replay/attest/attest-replay/seed-attestations/vectors, marked T-004-10 complete, and ran `./gradlew --no-daemon :cli:test`, `./gradlew --no-daemon :standalone:jar`, `./gradlew --no-daemon spotlessApply check` (PASS – config cache reused; console JS suites still green).
+- Governance log (2025-12-09, CLI flags matrix): added [docs/3-reference/cli-flags-matrix.md](docs/3-reference/cli-flags-matrix.md), linked all CLI how-tos, and ran `./gradlew --no-daemon spotlessApply check` (PASS – config cache reused; EMV/EUDIW console JS tests still green).
 - Governance log (2025-12-09, stray manifest cleanup): removed root `META-INF/MANIFEST.MF`/directory (staged add cleared) and reran `./gradlew --no-daemon :standalone:jar` (PASS – config cache reused, thin jar intact).
 - Governance log (2025-12-09, post-cleanup gate): `./gradlew --no-daemon spotlessApply check` (PASS – 22s, config cache rebuilt; EUDIW/EMV console JS tests still green).
 - Governance log (2025-12-09, CLI doc refresh): updated EMV/OCRA CLI how-to guides to note thin standalone jar + EphemeralCredentialStore for inline mode; MapDB now called out as stored-mode only.

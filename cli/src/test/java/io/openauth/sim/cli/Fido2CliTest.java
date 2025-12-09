@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
+import io.openauth.sim.cli.support.JsonShapeAsserter;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
@@ -132,6 +135,8 @@ final class Fido2CliTest {
         assertTrue(compact.contains("\"event\":\"cli.fido2.evaluate\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"assertion\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-evaluate.schema.json"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 
@@ -170,6 +175,45 @@ final class Fido2CliTest {
     }
 
     @Test
+    void replayStoredEmitsJsonWhenRequested() throws Exception {
+        Path database = tempDir.resolve("fido2-replay-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+        harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
+
+        int exitCode = harness.execute(
+                "replay",
+                "--credential-id",
+                "fido2-packed-es256",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                "webauthn.get",
+                "--expected-challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--client-data",
+                encode(fixture.request().clientDataJson()),
+                "--authenticator-data",
+                encode(fixture.request().authenticatorData()),
+                "--signature",
+                encode(fixture.request().signature()),
+                "--verbose",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.fido2.replay\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"match\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-replay.schema.json"), stdout);
+    }
+
+    @Test
     void vectorsCommandListsJsonBundleEntries() {
         Path database = tempDir.resolve("fido2.db");
         CommandHarness harness = CommandHarness.create(database);
@@ -180,6 +224,23 @@ final class Fido2CliTest {
         String output = harness.stdout();
         assertTrue(output.contains("vectorId"));
         assertTrue(output.contains("ES256"));
+    }
+
+    @Test
+    void vectorsCommandEmitsJsonWhenRequested() {
+        Path database = tempDir.resolve("fido2-vectors-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        int exitCode = harness.execute("vectors", "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.fido2.vectors\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"vectors\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-vectors.schema.json"), stdout);
     }
 
     @Test
@@ -241,6 +302,102 @@ final class Fido2CliTest {
         String compact = stdout.replace(" ", "").replace("\n", "");
         assertTrue(compact.contains("\"signatureCounterDerived\":true"), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"signatureCounter\":"), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-evaluate.schema.json"), stdout);
+    }
+
+    @Test
+    void seedAttestationsEmitsJsonWhenRequested() {
+        Path database = tempDir.resolve("fido2-seed-attestations.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        int exitCode = harness.execute("seed-attestations", "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.fido2.seed-attestations\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"addedCount\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-seed-attestations.schema.json"), stdout);
+    }
+
+    @Test
+    void attestPresetEmitsJsonWhenRequested() {
+        Path database = tempDir.resolve("fido2-attest-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.findById("w3c-packed-es256").orElseThrow();
+
+        int exitCode = harness.execute(
+                "attest",
+                "--input-source",
+                "preset",
+                "--format",
+                vector.format().label(),
+                "--attestation-id",
+                vector.vectorId(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--challenge",
+                encode(vector.registration().challenge()),
+                "--credential-private-key",
+                vector.keyMaterial().credentialPrivateKeyJwk().replaceAll("\\s+", ""),
+                "--attestation-private-key",
+                vector.keyMaterial().attestationPrivateKeyJwk().replaceAll("\\s+", ""),
+                "--attestation-serial",
+                vector.keyMaterial().attestationCertificateSerialBase64Url(),
+                "--signing-mode",
+                "self-signed",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.fido2.attest\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"attestation\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-attest.schema.json"), stdout);
+    }
+
+    @Test
+    void attestReplayInlineEmitsJsonWhenRequested() {
+        Path database = tempDir.resolve("fido2-attest-replay-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnAttestationVector vector =
+                WebAuthnAttestationFixtures.findById("w3c-packed-es256").orElseThrow();
+
+        int exitCode = harness.execute(
+                "attest-replay",
+                "--format",
+                vector.format().label(),
+                "--relying-party-id",
+                vector.relyingPartyId(),
+                "--origin",
+                vector.origin(),
+                "--attestation-object",
+                encode(vector.registration().attestationObject()),
+                "--client-data-json",
+                encode(vector.registration().clientDataJson()),
+                "--expected-challenge",
+                encode(vector.registration().challenge()),
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.fido2.attestReplay\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"anchorMode\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"valid\":true"), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/fido2-attest-replay.schema.json"), stdout);
     }
 
     @Test

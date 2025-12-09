@@ -71,7 +71,7 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :core:test :application:test`  
   - `./gradlew --no-daemon spotlessApply check`
 
-- [ ] T-004-10 – Add `--output-json` to all FIDO2/WebAuthn CLI commands (ADR-0014).  
+- [x] T-004-10 – Add `--output-json` to all FIDO2/WebAuthn CLI commands (ADR-0014).  
   _Intent:_ Provide machine-consumable JSON output for evaluate/replay/attest/seed commands with tests and docs.  
   _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
 

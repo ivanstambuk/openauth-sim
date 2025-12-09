@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cli.eudiw.request.create",
+  "type": "object",
+  "required": ["requestId", "profile", "requestUri", "authorizationRequest", "telemetry"],
+  "properties": {
+    "requestId": { "type": "string" },
+    "profile": { "type": "string" },
+    "requestUri": { "type": "string" },
+    "authorizationRequest": {
+      "type": "object",
+      "required": ["clientId", "nonce", "state", "responseMode", "presentationDefinition"],
+      "properties": {
+        "clientId": { "type": "string" },
+        "nonce": { "type": "string" },
+        "state": { "type": "string" },
+        "responseMode": { "type": "string" },
+        "presentationDefinition": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "qr": { "type": "object" },
+    "trace": { "type": "object" },
+    "telemetry": { "type": "object" }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "requestId": "HAIP-0001",
+      "profile": "HAIP",
+      "requestUri": "https://sim.openauth.local/oid4vp/request/HAIP-0001",
+      "authorizationRequest": {
+        "clientId": "x509_hash:pid-haip-verifier",
+        "nonce": "eudiw-openid4vp-nonce-seed-v1-0001",
+        "state": "eudiw-openid4vp-state-seed-v1-0001",
+        "responseMode": "direct_post.jwt",
+        "presentationDefinition": "{ ... }"
+      },
+      "qr": {
+        "ascii": "QR::openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001",
+        "uri": "openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001"
+      },
+      "trace": {
+        "operation": "eudiw.request.create",
+        "steps": [
+          {
+            "id": "step.01",
+            "summary": "..."
+          }
+        ]
+      },
+      "telemetry": {
+        "event": "oid4vp.request.created",
+        "fields": {
+          "requestId": "HAIP-0001",
+          "nonceMasked": "******1-0001",
+          "responseMode": "DIRECT_POST_JWT",
+          "requestUri": "https://sim.openauth.local/oid4vp/request/HAIP-0001",
+          "telemetryId": "oid4vp-telemetry-id"
+        }
+      }
+    }
+  ]
+}

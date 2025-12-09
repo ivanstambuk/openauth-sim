@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
 import io.openauth.sim.core.emv.cap.EmvCapReplayMismatchFixtures;
@@ -115,6 +116,8 @@ final class EmvCliReplayTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout().trim();
         assertFalse(stdout.isEmpty(), "JSON output must be present");
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/emv-cap-replay.schema.json"), stdout);
         assertTrue(stdout.contains("\"status\":\"mismatch\""), stdout);
         assertTrue(stdout.contains("\"reasonCode\":\"otp_mismatch\""), stdout);
         assertTrue(stdout.contains("\"credentialSource\":\"inline\""), stdout);

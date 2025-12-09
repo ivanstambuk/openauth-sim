@@ -3,9 +3,11 @@ package io.openauth.sim.cli.eudi.openid4vp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.JsonShapeAsserter;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
@@ -39,6 +41,8 @@ final class Oid4vpCliContractTest {
         assertTrue(stdout.contains("\"trace\""), stdout);
         assertTrue(stdout.contains("\"operation\":\"eudiw.request.create\""), stdout);
         assertTrue(stdout.contains("\"steps\""), stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/eudiw-request-create.schema.json"), stdout);
     }
 
     @Test
@@ -67,6 +71,8 @@ final class Oid4vpCliContractTest {
         assertTrue(stdout.contains("\"operation\":\"eudiw.wallet.simulate\""), stdout);
         assertTrue(stdout.contains("\"steps\""), stdout);
         assertTrue(stdout.contains("\"vp_token_hash\""), stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/eudiw-wallet-simulate.schema.json"), stdout);
     }
 
     @Test

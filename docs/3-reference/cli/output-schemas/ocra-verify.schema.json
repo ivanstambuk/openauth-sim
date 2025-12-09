@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cli.ocra.verify",
+  "type": "object",
+  "required": ["event", "status", "data"],
+  "properties": {
+    "event": { "type": "string", "enum": ["cli.ocra.verify"] },
+    "status": { "type": "string" },
+    "reasonCode": { "type": "string" },
+    "telemetryId": { "type": "string" },
+    "sanitized": { "type": "boolean" },
+    "data": {
+      "type": "object",
+      "required": ["credentialSource", "suite", "credentialReference", "responseDigits"],
+      "properties": {
+        "reasonCode": { "type": "string" },
+        "credentialSource": { "type": "string" },
+        "credentialId": { "type": "string" },
+        "suite": { "type": "string" },
+        "credentialReference": { "type": "boolean" },
+        "responseDigits": { "type": "integer" },
+        "trace": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "event": "cli.ocra.verify",
+      "status": "match",
+      "reasonCode": "success",
+      "telemetryId": "cli-ocra-telemetry-id",
+      "sanitized": true,
+      "data": {
+        "reasonCode": "success",
+        "credentialSource": "inline",
+        "credentialId": "inline-ocra",
+        "suite": "OCRA-1:HOTP-SHA1-6:QN08",
+        "credentialReference": false,
+        "responseDigits": 6,
+        "trace": {
+          "operation": "ocra.verify",
+          "steps": [
+            {
+              "id": "step.01",
+              "summary": "..."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

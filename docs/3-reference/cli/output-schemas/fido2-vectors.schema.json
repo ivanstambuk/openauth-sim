@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cli.fido2.vectors",
+  "type": "object",
+  "required": ["event", "status", "data"],
+  "properties": {
+    "event": { "type": "string", "enum": ["cli.fido2.vectors"] },
+    "status": { "type": "string" },
+    "data": {
+      "type": "object",
+      "required": ["vectors"],
+      "properties": {
+        "vectors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["vectorId", "algorithm"],
+            "properties": {
+              "vectorId": { "type": "string" },
+              "algorithm": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "event": "cli.fido2.vectors",
+      "status": "success",
+      "data": {
+        "vectors": [
+          {
+            "vectorId": "packed-es256",
+            "algorithm": "ES256"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # How to Operate the OCRA CLI
 
-This guide is for operators who manage the simulator from the command line. It covers every Picocli subcommand shipped with the `ocra` tool, including credential lifecycle, evaluation flows, and database maintenance. Outputs are sanitized so secrets never appear in logs.
+This guide is for operators who manage the simulator from the command line. It covers every Picocli subcommand shipped with the `ocra` tool, including credential lifecycle, evaluation flows, and database maintenance. Outputs are sanitized so secrets never appear in logs. For flag-by-flag defaults, consult the [CLI flags matrix](../3-reference/cli-flags-matrix.md).
 
 ## Prerequisites
 - Java 17 JDK configured (`JAVA_HOME` must point to it per the project constitution).
@@ -64,6 +64,7 @@ Successful evaluations print the OTP and telemetry ID. If required parameters ar
 ### Output formats
 - **Default (no flag):** key=value telemetry line plus preview table on success.
 - **JSON (`--output-json`):** single object with `event`, `status`, `reasonCode`, `telemetryId`, `sanitized`, and a `data` payload (otp, suite, mode, credential reference, previews, optional trace when `--verbose` is set).
+- JSON schema for `--output-json` (verify): [docs/3-reference/cli/output-schemas/ocra-verify.schema.json](../3-reference/cli/output-schemas/ocra-verify.schema.json)
 
 #### Sample inline evaluation output
 Command (challenge-only suite):
@@ -178,6 +179,16 @@ java -jar openauth-sim-standalone-<version>.jar ocra maintenance verify
 Produces an integrity report summarizing page scans and corruption checks. Failures surface `reasonCode=verification_failed`.
 
 ## Troubleshooting
+- Quick failure drill (JSON): supply both stored and inline parameters to confirm validation behaviour.  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar ocra evaluate \
+    --credential-id operator-demo \
+    --suite OCRA-1:HOTP-SHA1-6:QN08 \
+    --secret 3132333435363738393031323334353637383930 \
+    --challenge 00000000 \
+    --output-json
+  ```
+  Output (truncated): `{"event":"cli.ocra.evaluate","status":"invalid","reasonCode":"credential_conflict","sanitized":true,"data":{"reason":"stored and inline parameters cannot be combined"}}` with exit code `64`.
 - **`credential_conflict`** – Remove either stored or inline parameters so only one evaluation mode is active.
 - **`credential_not_found`** – The ID is missing; run `list` with `--database` pointing at the expected file.
 - **`validation_error`** – Check the returned `reasonCode` for the missing field, then retry.

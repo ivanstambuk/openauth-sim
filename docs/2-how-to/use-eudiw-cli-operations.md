@@ -3,12 +3,40 @@
 _Status: Draft_  
 _Last updated: 2025-11-08_
 
-The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline authorization requests, simulate wallet responses, and validate VP Tokens directly from the terminal. Output can be plain key/value pairs or JSON identical to the REST facade—add `--output-json` on any subcommand (`request create`, `wallet simulate`, `validate`, `seed`, `vectors`) to emit a single JSON object; combine with `--verbose` to embed traces.
+The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline authorization requests, simulate wallet responses, and validate VP Tokens directly from the terminal. Output can be plain key/value pairs or JSON identical to the REST facade—add `--output-json` on any subcommand (`request create`, `wallet simulate`, `validate`, `seed`, `vectors`) to emit a single JSON object; combine with `--verbose` to embed traces. Flag defaults and required inputs are summarized in the [CLI flags matrix](../3-reference/cli-flags-matrix.md).
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointed at a JDK 17 install.
 - The standalone fat JAR built or downloaded (`openauth-sim-standalone-<version>.jar`).
 - Optional: run the REST API in parallel so you can fetch QR links or inspect Swagger, but it is not required for CLI-only runs.
+JSON schemas for `--output-json`:
+- `request create`: [docs/3-reference/cli/output-schemas/eudiw-request-create.schema.json](../3-reference/cli/output-schemas/eudiw-request-create.schema.json)
+- `wallet simulate`: [docs/3-reference/cli/output-schemas/eudiw-wallet-simulate.schema.json](../3-reference/cli/output-schemas/eudiw-wallet-simulate.schema.json)
+- `validate`: [docs/3-reference/cli/output-schemas/eudiw-validate.schema.json](../3-reference/cli/output-schemas/eudiw-validate.schema.json)
+
+## Quick commands (stored, inline, failure)
+- Stored request + JSON + QR:  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar eudiw request create \
+    --dcql-preset pid-haip-baseline \
+    --include-qr \
+    --output-json
+  ```
+- Inline wallet + JSON:  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate \
+    --request-id HAIP-0001 \
+    --wallet-preset pid-haip-baseline \
+    --verbose \
+    --output-json
+  ```
+- Failure drill (JSON): pointing to a missing DCQL file returns a validation error.  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar eudiw request create \
+    --dcql-json /tmp/missing-dcql.json \
+    --output-json
+  ```
+  Output (truncated): `{"event":"oid4vp.request.created","status":"invalid","reasonCode":"validation_error","sanitized":true,"data":{"reason":"Unable to read DCQL override /tmp/missing-dcql.json"}}` with exit code `64`.
 
 ## Create a HAIP authorization request
 ```bash

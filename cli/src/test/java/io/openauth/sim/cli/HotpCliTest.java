@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures;
@@ -172,6 +173,8 @@ final class HotpCliTest {
         assertTrue(compact.contains("\"event\":\"cli.hotp.evaluate\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"otp\":\"" + sample.otp() + "\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/hotp-evaluate.schema.json"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 

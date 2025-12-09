@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cli.fido2.replay",
+  "type": "object",
+  "required": ["event", "status", "data"],
+  "properties": {
+    "event": { "type": "string", "enum": ["cli.fido2.replay"] },
+    "status": { "type": "string" },
+    "reasonCode": { "type": "string" },
+    "telemetryId": { "type": "string" },
+    "sanitized": { "type": "boolean" },
+    "data": {
+      "type": "object",
+      "required": ["credentialReference", "credentialId", "credentialSource", "match", "evaluationStatus"],
+      "properties": {
+        "reasonCode": { "type": "string" },
+        "credentialReference": { "type": "boolean" },
+        "credentialId": { "type": "string" },
+        "credentialSource": { "type": "string" },
+        "match": { "type": "boolean" },
+        "evaluationStatus": { "type": "string" },
+        "trace": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "event": "cli.fido2.replay",
+      "status": "success",
+      "reasonCode": "verified",
+      "telemetryId": "cli-fido2-telemetry-id",
+      "sanitized": true,
+      "data": {
+        "credentialReference": true,
+        "credentialId": "packed-es256",
+        "credentialSource": "stored",
+        "match": true,
+        "evaluationStatus": "SUCCESS",
+        "trace": {
+          "operation": "fido2.assertion.replay.stored",
+          "steps": [
+            {
+              "id": "step.01",
+              "summary": "..."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

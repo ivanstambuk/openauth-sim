@@ -3,10 +3,11 @@
 _Status: Draft_  
 _Last updated: 2025-12-09_
 
-The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation payloads against the simulator without touching the REST or UI layers. This guide covers stored-credential evaluations, inline verification, attestation verification (with optional trust anchors), replay diagnostics, and the shared JSON vector presets that keep every facade aligned.
+The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation payloads against the simulator without touching the REST or UI layers. This guide covers stored-credential evaluations, inline verification, attestation verification (with optional trust anchors), replay diagnostics, and the shared JSON vector presets that keep every facade aligned. A quick reference to mandatory/optional flags lives in the [CLI flags matrix](../3-reference/cli-flags-matrix.md).
 
 > JSON output: every `fido2` subcommand (`evaluate`, `replay`, `attest`, `attest-replay`, `seed-attestations`, `vectors`) now supports `--output-json` to emit a single JSON object instead of text. Combine it with `--verbose` to embed the verbose trace alongside telemetry fields (`event`, `status`, `reasonCode`, `telemetryId`).
 > Counter defaults: `--signature-counter` is now optional. When omitted, the CLI derives the counter from the current Unix epoch seconds (clamped to uint32) and returns the derived value in JSON/telemetry; provide `--signature-counter` when you need a fixed value.
+> JSON schemas: evaluate [docs/3-reference/cli/output-schemas/fido2-evaluate.schema.json](../3-reference/cli/output-schemas/fido2-evaluate.schema.json) · replay [../3-reference/cli/output-schemas/fido2-replay.schema.json](../3-reference/cli/output-schemas/fido2-replay.schema.json) · vectors [../3-reference/cli/output-schemas/fido2-vectors.schema.json](../3-reference/cli/output-schemas/fido2-vectors.schema.json) · seed-attestations [../3-reference/cli/output-schemas/fido2-seed-attestations.schema.json](../3-reference/cli/output-schemas/fido2-seed-attestations.schema.json) · attest [../3-reference/cli/output-schemas/fido2-attest.schema.json](../3-reference/cli/output-schemas/fido2-attest.schema.json) · attest-replay [../3-reference/cli/output-schemas/fido2-attest-replay.schema.json](../3-reference/cli/output-schemas/fido2-attest-replay.schema.json)
 
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
@@ -22,6 +23,35 @@ java -jar openauth-sim-standalone-<version>.jar fido2 --help
 ```
 
 Replace `<version>` with the desired release tag (for example `0.1.3` when testing locally).
+
+## Quick commands (stored, inline, failure)
+- Stored + JSON + derived counter:  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar fido2 evaluate \
+    --preset-id packed-es256 \
+    --verbose \
+    --output-json
+  ```
+  Returns a single object with `credentialSource=stored`, `signatureCounter=<derived>`, and `trace` (because `--verbose` is present).
+
+- Inline + JSON:  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar fido2 evaluate \
+    --preset-id packed-es256 \
+    --credential-name inline-demo \
+    --origin https://rp.example \
+    --output-json
+  ```
+  Emits `status=success`, `credentialSource=inline`, and `counterDerived=true` if you omit `--signature-counter`.
+
+- Failure drill (JSON): bad private key path.  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar fido2 evaluate \
+    --preset-id packed-es256 \
+    --private-key-file /tmp/missing.jwk \
+    --output-json
+  ```
+  Output (truncated): `{"event":"cli.fido2.evaluate","status":"invalid","reasonCode":"private_key_invalid","sanitized":true,"data":{"reason":"Unable to read private key"}}` with exit code `64`.
 
 ## Generate a Stored WebAuthn Assertion
 Stored mode relies on a credential that already lives in MapDB. The CLI resolves the signer from the store, so the private key never leaves the simulator. Presets from `WebAuthnGeneratorSamples` keep the CLI aligned with the operator UI and REST facades.

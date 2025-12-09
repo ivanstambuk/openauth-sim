@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cli.fido2.attestReplay",
+  "type": "object",
+  "required": ["event", "status", "data"],
+  "properties": {
+    "event": { "type": "string", "enum": ["cli.fido2.attestReplay"] },
+    "status": { "type": "string" },
+    "reasonCode": { "type": "string" },
+    "telemetryId": { "type": "string" },
+    "sanitized": { "type": "boolean" },
+    "data": {
+      "type": "object",
+      "required": ["anchorMode", "valid"],
+      "properties": {
+        "anchorMode": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "trace": { "type": "object" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "event": "cli.fido2.attestReplay",
+      "status": "success",
+      "reasonCode": "verified",
+      "telemetryId": "cli-fido2-telemetry-id",
+      "sanitized": true,
+      "data": {
+        "anchorMode": "preset",
+        "valid": true
+      }
+    }
+  ]
+}

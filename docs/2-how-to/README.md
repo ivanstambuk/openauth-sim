@@ -56,6 +56,13 @@ Document deterministic runbooks for common tasks across all four consumption sur
 - [Use the EMV/CAP CLI](use-emv-cap-cli-operations.md)
 - [Use the HOTP CLI](use-hotp-cli-operations.md)
 - [Use the TOTP CLI](use-totp-cli-operations.md)
+- Flag defaults and JSON/trace hints: [CLI flags matrix](../3-reference/cli-flags-matrix.md)
+- JSON schemas for `--output-json`: see [docs/3-reference/cli/output-schemas](../3-reference/cli/output-schemas)
+
+**CLI MapDB vs inline quick reference**
+- Stored-mode commands hit MapDB (`--database` controls the path): HOTP/TOTP/OCRA `import|list|delete|evaluate|verify` (stored), EMV/CAP `seed|evaluate|replay` when `--credential-id`/`--preset-id` is used, FIDO2/WebAuthn `evaluate|replay|seed|seed-attestations` with stored credentials/attestations.  
+- Inline-only flows do **not** require MapDB: HOTP/TOTP/OCRA inline evaluate/verify, EMV/CAP inline evaluate/replay, FIDO2/WebAuthn inline evaluate/attest/attest-replay with presets or caller-supplied keys, and all EUDIW CLI subcommands (`request create`, `wallet simulate`, `validate`, `seed`, `vectors`) which rely solely on fixtures/inline payloads.  
+- `--output-json` + optional `--verbose` (or `--include-trace` for EMV/CAP) works across every CLI command; the flags matrix above lists the exact fields per protocol.
 
 ### Supporting tools & operations
 - [Generate OCRA test vectors](generate-ocra-test-vectors.md)

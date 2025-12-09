@@ -3,7 +3,7 @@
 _Status: Draft_  
 _Last updated: 2025-12-09_
 
-The `totp` Picocli entry point lists stored TOTP credentials and validates OTPs in stored or inline mode. Output can be the default key=value telemetry line (with a preview table) or a single JSON object when you pass `--output-json`. Pair `--output-json` with `--verbose` to embed the verbose trace.
+The `totp` Picocli entry point lists stored TOTP credentials and validates OTPs in stored or inline mode. Output can be the default key=value telemetry line (with a preview table) or a single JSON object when you pass `--output-json`. Pair `--output-json` with `--verbose` to embed the verbose trace. Quick-reference defaults live in the [CLI flags matrix](../3-reference/cli-flags-matrix.md).
 
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
@@ -40,6 +40,7 @@ java -jar openauth-sim-standalone-<version>.jar totp evaluate \
 ```
 - Default output: telemetry line (success/invalid/error) then a preview table; verbose trace printed when `--verbose` is set.
 - `--output-json`: single object with `data` fields such as `credentialReference`, `credentialId`, `valid`, `matchedSkewSteps`, `algorithm`, `digits`, `stepSeconds`, `driftBackwardSteps`, `driftForwardSteps`, `otp` (when valid), `previews[]`, and optional `trace` when `--verbose` is present.
+- JSON schema for `--output-json`: [docs/3-reference/cli/output-schemas/totp-evaluate.schema.json](../3-reference/cli/output-schemas/totp-evaluate.schema.json)
 
 ### Inline mode
 ```bash
@@ -58,6 +59,14 @@ java -jar openauth-sim-standalone-<version>.jar totp evaluate \
 - Optional `--timestamp-override` lets you simulate authenticator clock skew; the override is reflected in verbose traces and JSON.
 
 ## Troubleshooting
+- Quick failure drill (JSON): passing both stored and inline inputs triggers `credential_conflict`.  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar totp evaluate \
+    --credential-id demo-totp \
+    --secret-base32 JBSWY3DPEHPK3PXP \
+    --output-json
+  ```
+  Output (truncated): `{"event":"cli.totp.evaluate","status":"invalid","reasonCode":"credential_conflict","sanitized":true,"data":{"reason":"stored and inline parameters cannot be combined"}}` with exit code `64`.
 - `validation_error`: missing or conflicting secrets (`--secret` vs `--secret-base32`), inline secrets provided together with `--credential-id`, or bad hex/Base32 input.
 - `unexpected_error`: any other failure; exit code is non-zero and the message is sanitized in both text and JSON output.
 

@@ -3,9 +3,12 @@
 _Status: Draft_  
 _Last updated: 2025-11-15_
 
-The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, replay stored or inline OTPs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract—add `--output-json` to any subcommand (`seed`, `evaluate`, `replay`) to get a single JSON object instead of key=value lines.
+The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, replay stored or inline OTPs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract—add `--output-json` to any subcommand (`seed`, `evaluate`, `replay`) to get a single JSON object instead of key=value lines. For flag defaults and JSON/trace parity at a glance, see the [CLI flags matrix](../3-reference/cli-flags-matrix.md).
 
 The CLI uses the same `includeTrace` toggle as the REST API and operator UI. The `--include-trace` flag defaults to `true` for Evaluate and Replay commands, which means CLI JSON output can be copied directly into the shared `VerboseTraceConsole` when troubleshooting. Set `--include-trace false` any time you want to suppress the provenance payload.
+JSON schemas for `--output-json`:
+- Evaluate: [docs/3-reference/cli/output-schemas/emv-cap-evaluate.schema.json](../3-reference/cli/output-schemas/emv-cap-evaluate.schema.json)
+- Replay: [docs/3-reference/cli/output-schemas/emv-cap-replay.schema.json](../3-reference/cli/output-schemas/emv-cap-replay.schema.json)
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointing at a JDK 17 install.
@@ -136,6 +139,19 @@ java -jar openauth-sim-standalone-<version>.jar emv cap replay \
 Mismatched OTPs print a `status=mismatch` summary while keeping all secrets redacted. Set `--include-trace true` whenever you want the masked-digit overlay and Generate AC buffers to troubleshoot derivation issues. Preview window bounds (`--search-backward/forward`) control how far the replay service searches around the supplied ATC.
 
 ## Troubleshooting & telemetry notes
+- Failure drill (JSON): omit a required field to see validation handling.  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar emv cap evaluate \
+    --mode SIGN \
+    --master-key 0123456789ABCDEF0123456789ABCDEF \
+    --atc 0142 \
+    --branch-factor 4 \
+    --height 8 \
+    --iv 00000000000000000000000000000000 \
+    --challenge 1234 \
+    --output-json
+  ```
+  Output (truncated): `{"event":"cli.emv.cap.sign","status":"invalid_input","reasonCode":"validation_error","sanitized":true,"data":{"reason":"missing cdol1"}}` with exit code `64`.
 - Input validation mirrors the REST layer. Invalid hex values, incorrect branch factors, or missing Sign fields return a non-zero exit code and print a `status=invalid_input` problem alongside sanitized telemetry.
 - Telemetry IDs are prefixed with `cli-emv-cap-*`; use them to cross-reference REST/UI events when reproducing issues.
 - Combine `--database` with CLI commands to point at a non-default MapDB location if you are testing isolated credential sets.

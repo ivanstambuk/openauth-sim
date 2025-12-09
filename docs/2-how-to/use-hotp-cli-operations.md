@@ -3,7 +3,7 @@
 _Status: Draft_  
 _Last updated: 2025-12-09_
 
-The `hotp` Picocli commands cover credential import/listing and OTP generation in a single entry point. Output can be the default key=value telemetry line (with an OTP preview table) or a single JSON object when you pass `--output-json`. Pair `--output-json` with `--verbose` to embed the verbose trace in the response.
+The `hotp` Picocli commands cover credential import/listing and OTP generation in a single entry point. Output can be the default key=value telemetry line (with an OTP preview table) or a single JSON object when you pass `--output-json`. Pair `--output-json` with `--verbose` to embed the verbose trace in the response. For a per-flag summary and defaults, see the [CLI flags matrix](../3-reference/cli-flags-matrix.md).
 
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
@@ -53,6 +53,7 @@ java -jar openauth-sim-standalone-<version>.jar hotp evaluate \
 ```
 - Default output: telemetry line (success/invalid/error) followed by a preview table and `generatedOtp=<value>`; verbose trace printed after the table when `--verbose` is set.
 - `--output-json`: single object with `data` fields such as `credentialReference`, `credentialId`, `algorithm`, `digits`, `previousCounter/nextCounter`, `otp`, `previews[]`, and optional `trace` when `--verbose` is present.
+- JSON schema for `--output-json`: [docs/3-reference/cli/output-schemas/hotp-evaluate.schema.json](../3-reference/cli/output-schemas/hotp-evaluate.schema.json)
 
 ### Inline mode
 ```bash
@@ -70,6 +71,15 @@ java -jar openauth-sim-standalone-<version>.jar hotp evaluate \
 - Use `--verbose` alongside `--output-json` to embed the verbose trace (`trace` field) in the JSON payload.
 
 ## Troubleshooting
+- Quick failure drill (JSON): mixing stored + inline inputs returns a validation error.  
+  ```bash
+  java -jar openauth-sim-standalone-<version>.jar hotp evaluate \
+    --credential-id operator-demo \
+    --secret 3132333435363738393031323334353637383930 \
+    --counter 1 \
+    --output-json
+  ```
+  Output (truncated): `{"event":"cli.hotp.evaluate","status":"invalid","reasonCode":"credential_conflict","sanitized":true,"data":{"reason":"stored and inline parameters cannot be combined"}}` with exit code `64`.
 - `credential_conflict`: both stored and inline inputs supplied—drop either `--credential-id` or the inline secret/counter.
 - `validation_error`: missing inline parameters (`--secret`, `--counter`) or bad hex; JSON output includes `reason` when available.
 - `unexpected_error`: unexpected failure; exit code is non-zero and the message is sanitized in both text and JSON forms.

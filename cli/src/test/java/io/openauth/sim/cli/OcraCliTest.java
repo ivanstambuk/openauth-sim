@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationReason;
+import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
@@ -183,6 +184,8 @@ class OcraCliTest {
         assertTrue(compact.contains("\"event\":\"cli.ocra.verify\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"reasonCode\":\"match\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/ocra-verify.schema.json"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 

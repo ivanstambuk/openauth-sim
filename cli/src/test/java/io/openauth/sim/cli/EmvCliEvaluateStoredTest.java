@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.Outputs;
@@ -76,6 +77,8 @@ final class EmvCliEvaluateStoredTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout().trim();
         assertFalse(stdout.isEmpty(), "JSON output should be emitted");
+        JsonShapeAsserter.assertMatchesShape(
+                Path.of("docs/3-reference/cli/output-schemas/emv-cap-evaluate.schema.json"), stdout);
 
         Object parsed = SimpleJson.parse(stdout);
         assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
