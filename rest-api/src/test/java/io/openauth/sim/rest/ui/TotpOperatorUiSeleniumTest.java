@@ -1096,18 +1096,13 @@ final class TotpOperatorUiSeleniumTest {
         waitUntilAttribute(replayToggle, "data-mode", "stored");
 
         waitUntilOptionsCount(By.id("totpReplayStoredCredentialId"), 2);
-        new WebDriverWait(driver, Duration.ofSeconds(3)).until(d -> {
-            Select select = new Select(d.findElement(By.id("totpReplayStoredCredentialId")));
-            try {
-                select.selectByValue(STORED_CREDENTIAL_ID);
-                return true;
-            } catch (NullPointerException ex) {
-                return false;
-            }
-        });
+        selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
+        WebElement storedReplaySelect = driver.findElement(By.id("totpReplayStoredCredentialId"));
+        ((JavascriptExecutor) driver)
+                .executeScript("arguments[0].dispatchEvent(new Event('change', { bubbles: true }))",
+                        storedReplaySelect);
         WebElement sampleStatus = waitFor(By.cssSelector("[data-testid='totp-replay-sample-status']"));
-        new WebDriverWait(driver, Duration.ofSeconds(5))
-                .until(d -> !sampleStatus.getText().trim().isEmpty());
+        waitUntilTextPopulated(sampleStatus, Duration.ofSeconds(10));
 
         waitUntilFieldValue(By.id("totpReplayStoredOtp"), EXPECTED_STORED_OTP);
         waitUntilFieldValue(By.id("totpReplayStoredTimestamp"), Long.toString(STORED_TIMESTAMP.getEpochSecond()));
@@ -1324,7 +1319,11 @@ final class TotpOperatorUiSeleniumTest {
     }
 
     private void waitUntilTextPopulated(WebElement element) {
-        new WebDriverWait(driver, Duration.ofSeconds(5)).until(driver1 -> {
+        waitUntilTextPopulated(element, Duration.ofSeconds(5));
+    }
+
+    private void waitUntilTextPopulated(WebElement element, Duration timeout) {
+        new WebDriverWait(driver, timeout).until(driver1 -> {
             try {
                 String text = element.getText();
                 return text != null && !text.trim().isEmpty();

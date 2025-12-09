@@ -8,6 +8,10 @@
 
 ## Governance & Tooling
 
+- Governance log (2025-12-09, standalone release reported): User confirmed manual publish of `io.github.ivanstambuk:openauth-sim-standalone` at VERSION_NAME=0.1.4; no commands run in this session and verification deferred.
+- Verification log (2025-12-09, flake check): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.storedTotpReplaySampleAutoFillsForm"` (PASS – local reproduction attempt for CI timeout).
+- Verification log (2025-12-09, flake mitigation): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.TotpOperatorUiSeleniumTest.storedTotpReplaySampleAutoFillsForm"` (PASS – after widening waits and forcing change dispatch in the stored replay sample autofill test).
+- Governance log (2025-12-09, session reset "Read project context" – refresh): `git config core.hooksPath` → `githooks`; `git status -sb` → `## main...origin/main` (clean).
 - Governance log (2025-12-09, session reset "Read project context" – this chat): `git config core.hooksPath` → `githooks`; `git status -sb` → `## main...origin/main [ahead 1]` with modified CLI JSON-output docs/tests (`cli/src/test/java/io/openauth/sim/cli/Fido2CliTest.java`, `docs/2-how-to/*-cli-operations.md`, `docs/2-how-to/README.md`, `docs/4-architecture/features/004/tasks.md`, `docs/_current-session.md`) and untracked `docs/3-reference/cli-flags-matrix.md`.
 - Governance log (2025-12-09, CLI how-to failure drills): added stored/inline/JSON + failure command snippets to HOTP/TOTP/OCRA/EMV-CAP/FIDO2/EUDIW CLI guides; no build commands run for this doc-only change.
 - Governance log (2025-12-09, CLI README clarifications): expanded [docs/2-how-to/README.md](docs/2-how-to/README.md) with a MapDB vs inline quick reference and a pointer to the CLI flags matrix; no commands run.
