@@ -38,6 +38,12 @@ tasks.named<Jar>("jar") {
     archiveBaseName.set("openauth-sim-standalone")
     archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn(
+        ":core:jar",
+        ":core-ocra:jar",
+        ":core-shared:jar",
+        ":application:jar"
+    )
 
     val bundledArtifacts = configurations.runtimeClasspath.get().incoming.artifactView {
         componentFilter { identifier ->

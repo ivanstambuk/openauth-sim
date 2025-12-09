@@ -146,6 +146,36 @@ final class HotpCliTest {
     }
 
     @Test
+    void evaluateInlineEmitsJsonWhenRequested() {
+        CommandHarness harness = harness(databasePath());
+        HotpJsonVector sample = vector(0L);
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--secret",
+                sample.secret().asHex(),
+                "--digits",
+                String.valueOf(sample.digits()),
+                "--counter",
+                String.valueOf(sample.counter()),
+                "--algorithm",
+                sample.algorithm().name(),
+                "--window-forward",
+                "1",
+                "--verbose",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.hotp.evaluate\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"otp\":\"" + sample.otp() + "\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
+    }
+
+    @Test
     void evaluateInlineRequiresSecretAndCounter() {
         CommandHarness harness = harness(databasePath());
 

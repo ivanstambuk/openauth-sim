@@ -30,13 +30,24 @@ public final class FixtureWalletPresetRepository implements OpenId4VpWalletSimul
     private void registerPidHaipBaseline() {
         Path presetDir = FixturePaths.resolve(
                 "docs", "test-vectors", "eudiw", "openid4vp", "fixtures", "synthetic", "sdjwt-vc", "pid-haip-baseline");
-        Map<String, Object> metadata = readJson(presetDir.resolve("metadata.json"));
+        Map<String, Object> metadata = readJson(
+                "docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/metadata.json",
+                presetDir.resolve("metadata.json"));
         String credentialId = stringValue(metadata, "credentialId");
         String format = stringValue(metadata, "format");
-        String compactSdJwt = readString(presetDir.resolve("sdjwt.txt")).strip();
-        List<String> disclosures = readDisclosures(presetDir.resolve("disclosures.json"));
-        List<String> disclosureHashes = readDigestValues(presetDir.resolve("digests.json"));
-        String kbJwt = readString(presetDir.resolve("kb-jwt.json"));
+        String compactSdJwt = readString(
+                        "docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/sdjwt.txt",
+                        presetDir.resolve("sdjwt.txt"))
+                .strip();
+        List<String> disclosures = readDisclosures(
+                "docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/disclosures.json",
+                presetDir.resolve("disclosures.json"));
+        List<String> disclosureHashes = readDigestValues(
+                "docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/digests.json",
+                presetDir.resolve("digests.json"));
+        String kbJwt = readString(
+                "docs/test-vectors/eudiw/openid4vp/fixtures/synthetic/sdjwt-vc/pid-haip-baseline/kb-jwt.json",
+                presetDir.resolve("kb-jwt.json"));
         List<String> policies = List.of("aki:s9tIpP7qrS9=");
         presets.put(
                 "pid-haip-baseline",
@@ -51,7 +62,12 @@ public final class FixtureWalletPresetRepository implements OpenId4VpWalletSimul
                         policies));
     }
 
-    private static String readString(Path path) {
+    private static String readString(String classpathPath, Path path) {
+        String effectiveClasspath = classpathPath.isBlank() ? null : classpathPath;
+        if (effectiveClasspath != null) {
+            String fromClasspath = FixturePaths.readUtf8(effectiveClasspath, path);
+            return fromClasspath;
+        }
         try {
             return Files.readString(path, StandardCharsets.UTF_8);
         } catch (IOException ex) {
@@ -59,8 +75,8 @@ public final class FixtureWalletPresetRepository implements OpenId4VpWalletSimul
         }
     }
 
-    private static Map<String, Object> readJson(Path path) {
-        Object parsed = SimpleJson.parse(readString(path));
+    private static Map<String, Object> readJson(String classpathPath, Path path) {
+        Object parsed = SimpleJson.parse(readString(classpathPath, path));
         if (!(parsed instanceof Map<?, ?> map)) {
             throw new IllegalStateException("Fixture " + path + " must be a JSON object");
         }
@@ -77,8 +93,8 @@ public final class FixtureWalletPresetRepository implements OpenId4VpWalletSimul
         return string;
     }
 
-    static List<String> readDisclosures(Path path) {
-        Object parsed = SimpleJson.parse(readString(path));
+    static List<String> readDisclosures(String classpathPath, Path path) {
+        Object parsed = SimpleJson.parse(readString(classpathPath, path));
         if (!(parsed instanceof List<?> list)) {
             throw new IllegalStateException("Disclosure document " + path + " must be an array");
         }
@@ -95,8 +111,8 @@ public final class FixtureWalletPresetRepository implements OpenId4VpWalletSimul
         return List.copyOf(disclosures);
     }
 
-    static List<String> readDigestValues(Path path) {
-        Map<String, Object> digests = readJson(path);
+    static List<String> readDigestValues(String classpathPath, Path path) {
+        Map<String, Object> digests = readJson(classpathPath, path);
         List<String> values = new ArrayList<>(digests.size());
         for (Object value : digests.values()) {
             if (!(value instanceof String stringValue)) {

@@ -3,7 +3,7 @@
 _Status: Draft_  
 _Last updated: 2025-11-15_
 
-The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, replay stored or inline OTPs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract.
+The `emv cap` Picocli commands let you exercise the CAP engine without spinning up the REST facade. You can seed canonical fixtures, evaluate Identify/Respond/Sign inputs, replay stored or inline OTPs, and emit either human-readable output or full JSON payloads (including verbose traces) that mirror the REST contract—add `--output-json` to any subcommand (`seed`, `evaluate`, `replay`) to get a single JSON object instead of key=value lines.
 
 The CLI uses the same `includeTrace` toggle as the REST API and operator UI. The `--include-trace` flag defaults to `true` for Evaluate and Replay commands, which means CLI JSON output can be copied directly into the shared `VerboseTraceConsole` when troubleshooting. Set `--include-trace false` any time you want to suppress the provenance payload.
 

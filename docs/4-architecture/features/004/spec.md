@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-13 |
+| Last updated | 2025-12-09 |
 | Owners | Ivan (project owner) |
 | Linked plan | [docs/4-architecture/features/004/plan.md](docs/4-architecture/features/004/plan.md) |
 | Linked tasks | [docs/4-architecture/features/004/tasks.md](docs/4-architecture/features/004/tasks.md) |
@@ -28,6 +28,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 | FR-004-02 | Replay stored WebAuthn assertions for diagnostics so operators can compare deterministic fixture results to production appliances. | The `replay` façade pulls the credential from MapDB, re-runs the verifier with stored counters/signatures, and returns a trace containing the stored assertion, submission details, and any replay hints. | Omitting the stored credential identifier or targeting a credential that was purged returns a 404/CLI error before any assertion logic executes. | Replay detects tampered signatures, counter regression, or mismatched RPs and emits a sanitized failure payload plus consistent reason codes for REST/CLI/UI. | `fido2.replay` (credentialIdHash, replayMode=[stored], result, reasonCode). | Spec. |
 | FR-004-03 | Generate attestation payloads (packed, FIDO-U2F, TPM, Android Key) through CLI/REST/UI with optional trust anchors and preset seeds. | Commands populate `attestationObject`, `clientDataJSON`, `clientDataHash`, and certificate chains via the generator, honoring the requested format and trust-anchor selection, then return the artifacts together with telemetry that records the anchor source. | Missing challenge, malformed credential parameters, or a non-PEM trust anchor payload triggers a validation error before generation. | Trust-anchor verification failures, unsupported formats, or certificate parsing errors yield sanitized failure responses that include the failure reason but no private keys. | `fido2.attest` (attestationFormat, anchorSource=[preset|manual|self-attested], trustAnchorId, result). | Spec. |
 | FR-004-04 | Replay and verify attestation payloads (stored/manual/inline) with metadata-driven feedback plus trust-anchor summaries. | Replay services validate the attestation/certificate chain, surface `trustAnchorSummaries`, and provide metadata about certificate subjects, anchor status, and warnings so the UI/CLI can render them. | Missing attestation object or client data yields a 400/validation error before verification attempts. | Invalid certificate chains, missing anchors, or replay policy violations trigger sanitized failure responses with telemetry reason codes (no certificate blob leakage). | `fido2.attestReplay` (trustAnchorReference, result, warningCodes). | Spec. |
+| FR-004-05 | Counter handling defaults for assertions across CLI/REST/Native Java. | When callers omit the WebAuthn `signCount`/counter field (typically inline flows), facades derive a default from the current Unix epoch seconds (floored, unsigned 32‑bit) before verification, include the derived value in responses/telemetry, and accept an explicit counter when supplied. Stored credentials continue to honour their persisted counter unless a caller provides an override. | Input parsing accepts blank/missing counters; invalid numeric inputs or negative values return validation errors before verification. | Counter overflows clamp to `0xFFFFFFFF` and still return success/failure based on verifier outcome; telemetry records the derived value so audits see what was used. | `fido2.evaluate` (mode, counterDerived=true/false, counterValue); CLI/REST request models document the optional field and default. | Spec. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -97,6 +98,7 @@ Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attes
 | CLI-004-04 | `maintenance fido2 attest` | Generate attestation payloads in the requested format with optional trust-anchor PEM. |
 | CLI-004-05 | `maintenance fido2 attest-replay` | Replay attestation payloads (stored/manual/inline) and output metadata summaries. |
 | CLI-004-06 | `maintenance fido2 seed-attestations` | Seed attestation credentials from fixture bundles and document their metadata. |
+| CLI-004-07 | `--output-json` | All FIDO2/WebAuthn CLI commands emit JSON when present (ADR-0014). |
 
 ### Native Java API
 | ID | Entry point | Description | Notes |

@@ -20,6 +20,9 @@ import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService.Replay
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
 import io.openauth.sim.application.telemetry.Fido2TelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.cli.support.JsonPrinter;
+import io.openauth.sim.cli.support.TelemetryJson;
+import io.openauth.sim.cli.support.VerboseTraceMapper;
 import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
@@ -101,6 +104,12 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     private CommandLine.Model.CommandSpec spec;
 
     @CommandLine.Option(
+            names = "--output-json",
+            scope = CommandLine.ScopeType.INHERIT,
+            description = "Emit a single JSON object instead of text output")
+    boolean outputJsonFlag;
+
+    @CommandLine.Option(
             names = {"-d", "--database"},
             paramLabel = "<path>",
             scope = CommandLine.ScopeType.INHERIT,
@@ -123,6 +132,10 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
     private PrintWriter err() {
         return spec.commandLine().getErr();
+    }
+
+    boolean outputJson() {
+        return outputJsonFlag;
     }
 
     private Path databasePath() {
@@ -410,6 +423,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         fields.put("algorithm", result.algorithm().label());
         fields.put("userVerificationRequired", result.userVerificationRequired());
         fields.put("signatureCounter", result.signatureCounter());
+        fields.put("signatureCounterDerived", result.signatureCounterDerived());
         return fields;
     }
 
@@ -493,11 +507,19 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 .forEach(message -> writer.println("warning=trust_anchor " + message));
     }
 
-    private int emitGenerationSuccess(GenerationResult result, String credentialSource, VerboseTrace verboseTrace) {
-        out().println(formatPublicKeyCredentialJson(result));
+    private int emitGenerationSuccess(
+            GenerationResult result, String credentialSource, VerboseTrace verboseTrace, boolean outputJson) {
         Map<String, Object> fields = generatorTelemetryFields(result, credentialSource);
         TelemetryFrame frame =
                 EVALUATION_TELEMETRY.status("success", nextTelemetryId(), "generated", true, null, fields);
+
+        if (outputJson()) {
+            Map<String, Object> data = buildAssertionResponse(result, credentialSource, verboseTrace);
+            JsonPrinter.print(out(), TelemetryJson.response(event("evaluate"), frame, data), true);
+            return CommandLine.ExitCode.OK;
+        }
+
+        out().println(formatPublicKeyCredentialJson(result));
         writeFrame(out(), event("evaluate"), frame);
         if (verboseTrace != null) {
             VerboseTracePrinter.print(out(), verboseTrace);
@@ -505,10 +527,89 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         return CommandLine.ExitCode.OK;
     }
 
-    private int failValidation(String event, String reasonCode, String message, Map<String, Object> fields) {
+    private Map<String, Object> buildAssertionResponse(
+            GenerationResult result, String credentialSource, VerboseTrace verboseTrace) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("credentialReference", result.credentialReference());
+        data.put("credentialSource", credentialSource);
+        data.put("credentialId", encodeBase64(result.credentialId()));
+        data.put("relyingPartyId", result.relyingPartyId());
+        data.put("origin", result.origin());
+        data.put("algorithm", result.algorithm().label());
+        data.put("signatureCounter", result.signatureCounter());
+        data.put("signatureCounterDerived", result.signatureCounterDerived());
+        data.put("userVerificationRequired", result.userVerificationRequired());
+        data.put(
+                "assertion",
+                Map.of(
+                        "type", "public-key",
+                        "id", encodeBase64(result.credentialId()),
+                        "rawId", encodeBase64(result.credentialId()),
+                        "response",
+                                Map.of(
+                                        "clientDataJSON", encodeBase64(result.clientDataJson()),
+                                        "authenticatorData", encodeBase64(result.authenticatorData()),
+                                        "signature", encodeBase64(result.signature()))));
+        if (result.publicKeyCose() != null && result.publicKeyCose().length > 0) {
+            data.put("publicKeyCose", encodeBase64(result.publicKeyCose()));
+        }
+        if (verboseTrace != null) {
+            data.put("trace", VerboseTraceMapper.toMap(verboseTrace));
+        } else {
+            result.verboseTrace().ifPresent(trace -> data.put("trace", VerboseTraceMapper.toMap(trace)));
+        }
+        return data;
+    }
+
+    private Map<String, Object> buildReplayResponse(ReplayResult result) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("credentialReference", result.credentialReference());
+        data.put("credentialId", result.credentialId());
+        data.put("credentialSource", result.credentialSource());
+        data.put("match", result.match());
+        data.putAll(result.supplementalFields());
+        result.error().ifPresent(error -> data.put("error", error.name().toLowerCase(Locale.US)));
+        result.verboseTrace().ifPresent(trace -> data.put("trace", VerboseTraceMapper.toMap(trace)));
+        return data;
+    }
+
+    private Map<String, Object> buildAttestationReplayResponse(
+            WebAuthnAttestationReplayApplicationService.ReplayResult result, Map<String, Object> baseFields) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        if (baseFields != null && !baseFields.isEmpty()) {
+            data.putAll(baseFields);
+        }
+        data.put("valid", result.valid());
+        data.put("anchorProvided", result.anchorProvided());
+        data.put("anchorMode", result.anchorMode());
+        data.put("trustAnchorsCached", result.trustAnchorsCached());
+        data.put("selfAttestedFallback", result.selfAttestedFallback());
+        if (!result.anchorWarnings().isEmpty()) {
+            data.put("anchorWarnings", result.anchorWarnings());
+        }
+        result.error().ifPresent(error -> data.put("error", error.name().toLowerCase(Locale.US)));
+        result.attestedCredential().ifPresent(credential -> {
+            Map<String, Object> credentialMap = new LinkedHashMap<>();
+            credentialMap.put("relyingPartyId", credential.relyingPartyId());
+            credentialMap.put("credentialId", credential.credentialId());
+            credentialMap.put("algorithm", credential.algorithm().label());
+            credentialMap.put("userVerificationRequired", credential.userVerificationRequired());
+            credentialMap.put("aaguid", credential.aaguid());
+            credentialMap.put("signatureCounter", credential.signatureCounter());
+            data.put("attestedCredential", credentialMap);
+        });
+        return data;
+    }
+
+    private int failValidation(
+            String event, String reasonCode, String message, Map<String, Object> fields, boolean outputJson) {
         TelemetryFrame frame =
                 EVALUATION_TELEMETRY.invalid(nextTelemetryId(), reasonCode, sanitizeMessage(message), fields);
-        writeFrame(err(), event, frame);
+        if (outputJson()) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.USAGE;
     }
 
@@ -517,33 +618,54 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             Fido2TelemetryAdapter adapter,
             String reasonCode,
             String message,
-            Map<String, Object> fields) {
+            Map<String, Object> fields,
+            boolean outputJson) {
         TelemetryFrame frame = adapter.invalid(nextTelemetryId(), reasonCode, sanitizeMessage(message), fields);
-        writeFrame(err(), event, frame);
+        if (outputJson()) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.USAGE;
     }
 
-    private int failValidation(String event, TelemetrySignal signal, Map<String, Object> fields) {
+    private int failValidation(String event, TelemetrySignal signal, Map<String, Object> fields, boolean outputJson) {
         TelemetryFrame emitted = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
         Map<String, Object> merged = new LinkedHashMap<>(emitted.fields());
         merged.putAll(fields);
         TelemetryFrame frame = new TelemetryFrame(emitted.event(), emitted.status(), emitted.sanitized(), merged);
-        writeFrame(err(), event, frame);
+        if (outputJson()) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.USAGE;
     }
 
-    private int failUnexpected(String event, Map<String, Object> fields, String message) {
+    private int failUnexpected(String event, Map<String, Object> fields, String message, boolean outputJson) {
         TelemetryFrame frame = EVALUATION_TELEMETRY.status(
                 "error", nextTelemetryId(), "unexpected_error", false, sanitizeMessage(message), fields);
-        writeFrame(err(), event, frame);
+        if (outputJson()) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.SOFTWARE;
     }
 
     private int failUnexpected(
-            String event, Fido2TelemetryAdapter adapter, Map<String, Object> fields, String message) {
+            String event,
+            Fido2TelemetryAdapter adapter,
+            Map<String, Object> fields,
+            String message,
+            boolean outputJson) {
         TelemetryFrame frame =
                 adapter.status("error", nextTelemetryId(), "unexpected_error", false, sanitizeMessage(message), fields);
-        writeFrame(err(), event, frame);
+        if (outputJson()) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.SOFTWARE;
     }
 
@@ -704,12 +826,15 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             Map<String, Object> baseFields = new LinkedHashMap<>();
             baseFields.put("credentialSource", storedMode ? "stored" : "inline");
             baseFields.put("credentialReference", storedMode);
+            Long matchedCounter =
+                    parent.spec.commandLine().getParseResult().matchedOptionValue("signature-counter", null);
+            Long effectiveSignatureCounter = matchedCounter != null ? matchedCounter : signatureCounter;
 
             if (hasText(presetId)) {
                 baseFields.put("presetId", presetId);
                 Optional<Sample> preset = parent.findPreset(presetId);
                 if (preset.isEmpty()) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("evaluate"),
                             "preset_not_found",
                             "Unknown generator preset " + presetId,
@@ -723,27 +848,27 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
 
             if (storedMode) {
-                return handleStored(baseFields);
+                return handleStored(baseFields, effectiveSignatureCounter);
             }
-            return handleInline(baseFields);
+            return handleInline(baseFields, effectiveSignatureCounter);
         }
 
-        private Integer handleStored(Map<String, Object> baseFields) {
+        private Integer handleStored(Map<String, Object> baseFields, Long effectiveSignatureCounter) {
             baseFields.put("credentialId", credentialId);
             if (!hasText(credentialId)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--credential-id is required", Map.copyOf(baseFields));
             }
             if (!hasText(origin)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--origin is required", Map.copyOf(baseFields));
             }
             if (!hasText(expectedType)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--type is required", Map.copyOf(baseFields));
             }
             if (!hasText(challenge)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--challenge is required", Map.copyOf(baseFields));
             }
 
@@ -751,8 +876,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 challengeBytes = decodeBase64Url("challenge", challenge);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
-                        event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
+                return failValidation(event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
             }
 
             try (CredentialStore store = parent.openStore()) {
@@ -765,7 +889,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 expectedType,
                                 challengeBytes,
                                 null,
-                                signatureCounter,
+                                effectiveSignatureCounter,
                                 userVerificationRequired),
                         verbose);
                 VerboseTrace verboseTrace = verbose
@@ -778,43 +902,39 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 },
                                 result.verboseTrace())
                         : null;
-                return parent.emitGenerationSuccess(result, "stored", verboseTrace);
+                return parent.emitGenerationSuccess(result, "stored", verboseTrace, outputJson());
             } catch (IllegalArgumentException ex) {
                 String message = ex.getMessage() == null ? "Generation failed" : ex.getMessage();
                 String reason = message.toLowerCase(Locale.US).contains("private key")
                         ? "private_key_invalid"
                         : "generation_failed";
-                return parent.failValidation(event("evaluate"), reason, message, Map.copyOf(baseFields));
+                return failValidation(event("evaluate"), reason, message, Map.copyOf(baseFields));
             } catch (Exception ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("evaluate"),
                         Map.copyOf(baseFields),
                         "Generation failed: " + sanitizeMessage(ex.getMessage()));
             }
         }
 
-        private Integer handleInline(Map<String, Object> baseFields) {
+        private Integer handleInline(Map<String, Object> baseFields, Long effectiveSignatureCounter) {
             if (!hasText(relyingPartyId) || !hasText(origin)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"),
                         "missing_option",
                         "--relying-party-id and --origin are required",
                         Map.copyOf(baseFields));
             }
             if (!hasText(expectedType)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--type is required", Map.copyOf(baseFields));
             }
             if (!hasText(algorithm)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--algorithm is required", Map.copyOf(baseFields));
             }
-            if (signatureCounter == null) {
-                return parent.failValidation(
-                        event("evaluate"), "missing_option", "--signature-counter is required", Map.copyOf(baseFields));
-            }
             if (!hasText(challenge)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "missing_option", "--challenge is required", Map.copyOf(baseFields));
             }
 
@@ -822,11 +942,11 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 resolvedPrivateKey = extractPrivateKey(privateKey, privateKeyFile);
             } catch (IllegalArgumentException | IOException ex) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"), "private_key_invalid", ex.getMessage(), Map.copyOf(baseFields));
             }
             if (!hasText(resolvedPrivateKey)) {
-                return parent.failValidation(
+                return failValidation(
                         event("evaluate"),
                         "private_key_required",
                         "Provide --private-key or --private-key-file",
@@ -845,8 +965,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 parsedAlgorithm = WebAuthnSignatureAlgorithm.fromLabel(algorithm);
                 baseFields.put("credentialId", inlineId);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
-                        event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
+                return failValidation(event("evaluate"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
             }
 
             boolean requireUv = userVerificationRequired != null && userVerificationRequired;
@@ -861,7 +980,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 relyingPartyId,
                                 origin,
                                 expectedType,
-                                signatureCounter,
+                                effectiveSignatureCounter,
                                 requireUv,
                                 challengeBytes,
                                 resolvedPrivateKey),
@@ -876,15 +995,15 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 },
                                 result.verboseTrace())
                         : null;
-                return parent.emitGenerationSuccess(result, "inline", verboseTrace);
+                return parent.emitGenerationSuccess(result, "inline", verboseTrace, outputJson());
             } catch (IllegalArgumentException ex) {
                 String message = ex.getMessage() == null ? "Generation failed" : ex.getMessage();
                 String reason = message.toLowerCase(Locale.US).contains("private key")
                         ? "private_key_invalid"
                         : "generation_failed";
-                return parent.failValidation(event("evaluate"), reason, message, Map.copyOf(baseFields));
+                return failValidation(event("evaluate"), reason, message, Map.copyOf(baseFields));
             } catch (Exception ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("evaluate"),
                         Map.copyOf(baseFields),
                         "Generation failed: " + sanitizeMessage(ex.getMessage()));
@@ -972,7 +1091,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 baseFields.put("vectorId", vectorId);
                 Optional<WebAuthnJsonVector> vector = parent.findVector(vectorId);
                 if (vector.isEmpty()) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("replay"),
                             "vector_not_found",
                             "Unknown JSON vector id " + vectorId,
@@ -982,20 +1101,19 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
 
             if (!hasText(credentialId)) {
-                return parent.failValidation(
+                return failValidation(
                         event("replay"), "missing_option", "--credential-id is required", Map.copyOf(baseFields));
             }
             baseFields.put("credentialId", credentialId);
             if (!hasText(relyingPartyId) || !hasText(origin)) {
-                return parent.failValidation(
+                return failValidation(
                         event("replay"),
                         "missing_option",
                         "--relying-party-id and --origin are required",
                         Map.copyOf(baseFields));
             }
             if (!hasText(expectedType)) {
-                return parent.failValidation(
-                        event("replay"), "missing_option", "--type is required", Map.copyOf(baseFields));
+                return failValidation(event("replay"), "missing_option", "--type is required", Map.copyOf(baseFields));
             }
 
             byte[] challengeBytes;
@@ -1008,8 +1126,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 authenticatorDataBytes = decodeBase64Url("authenticator-data", authenticatorData);
                 signatureBytes = decodeBase64Url("signature", signature);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
-                        event("replay"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
+                return failValidation(event("replay"), "invalid_payload", ex.getMessage(), Map.copyOf(baseFields));
             }
 
             try (CredentialStore store = parent.openStore()) {
@@ -1030,10 +1147,9 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         verbose);
                 return handleResult(result);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
-                        event("replay"), "validation_error", ex.getMessage(), Map.copyOf(baseFields));
+                return failValidation(event("replay"), "validation_error", ex.getMessage(), Map.copyOf(baseFields));
             } catch (Exception ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("replay"), Map.copyOf(baseFields), "Replay failed: " + sanitizeMessage(ex.getMessage()));
             }
         }
@@ -1043,22 +1159,44 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             Map<String, Object> baseFields =
                     Map.of("credentialReference", result.credentialReference(), "credentialId", result.credentialId());
 
+            TelemetryFrame frame =
+                    parent.augmentReplayFrame(result, result.replayFrame(REPLAY_TELEMETRY, nextTelemetryId()));
+
             return switch (signal.status()) {
                 case SUCCESS -> {
-                    TelemetryFrame frame =
-                            parent.augmentReplayFrame(result, result.replayFrame(REPLAY_TELEMETRY, nextTelemetryId()));
+                    if (outputJson()) {
+                        JsonPrinter.print(
+                                out(),
+                                TelemetryJson.response(event("replay"), frame, parent.buildReplayResponse(result)),
+                                true);
+                        yield CommandLine.ExitCode.OK;
+                    }
                     var writer = parent.out();
                     writeFrame(writer, event("replay"), frame);
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     yield CommandLine.ExitCode.OK;
                 }
                 case INVALID -> {
-                    int exit = parent.failValidation(event("replay"), signal, baseFields);
+                    if (outputJson()) {
+                        JsonPrinter.print(
+                                out(),
+                                TelemetryJson.response(event("replay"), frame, parent.buildReplayResponse(result)),
+                                true);
+                        yield CommandLine.ExitCode.USAGE;
+                    }
+                    int exit = failValidation(event("replay"), signal, baseFields);
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.err(), trace));
                     yield exit;
                 }
                 case ERROR -> {
-                    int exit = parent.failUnexpected(
+                    if (outputJson()) {
+                        JsonPrinter.print(
+                                out(),
+                                TelemetryJson.response(event("replay"), frame, parent.buildReplayResponse(result)),
+                                true);
+                        yield CommandLine.ExitCode.SOFTWARE;
+                    }
+                    int exit = failUnexpected(
                             event("replay"),
                             baseFields,
                             Optional.ofNullable(signal.reason()).orElse("WebAuthn replay failed"));
@@ -1184,7 +1322,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 source = parseInputSource(inputSource);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
+                return failValidation(
                         event("attest"),
                         ATTEST_TELEMETRY,
                         "input_source_invalid",
@@ -1194,7 +1332,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             baseFields.put("inputSource", source.name().toLowerCase(Locale.ROOT));
 
             if (!hasText(format)) {
-                return parent.failValidation(
+                return failValidation(
                         event("attest"),
                         ATTEST_TELEMETRY,
                         "missing_option",
@@ -1206,7 +1344,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 attestationFormat = WebAuthnAttestationFormat.fromLabel(format.trim());
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
+                return failValidation(
                         event("attest"), ATTEST_TELEMETRY, "invalid_format", ex.getMessage(), Map.copyOf(baseFields));
             }
 
@@ -1214,7 +1352,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
             if (source == InputSource.STORED) {
                 if (!hasText(credentialId)) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             "credential_id_required",
@@ -1225,7 +1363,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 baseFields.put("credentialId", storedId);
 
                 if (!hasText(challenge)) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             "challenge_required",
@@ -1237,7 +1375,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 try {
                     challengeBytes = decodeBase64Url("--challenge", challenge);
                 } catch (IllegalArgumentException ex) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             "invalid_payload",
@@ -1263,10 +1401,9 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 } catch (IllegalArgumentException ex) {
                     String message = ex.getMessage() == null ? "Stored attestation generation failed" : ex.getMessage();
                     String reason = mapStoredGenerationReason(message);
-                    return parent.failValidation(
-                            event("attest"), ATTEST_TELEMETRY, reason, message, Map.copyOf(baseFields));
+                    return failValidation(event("attest"), ATTEST_TELEMETRY, reason, message, Map.copyOf(baseFields));
                 } catch (Exception ex) {
-                    return parent.failUnexpected(
+                    return failUnexpected(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             Map.copyOf(baseFields),
@@ -1274,7 +1411,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 }
             } else {
                 if (!hasText(signingMode)) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             "missing_signing_mode",
@@ -1286,7 +1423,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 try {
                     mode = parseSigningMode(signingMode);
                 } catch (IllegalArgumentException ex) {
-                    return parent.failValidation(
+                    return failValidation(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             "invalid_signing_mode",
@@ -1299,7 +1436,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 try {
                     customRoots = loadCustomRoots(customRootFiles);
                 } catch (IOException ex) {
-                    return parent.failUnexpected(
+                    return failUnexpected(
                             event("attest"),
                             ATTEST_TELEMETRY,
                             Map.copyOf(baseFields),
@@ -1317,7 +1454,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                             || !hasText(credentialPrivateKey)
                             || !hasText(attestationPrivateKey)
                             || !hasText(attestationSerial)) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "missing_option",
@@ -1330,7 +1467,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     try {
                         challengeBytes = decodeBase64Url("--challenge", challenge);
                     } catch (IllegalArgumentException ex) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "invalid_payload",
@@ -1354,14 +1491,14 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                         customRootSource,
                                         InputSource.PRESET));
                     } catch (IllegalArgumentException ex) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "generation_failed",
                                 ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
                                 Map.copyOf(baseFields));
                     } catch (Exception ex) {
-                        return parent.failUnexpected(
+                        return failUnexpected(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 Map.copyOf(baseFields),
@@ -1370,7 +1507,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 } else {
                     baseFields.remove("attestationId");
                     if (hasText(attestationId)) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "attestation_id_not_applicable",
@@ -1378,7 +1515,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 Map.copyOf(baseFields));
                     }
                     if (!hasText(relyingPartyId)) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "relying_party_id_required",
@@ -1386,7 +1523,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 Map.copyOf(baseFields));
                     }
                     if (!hasText(origin)) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "origin_required",
@@ -1394,7 +1531,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 Map.copyOf(baseFields));
                     }
                     if (!hasText(challenge)) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "challenge_required",
@@ -1405,7 +1542,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     try {
                         challengeBytes = decodeBase64Url("--challenge", challenge);
                     } catch (IllegalArgumentException ex) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "challenge_required",
@@ -1414,7 +1551,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     }
 
                     if (!hasText(credentialPrivateKey)) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "credential_private_key_required",
@@ -1427,7 +1564,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     String attestationSerialValue = hasText(attestationSerial) ? attestationSerial.trim() : "";
 
                     if (mode != WebAuthnAttestationGenerator.SigningMode.UNSIGNED && attestationKey.isEmpty()) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "attestation_private_key_required",
@@ -1435,7 +1572,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 Map.copyOf(baseFields));
                     }
                     if (mode != WebAuthnAttestationGenerator.SigningMode.UNSIGNED && attestationSerialValue.isEmpty()) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "attestation_serial_required",
@@ -1443,7 +1580,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 Map.copyOf(baseFields));
                     }
                     if (mode == WebAuthnAttestationGenerator.SigningMode.CUSTOM_ROOT && customRoots.isEmpty()) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "custom_root_required",
@@ -1476,14 +1613,14 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                         sanitizedSeedPresetId,
                                         sanitizedOverrides));
                     } catch (IllegalArgumentException ex) {
-                        return parent.failValidation(
+                        return failValidation(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 "generation_failed",
                                 ex.getMessage() == null ? "Attestation generation failed" : ex.getMessage(),
                                 Map.copyOf(baseFields));
                     } catch (Exception ex) {
-                        return parent.failUnexpected(
+                        return failUnexpected(
                                 event("attest"),
                                 ATTEST_TELEMETRY,
                                 Map.copyOf(baseFields),
@@ -1493,6 +1630,34 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
 
             WebAuthnAttestationGenerationApplicationService.GeneratedAttestation attestation = result.attestation();
+
+            WebAuthnAttestationGenerationApplicationService.TelemetrySignal telemetry = result.telemetry();
+            TelemetryFrame frame =
+                    mergeTelemetryFrame(telemetry.emit(ATTEST_TELEMETRY, nextTelemetryId()), Map.copyOf(baseFields));
+
+            if (outputJson()) {
+                Map<String, Object> data = new LinkedHashMap<>(baseFields);
+                data.put("attestationId", attestation.attestationId());
+                data.put("format", attestation.format().label());
+                Map<String, Object> responsePayload = new LinkedHashMap<>();
+                responsePayload.put("clientDataJSON", attestation.response().clientDataJson());
+                responsePayload.put("attestationObject", attestation.response().attestationObject());
+                Map<String, Object> attestationMap = new LinkedHashMap<>();
+                attestationMap.put("type", attestation.type());
+                attestationMap.put("id", attestation.id());
+                attestationMap.put("rawId", attestation.rawId());
+                attestationMap.put("attestationId", attestation.attestationId());
+                attestationMap.put("format", attestation.format().label());
+                attestationMap.put("response", responsePayload);
+                data.put("attestation", attestationMap);
+                if (!result.certificateChainPem().isEmpty()) {
+                    data.put("certificateChainPem", result.certificateChainPem());
+                }
+                result.verboseTrace().ifPresent(trace -> data.put("trace", VerboseTraceMapper.toMap(trace)));
+                JsonPrinter.print(out(), TelemetryJson.response(event("attest"), frame, data), true);
+                return CommandLine.ExitCode.OK;
+            }
+
             out().println("Generated attestation:");
             out().println("type=" + attestation.type());
             out().println("id=" + attestation.id());
@@ -1502,9 +1667,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             out().println("response.clientDataJSON=" + responsePayload.clientDataJson());
             out().println("response.attestationObject=" + responsePayload.attestationObject());
 
-            WebAuthnAttestationGenerationApplicationService.TelemetrySignal telemetry = result.telemetry();
-            TelemetryFrame frame =
-                    mergeTelemetryFrame(telemetry.emit(ATTEST_TELEMETRY, nextTelemetryId()), Map.copyOf(baseFields));
             writeFrame(out(), event("attest"), frame);
             return CommandLine.ExitCode.OK;
         }
@@ -1673,7 +1835,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 source = parseInputSource(inputSource);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "input_source_invalid",
@@ -1683,7 +1845,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             baseFields.put("inputSource", source.name().toLowerCase(Locale.ROOT));
 
             if (!hasText(format)) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "missing_option",
@@ -1695,7 +1857,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 attestationFormat = WebAuthnAttestationFormat.fromLabel(format.trim());
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "invalid_format",
@@ -1711,7 +1873,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
         private Integer replayStored(WebAuthnAttestationFormat attestationFormat, Map<String, Object> baseFields) {
             if (metadataAnchorIds != null && !metadataAnchorIds.isEmpty()) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "stored_metadata_anchor_unsupported",
@@ -1719,7 +1881,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         Map.copyOf(baseFields));
             }
             if (trustAnchorFiles != null && !trustAnchorFiles.isEmpty()) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "stored_trust_anchor_unsupported",
@@ -1728,7 +1890,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
 
             if (!hasText(credentialId)) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "credential_id_required",
@@ -1752,10 +1914,10 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     String rawMessage = ex.getMessage() == null ? "Stored attestation replay failed" : ex.getMessage();
                     String message = sanitizeMessage(rawMessage);
                     String reason = mapStoredReplayReason(rawMessage);
-                    return parent.failValidation(
+                    return failValidation(
                             event("attestReplay"), ATTEST_REPLAY_TELEMETRY, reason, message, Map.copyOf(baseFields));
                 } catch (Exception ex) {
-                    return parent.failUnexpected(
+                    return failUnexpected(
                             event("attestReplay"),
                             ATTEST_REPLAY_TELEMETRY,
                             Map.copyOf(baseFields),
@@ -1768,20 +1930,50 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
                 return switch (telemetry.status()) {
                     case SUCCESS -> {
+                        if (outputJson()) {
+                            JsonPrinter.print(
+                                    out(),
+                                    TelemetryJson.response(
+                                            event("attestReplay"),
+                                            frame,
+                                            parent.buildAttestationReplayResponse(result, baseFields)),
+                                    true);
+                            yield CommandLine.ExitCode.OK;
+                        }
                         writeFrame(out(), event("attestReplay"), frame);
                         yield CommandLine.ExitCode.OK;
                     }
                     case INVALID -> {
+                        if (outputJson()) {
+                            JsonPrinter.print(
+                                    out(),
+                                    TelemetryJson.response(
+                                            event("attestReplay"),
+                                            frame,
+                                            parent.buildAttestationReplayResponse(result, baseFields)),
+                                    true);
+                            yield CommandLine.ExitCode.USAGE;
+                        }
                         writeFrame(err(), event("attestReplay"), frame);
                         yield CommandLine.ExitCode.USAGE;
                     }
                     case ERROR -> {
+                        if (outputJson()) {
+                            JsonPrinter.print(
+                                    out(),
+                                    TelemetryJson.response(
+                                            event("attestReplay"),
+                                            frame,
+                                            parent.buildAttestationReplayResponse(result, baseFields)),
+                                    true);
+                            yield CommandLine.ExitCode.SOFTWARE;
+                        }
                         writeFrame(err(), event("attestReplay"), frame);
                         yield CommandLine.ExitCode.SOFTWARE;
                     }
                 };
             } catch (Exception ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         Map.copyOf(baseFields),
@@ -1792,7 +1984,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
         private Integer replayInline(WebAuthnAttestationFormat attestationFormat, Map<String, Object> baseFields) {
 
             if (!hasText(relyingPartyId) || !hasText(origin)) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "missing_option",
@@ -1801,7 +1993,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             }
 
             if (!hasText(attestationObject) || !hasText(clientDataJson) || !hasText(expectedChallenge)) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "missing_option",
@@ -1817,7 +2009,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 clientDataBytes = decodeBase64Url("--client-data-json", clientDataJson);
                 expectedChallengeBytes = decodeBase64Url("--expected-challenge", expectedChallenge);
             } catch (IllegalArgumentException ex) {
-                return parent.failValidation(
+                return failValidation(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         "invalid_payload",
@@ -1859,7 +2051,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                         anchorResolution.metadataEntryIds(),
                         anchorResolution.warnings()));
             } catch (Exception ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("attestReplay"),
                         ATTEST_REPLAY_TELEMETRY,
                         Map.copyOf(baseFields),
@@ -1872,14 +2064,44 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
             switch (telemetry.status()) {
                 case SUCCESS -> {
+                    if (outputJson()) {
+                        JsonPrinter.print(
+                                out(),
+                                TelemetryJson.response(
+                                        event("attestReplay"),
+                                        frame,
+                                        parent.buildAttestationReplayResponse(result, baseFields)),
+                                true);
+                        return CommandLine.ExitCode.OK;
+                    }
                     writeFrame(out(), event("attestReplay"), frame);
                     return CommandLine.ExitCode.OK;
                 }
                 case INVALID -> {
+                    if (outputJson()) {
+                        JsonPrinter.print(
+                                out(),
+                                TelemetryJson.response(
+                                        event("attestReplay"),
+                                        frame,
+                                        parent.buildAttestationReplayResponse(result, baseFields)),
+                                true);
+                        return CommandLine.ExitCode.USAGE;
+                    }
                     writeFrame(err(), event("attestReplay"), frame);
                     return CommandLine.ExitCode.USAGE;
                 }
                 case ERROR -> {
+                    if (outputJson()) {
+                        JsonPrinter.print(
+                                out(),
+                                TelemetryJson.response(
+                                        event("attestReplay"),
+                                        frame,
+                                        parent.buildAttestationReplayResponse(result, baseFields)),
+                                true);
+                        return CommandLine.ExitCode.SOFTWARE;
+                    }
                     writeFrame(err(), event("attestReplay"), frame);
                     return CommandLine.ExitCode.SOFTWARE;
                 }
@@ -1944,7 +2166,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             try {
                 commands = buildSeedCommands(vectors);
             } catch (RuntimeException ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("seed-attestations"),
                         Map.of(),
                         "Unable to prepare attestation seeds: " + sanitizeMessage(ex.getMessage()));
@@ -1952,6 +2174,15 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
             try (CredentialStore store = parent.openStore()) {
                 SeedResult result = seedService.seed(commands, store);
+                if (outputJson()) {
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    data.put("addedCount", result.addedCount());
+                    data.put("addedCredentialIds", result.addedCredentialIds());
+                    TelemetryFrame frame = ATTEST_TELEMETRY.status(
+                            "success", nextTelemetryId(), "seeded", true, null, Map.copyOf(data));
+                    JsonPrinter.print(out(), TelemetryJson.response(event("seed-attestations"), frame, data), true);
+                    return CommandLine.ExitCode.OK;
+                }
                 if (result.addedCount() == 0) {
                     parent.out().println("All stored attestation credentials are already present.");
                 } else {
@@ -1961,7 +2192,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 }
                 return CommandLine.ExitCode.OK;
             } catch (Exception ex) {
-                return parent.failUnexpected(
+                return failUnexpected(
                         event("seed-attestations"),
                         Map.of(),
                         "Seeding stored credentials failed: " + sanitizeMessage(ex.getMessage()));
@@ -2108,6 +2339,40 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
         @Override
         public Integer call() {
+            List<WebAuthnJsonVector> vectors = parent.jsonVectorList();
+            List<WebAuthnAttestationVector> attestationVectors = parent.attestationVectorList();
+
+            if (outputJson()) {
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put(
+                        "vectors",
+                        vectors.stream()
+                                .map(vector -> Map.of(
+                                        "vectorId", vector.vectorId(),
+                                        "algorithm", vector.algorithm().label(),
+                                        "uvRequired", vector.storedCredential().userVerificationRequired(),
+                                        "relyingPartyId",
+                                                vector.storedCredential().relyingPartyId(),
+                                        "origin", vector.assertionRequest().origin()))
+                                .toList());
+                data.put(
+                        "attestationVectors",
+                        attestationVectors.stream()
+                                .map(vector -> Map.of(
+                                        "attestationId", vector.vectorId(),
+                                        "format", vector.format().label(),
+                                        "algorithm", vector.algorithm().label(),
+                                        "relyingPartyId", vector.relyingPartyId(),
+                                        "origin", vector.origin(),
+                                        "section", vector.w3cSection()))
+                                .toList());
+                data.put("count", vectors.size());
+                data.put("attestationCount", attestationVectors.size());
+                TelemetryFrame frame = new TelemetryFrame(event("vectors"), "success", true, Map.copyOf(data));
+                JsonPrinter.print(out(), TelemetryJson.response(event("vectors"), frame, data), true);
+                return CommandLine.ExitCode.OK;
+            }
+
             parent.printVectorSummaries(out());
             return CommandLine.ExitCode.OK;
         }
@@ -2128,6 +2393,36 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
 
         protected Path databasePath() {
             return parent.databasePath();
+        }
+
+        protected boolean outputJson() {
+            return parent.outputJson();
+        }
+
+        protected int failValidation(String event, String reasonCode, String message, Map<String, Object> fields) {
+            return parent.failValidation(event, reasonCode, message, fields, parent.outputJson());
+        }
+
+        protected int failValidation(
+                String event,
+                Fido2TelemetryAdapter adapter,
+                String reasonCode,
+                String message,
+                Map<String, Object> fields) {
+            return parent.failValidation(event, adapter, reasonCode, message, fields, parent.outputJson());
+        }
+
+        protected int failValidation(String event, TelemetrySignal signal, Map<String, Object> fields) {
+            return parent.failValidation(event, signal, fields, parent.outputJson());
+        }
+
+        protected int failUnexpected(String event, Map<String, Object> fields, String message) {
+            return parent.failUnexpected(event, fields, message, parent.outputJson());
+        }
+
+        protected int failUnexpected(
+                String event, Fido2TelemetryAdapter adapter, Map<String, Object> fields, String message) {
+            return parent.failUnexpected(event, adapter, fields, message, parent.outputJson());
         }
     }
 }

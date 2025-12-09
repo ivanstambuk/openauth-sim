@@ -1,9 +1,12 @@
 # Use the FIDO2/WebAuthn CLI
 
 _Status: Draft_  
-_Last updated: 2025-10-18_
+_Last updated: 2025-12-09_
 
 The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation payloads against the simulator without touching the REST or UI layers. This guide covers stored-credential evaluations, inline verification, attestation verification (with optional trust anchors), replay diagnostics, and the shared JSON vector presets that keep every facade aligned.
+
+> JSON output: every `fido2` subcommand (`evaluate`, `replay`, `attest`, `attest-replay`, `seed-attestations`, `vectors`) now supports `--output-json` to emit a single JSON object instead of text. Combine it with `--verbose` to embed the verbose trace alongside telemetry fields (`event`, `status`, `reasonCode`, `telemetryId`).
+> Counter defaults: `--signature-counter` is now optional. When omitted, the CLI derives the counter from the current Unix epoch seconds (clamped to uint32) and returns the derived value in JSON/telemetry; provide `--signature-counter` when you need a fixed value.
 
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
@@ -61,6 +64,43 @@ Stored mode relies on a credential that already lives in MapDB. The CLI resolves
      --private-key-file path/to/custom-es256-private.jwk
    ```
    The CLI merges your overrides with the preset metadata before generating the assertion.
+4. Output formats:
+   ```bash
+   java -jar openauth-sim-standalone-<version>.jar fido2 evaluate --preset-id packed-es256 --verbose --output-json
+   ```
+   - Default (no flag): assertion JSON plus a trailing telemetry line (`event=cli.fido2.evaluate status=success credentialSource=inline …`).
+   - `--output-json`: single JSON object. Sample (success, inline preset):
+     ```json
+     {
+       "event": "cli.fido2.evaluate",
+       "status": "success",
+       "reasonCode": "generated",
+       "telemetryId": "cli-fido2-…",
+       "sanitized": true,
+       "data": {
+         "credentialReference": false,
+         "credentialSource": "inline",
+         "credentialId": "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU",
+         "relyingPartyId": "example.org",
+         "origin": "https://example.org",
+         "algorithm": "ES256",
+         "signatureCounter": 0,
+         "userVerificationRequired": false,
+         "assertion": {
+           "type": "public-key",
+           "id": "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU",
+           "rawId": "yab1s0YtAoc_6gxWhiI0-Z8IFygITlEbt3YCAaiQVKU",
+           "response": {
+             "clientDataJSON": "…",
+             "authenticatorData": "…",
+             "signature": "…"
+           }
+         },
+         "publicKeyCose": "…",
+         "trace": { "operation": "fido2.assertion.evaluate.inline", "steps": [ { "id": "step.01", "summary": "…" } ] }
+       }
+     }
+     ```
 
 ## Generate Inline Assertions
 Inline mode skips persistence—you provide the credential descriptor, challenge, and private key directly. Use the same `evaluate` command **without** `--credential-id`; presence of `--credential-id` selects stored mode.
@@ -73,6 +113,7 @@ java -jar openauth-sim-standalone-<version>.jar fido2 evaluate \
 ```
 
 The CLI returns the signed `PublicKeyCredential` JSON followed by a sanitized telemetry frame (`credentialSource=inline`, `credentialReference=false`).
+> `--credential-name` is optional; if you omit it, the CLI uses `cli-fido2-inline` and records it only in telemetry/verbose traces (not in the assertion itself).
 
 To craft assertions manually, omit `--preset-id` and provide the required parameters:
 
@@ -124,6 +165,27 @@ java -jar openauth-sim-standalone-<version>.jar fido2 replay \
 
 Replay output reports whether the supplied assertion matches the stored credential (`credentialSource=stored`, `match=true`) and surfaces sanitized errors (for example `reason=mismatch`) when verification fails.
 
+Output formats:
+- Default: single telemetry line (`event=cli.fido2.replay status=success credentialSource=stored match=true …`).
+- JSON (`--output-json`):
+  ```json
+  {
+    "event": "cli.fido2.replay",
+    "status": "success",
+    "reasonCode": "verified",
+    "telemetryId": "cli-fido2-…",
+    "sanitized": true,
+    "data": {
+      "credentialReference": true,
+      "credentialId": "resident-key-es256",
+      "credentialSource": "stored",
+      "match": true,
+      "evaluationStatus": "SUCCESS",
+      "trace": { "...": "present when --verbose is set" }
+    }
+  }
+  ```
+
 ## Inspect Verbose Traces & Extensions
 - Append `--verbose` to any `fido2` evaluate, replay, or attestation command to print the ordered verbose trace immediately after the JSON payload. The trace mirrors the REST/UI response and is the canonical view for debugging.
 - WebAuthn traces now include a dedicated `parse.extensions` step whenever the authenticator reports extension data (`flags.bits.ED = true`). The step lists:
@@ -170,6 +232,10 @@ java -jar openauth-sim-standalone-<version>.jar fido2 attest \
 The CLI prints only the generated `clientDataJSON` and `attestationObject`; signature inclusion and certificate chain counts now surface exclusively through the trailing telemetry frame (`generationMode=self_signed`, `signatureIncluded=true`, `certificateChainCount=1`, `customRootCount=0`). Swap the `--credential-private-key` / `--attestation-private-key` arguments for decoded PEM payloads or alternate JWKs if you need custom material—the generator canonicalises all supported encodings before validating. Switch to `--signing-mode unsigned` to emit a structural attestation without a signature. To chain your own trust anchors, supply one or more PEM bundles via `--custom-root-file <path>` and select `--signing-mode custom-root`.
 
 Manual mode skips presets entirely. Pass `--input-source manual` and supply the relying party, origin, challenge, and credential private key directly. Signed modes still require an attestation private key plus the certificate serial (Base64URL), and `custom-root` additionally expects at least one `--custom-root-file` entry. When you derive manual inputs from an existing preset, tag the original identifier with `--seed-preset-id <id>` and note edited fields with `--override <field>`; both values flow into telemetry (`overrides`, `seedPresetId`) for downstream audits.
+
+Output formats:
+- Default: human-readable attestation fields plus telemetry line (`event=cli.fido2.attest status=success format=packed …`).
+- JSON (`--output-json`): single object containing `attestation` (type/id/rawId/format/response), optional `certificateChainPem`, and telemetry fields (`event/status/reasonCode/telemetryId`).
 
 ```bash
 java -jar openauth-sim-standalone-<version>.jar fido2 attest \
@@ -223,6 +289,10 @@ Stored mode pulls the attestation payload, challenge, and relying-party metadata
 
 > 2025-10-28 – The curated seed catalogue now includes the synthetic `synthetic-packed-ps256` preset so PS256 credentials hydrate with a deterministic cross-origin challenge without manual input.
 
+Output formats:
+- Default: telemetry line (`event=cli.fido2.attestReplay status=success anchorProvided=true …`).
+- JSON (`--output-json`): single object with `valid`, `anchorProvided`, `anchorMode`, `trustAnchorsCached`, `selfAttestedFallback`, optional `attestedCredential` (rpId/credentialId/algorithm/uv/signatureCounter), and `anchorWarnings` when present.
+
 ## Browse the JSON Vector Catalogue
 The `vectors` subcommand prints the full assertion catalogue ([docs/webauthn_assertion_vectors.json](docs/webauthn_assertion_vectors.json)) followed by the attestation datasets from ``docs/webauthn_attestation`/*.json` so every facade stays in sync:
 
@@ -240,6 +310,10 @@ synthetic-android-key   android-key     EdDSA   rp.local        https://rp.local
 ```
 
 Use these `vectorId` values with `fido2 replay` (verification) and for advanced troubleshooting. Attestation entries surface the same identifiers consumed by `fido2 attest`/`attest-replay`, while generator presets (`--preset-id`) drive assertion creation.
+
+Output formats:
+- Default: tabular summaries for assertion and attestation vectors.
+- JSON (`--output-json`): single object with `vectors`, `attestationVectors`, `count`, and `attestationCount`.
 
 ## Troubleshooting & Telemetry Tips
 - Exit code `2` (`CommandLine.ExitCode.USAGE`) signals validation failures. The telemetry frame (printed to stderr) includes a sanitized `reasonCode` such as `credential_not_found`, `invalid_payload`, or `signature_counter_regressed`.

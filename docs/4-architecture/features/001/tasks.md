@@ -59,6 +59,10 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :core:test :application:test`  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [ ] T-001-23 – Add `--output-json` to all HOTP CLI commands (ADR-0014).  
+  _Intent:_ Provide machine-consumable JSON output for HOTP evaluate/replay/import/list commands with tests and docs.  
+  _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
 ## Verification Log
 - 2025-10-05 – `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`
 - 2025-10-13 – Fixture catalogue + UI updates verified with `./gradlew --no-daemon :rest-api:test --tests "*Hotp*"` and `./gradlew spotlessApply check`

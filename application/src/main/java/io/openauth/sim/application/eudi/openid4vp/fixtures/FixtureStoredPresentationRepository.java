@@ -3,9 +3,6 @@ package io.openauth.sim.application.eudi.openid4vp.fixtures;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpValidationService;
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpWalletSimulationService;
 import io.openauth.sim.core.json.SimpleJson;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -34,17 +31,23 @@ public final class FixtureStoredPresentationRepository
     private static OpenId4VpValidationService.StoredPresentation loadPidHaipBaseline() {
         Path storedFile = FixturePaths.resolve(
                 "docs", "test-vectors", "eudiw", "openid4vp", "stored", "presentations", "pid-haip-baseline.json");
-        Map<String, Object> root = readJson(storedFile);
+        Map<String, Object> root =
+                readJson("docs/test-vectors/eudiw/openid4vp/stored/presentations/pid-haip-baseline.json", storedFile);
         String credentialId = stringValue(root, "credentialId");
         String format = stringValue(root, "format");
         String profileValue = stringValue(root, "profile");
         String source = stringValue(root, "source");
+        String normalizedSource = source.endsWith("/") ? source.substring(0, source.length() - 1) : source;
         List<String> policies = readStringList(root, "trustedAuthorities");
-        Path sourceDir = FixturePaths.resolve("docs", "test-vectors", "eudiw", "openid4vp", source);
-        String compactSdJwt = readString(sourceDir.resolve("sdjwt.txt")).strip();
-        List<String> disclosures = FixtureWalletPresetRepository.readDisclosures(sourceDir.resolve("disclosures.json"));
-        List<String> digestValues = FixtureWalletPresetRepository.readDigestValues(sourceDir.resolve("digests.json"));
-        String kbJwt = readString(sourceDir.resolve("kb-jwt.json"));
+        Path sourceDir = FixturePaths.resolve("docs", "test-vectors", "eudiw", "openid4vp", normalizedSource);
+        String classpathPrefix = "docs/test-vectors/eudiw/openid4vp/" + normalizedSource.replace("\\", "/");
+        String compactSdJwt = FixturePaths.readUtf8(classpathPrefix + "/sdjwt.txt", sourceDir.resolve("sdjwt.txt"))
+                .strip();
+        List<String> disclosures = FixtureWalletPresetRepository.readDisclosures(
+                classpathPrefix + "/disclosures.json", sourceDir.resolve("disclosures.json"));
+        List<String> digestValues = FixtureWalletPresetRepository.readDigestValues(
+                classpathPrefix + "/digests.json", sourceDir.resolve("digests.json"));
+        String kbJwt = FixturePaths.readUtf8(classpathPrefix + "/kb-jwt.json", sourceDir.resolve("kb-jwt.json"));
         Map<String, Object> vpToken = buildVpTokenMap(compactSdJwt, credentialId, format);
         Optional<String> dcqlJson = Optional.ofNullable(readDcql());
         return new OpenId4VpValidationService.StoredPresentation(
@@ -82,17 +85,14 @@ public final class FixtureStoredPresentationRepository
     }
 
     private static String readDcql() {
+        String classpath = "docs/test-vectors/eudiw/openid4vp/fixtures/dcql/pid-haip-baseline.json";
         Path path = FixturePaths.resolve(
                 "docs", "test-vectors", "eudiw", "openid4vp", "fixtures", "dcql", "pid-haip-baseline.json");
-        try {
-            return Files.readString(path, StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            return null;
-        }
+        return FixturePaths.readUtf8(classpath, path);
     }
 
-    private static Map<String, Object> readJson(Path path) {
-        Object parsed = SimpleJson.parse(readString(path));
+    private static Map<String, Object> readJson(String classpathPath, Path path) {
+        Object parsed = SimpleJson.parse(FixturePaths.readUtf8(classpathPath, path));
         if (!(parsed instanceof Map<?, ?> map)) {
             throw new IllegalStateException("Stored presentation " + path + " must be an object");
         }
@@ -107,13 +107,5 @@ public final class FixtureStoredPresentationRepository
             throw new IllegalStateException("Stored presentation missing string '" + key + "'");
         }
         return string;
-    }
-
-    private static String readString(Path path) {
-        try {
-            return Files.readString(path, StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read fixture file " + path, ex);
-        }
     }
 }

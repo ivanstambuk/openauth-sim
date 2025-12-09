@@ -88,7 +88,7 @@ _Not applicable – no user-facing UI changes._
 | API-015-03 | MCP `tools/call` (`session.describe` / `session.reset`) | Provides session/context operations. | Lives entirely in MCP layer (no REST backing). |
 
 ### CLI Commands / Flags
-_None._
+_None._ (Protocol-specific CLI commands are governed by their feature specs; ADR-0014 mandates `--output-json` across all CLI commands for HOTP/TOTP/OCRA/FIDO2/EMV/CAP/EUDIW.)
 
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |

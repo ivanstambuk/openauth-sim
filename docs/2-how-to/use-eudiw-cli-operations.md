@@ -3,7 +3,7 @@
 _Status: Draft_  
 _Last updated: 2025-11-08_
 
-The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline authorization requests, simulate wallet responses, and validate VP Tokens directly from the terminal. Output can be plain key/value pairs or JSON identical to the REST facade. This guide documents the most common flows.
+The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline authorization requests, simulate wallet responses, and validate VP Tokens directly from the terminal. Output can be plain key/value pairs or JSON identical to the REST facade—add `--output-json` on any subcommand (`request create`, `wallet simulate`, `validate`, `seed`, `vectors`) to emit a single JSON object; combine with `--verbose` to embed traces.
 
 ## Prerequisites
 - Java 17 with `JAVA_HOME` pointed at a JDK 17 install.
@@ -17,6 +17,9 @@ java -jar openauth-sim-standalone-<version>.jar eudiw request create \
   --include-qr \
   --output-json
 ```
+Output formats:
+- Default: telemetry line with masked nonce/state plus QR/URI fields.
+- `--output-json`: full request object + QR + telemetry (sample below).
 Captured output:
 ```json
 {
@@ -95,6 +98,7 @@ java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate \
   --wallet-preset pid-haip-baseline \
   --output-json
 ```
+Default output is a telemetry line with summary fields; `--output-json` returns the full VP Token bundle plus telemetry, matching the REST response shape.
 Captured output:
 ```json
 {
@@ -209,6 +213,13 @@ java -jar openauth-sim-standalone-<version>.jar eudiw validate \
   --output-json | jq '.trace'
 ```
 The inline file must be a JSON object with `vp_token`, `presentation_submission`, optional `disclosures[]`, and optional `keyBindingJwt`. Validation errors return exit code `2` and print the RFC 7807 payload.
+
+### Output quick reference
+- `request create` – default telemetry line; `--output-json` returns request + QR + telemetry.
+- `wallet simulate` – default telemetry line; `--output-json` returns presentations and telemetry.
+- `validate` – default telemetry line; `--output-json` returns validation result, trust authority matches, and telemetry.
+- `seed` – default text summary; `--output-json` returns counts and provenance.
+- `vectors` – default tabular list; `--output-json` returns arrays of request/presentation presets with counts.
 
 ## Mixed tips
 - Add `--verbose` to surface nonce/state, VP Token hashes, and Trusted Authority verdicts. The JSON output matches the REST response when you pair it with `--output-json`.

@@ -581,6 +581,10 @@ Linked plan: [docs/4-architecture/features/005/plan.md](docs/4-architecture/feat
   > - `EmvCapReplayApplicationService` now computes an `otpHash` for successful replays and an `expectedOtpHash` for mismatches using a `sha256:` digest of the expected OTP, adding a `mismatchReason` field to mismatch telemetry events (`emv.cap.replay.mismatch`) without logging raw digits.
   > - REST metadata (`EmvCapReplayMetadata`) and CLI JSON metadata both surface `expectedOtpHash` when telemetry provides it; OpenAPI snapshots were refreshed to document the new metadata field, and the full `spotlessApply check` pipeline passed with replay diagnostics in place (see `_current-session.md` logs for timestamps).
 
+- [ ] T-005-74a – Add `--output-json` to all EMV/CAP CLI commands (ADR-0014).  
+  _Intent:_ Provide machine-consumable JSON output for evaluate/replay/seed commands with tests and docs.  
+  _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
 ## Verification log
 - 2025-11-09 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`
 - 2025-11-09 – `./gradlew --no-daemon --console=plain :application:test :cli:test :rest-api:test :ui:test pmdMain pmdTest spotlessApply check`

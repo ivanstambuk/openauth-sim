@@ -55,6 +55,10 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :core:test :application:test`  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [ ] T-002-21 – Add `--output-json` to all TOTP CLI commands (ADR-0014).  
+  _Intent:_ Provide machine-consumable JSON output for TOTP evaluate/replay commands with tests and docs.  
+  _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
 ## Verification Log
 - 2025-10-18 – `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`
 - 2025-11-10 – `./gradlew --no-daemon spotlessApply check` (template migration verification)

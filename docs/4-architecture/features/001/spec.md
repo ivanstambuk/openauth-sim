@@ -92,6 +92,7 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 | CLI-001-01 | `maintenance hotp import` | Loads HOTP credentials. |
 | CLI-001-02 | `maintenance hotp evaluate` | Inline/stored evaluation. |
 | CLI-001-03 | `maintenance hotp replay` | Non-mutating evaluation. |
+| CLI-001-04 | `--output-json` | All HOTP CLI commands emit a JSON payload instead of text when present (ADR-0014). |
 
 ### Native Java API
 | ID | Entry point | Description | Notes |

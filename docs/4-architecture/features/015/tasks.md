@@ -39,6 +39,13 @@ _Last updated:_ 2025-11-18_
   - `./gradlew --no-daemon generateJsonLd check`  
   _Notes:_ Record governance logs in `_current-session.md`; refresh `build/mcp-feedback.json`; execute Implementation Drift Gate checklist.
 
+- [ ] T-015-08 – Enforce CLI `--output-json` parity across all protocol commands (ADR-0014).  
+  _Intent:_ Coordinate cross-feature work so HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW CLI commands expose a uniform `--output-json` flag and documented schemas; update MCP catalogue metadata accordingly.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :cli:test :standalone:jar`  
+  - `./gradlew --no-daemon :tools-mcp-server:test`  
+  _Notes:_ Ensure protocol feature specs/plans/tasks carry the corresponding tasks and reference ADR-0014.
+
 - [ ] T-015-05 – EMV Preset Inspector tool (FR-015-05, S-015-05).  
   _Intent:_ Add `emv.cap.inspect` tool to decode credential descriptors/bitmaps into human-readable profiles.  
   _Verification commands:_  

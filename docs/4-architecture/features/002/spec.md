@@ -90,6 +90,7 @@ Replay panel mirrors Evaluate but never mutates counters.
 |----|---------|-----------|
 | CLI-002-01 | `maintenance totp evaluate` | Evaluates stored/inline credentials (drift/timestamp). |
 | CLI-002-02 | `maintenance totp replay` | Non-mutating replay. |
+| CLI-002-03 | `--output-json` | All TOTP CLI commands emit JSON when present (ADR-0014). |
 
 ### Native Java API
 | ID | Entry point | Description | Notes |

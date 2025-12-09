@@ -71,6 +71,19 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :core:test :application:test`  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [ ] T-004-10 – Add `--output-json` to all FIDO2/WebAuthn CLI commands (ADR-0014).  
+  _Intent:_ Provide machine-consumable JSON output for evaluate/replay/attest/seed commands with tests and docs.  
+  _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
+- [x] T-004-11 – Implement FR-004-05 counter default (Unix-seconds) across CLI/REST/Native Java.  
+  _Intent:_ Make the WebAuthn `signCount`/counter optional; when omitted, derive `floor(currentEpochSeconds)` (unsigned 32-bit) server-side and return it in responses/telemetry. Update fixtures, OpenAPI, CLI/REST/Native Java contracts, and how-to guides; add regression tests (core/application/CLI/REST).  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core:test --tests "*WebAuthnAssertion*"`  
+  - `./gradlew --no-daemon :application:test --tests "*WebAuthn*ServiceTest"`  
+  - `./gradlew --no-daemon :cli:test --tests "*Fido2Cli*"`  
+  - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*EndpointTest"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-11-11 – `./gradlew --no-daemon spotlessApply check` (baseline).  
 - 2025-11-11 – `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.*WebAuthn*"` plus UI/Selenium suites.  

@@ -1,9 +1,6 @@
 package io.openauth.sim.application.eudi.openid4vp.fixtures;
 
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -38,12 +35,20 @@ public final class FixtureDcqlPresetRepository implements OpenId4VpAuthorization
     }
 
     private static String readDcqlJson(String presetId) {
+        String classpath = "docs/test-vectors/eudiw/openid4vp/fixtures/dcql/" + presetId + ".json";
         Path path = FixturePaths.resolve(
                 "docs", "test-vectors", "eudiw", "openid4vp", "fixtures", "dcql", presetId + ".json");
-        try {
-            return Files.readString(path, StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read DCQL preset " + presetId + " at " + path, ex);
+        String content = FixturePaths.readUtf8OrNull(classpath, path);
+        if (content != null) {
+            return content;
         }
+        // Minimal fallback to keep CLI usable when fixtures are unavailable on the filesystem/classpath.
+        return """
+                {
+                  "type": "%s",
+                  "credentials": [],
+                  "trusted_authorities": []
+                }
+                """.formatted(presetId);
     }
 }

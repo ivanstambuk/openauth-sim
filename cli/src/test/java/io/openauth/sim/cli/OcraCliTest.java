@@ -147,6 +147,46 @@ class OcraCliTest {
     }
 
     @Test
+    void verifyInlineEmitsJsonWhenRequested() {
+        OcraCredentialDescriptor descriptor = new OcraCredentialFactory()
+                .createDescriptor(new OcraCredentialRequest(
+                        "inline-verify-json",
+                        DEFAULT_SUITE,
+                        DEFAULT_SECRET_HEX,
+                        SecretEncoding.HEX,
+                        null,
+                        null,
+                        null,
+                        Map.of("source", "cli-inline")));
+
+        String expectedOtp = OcraResponseCalculator.generate(
+                descriptor, new OcraExecutionContext(null, VERIFY_CHALLENGE_NUMERIC, null, null, null, null, null));
+
+        CommandHarness harness = CommandHarness.create();
+        int exitCode = harness.execute(
+                "verify",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret",
+                DEFAULT_SECRET_HEX,
+                "--otp",
+                expectedOtp,
+                "--challenge",
+                VERIFY_CHALLENGE_NUMERIC,
+                "--verbose",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.ocra.verify\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"reasonCode\":\"match\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
+    }
+
+    @Test
     @DisplayName("verify command accepts inline Base32 shared secrets")
     void verifyInlineCredentialMatchWithBase32() {
         OcraCredentialDescriptor descriptor = new OcraCredentialFactory()

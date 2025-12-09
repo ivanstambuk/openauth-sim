@@ -61,8 +61,12 @@ java -jar openauth-sim-standalone-<version>.jar ocra evaluate \
 ```
 Successful evaluations print the OTP and telemetry ID. If required parameters are missing, the CLI returns `reasonCode` values such as `session_required`, `counter_required`, or `credential_conflict`.
 
+### Output formats
+- **Default (no flag):** key=value telemetry line plus preview table on success.
+- **JSON (`--output-json`):** single object with `event`, `status`, `reasonCode`, `telemetryId`, `sanitized`, and a `data` payload (otp, suite, mode, credential reference, previews, optional trace when `--verbose` is set).
+
 #### Sample inline evaluation output
-Command:
+Command (challenge-only suite):
 ```bash
 java -jar openauth-sim-standalone-<version>.jar ocra evaluate \
   --suite OCRA-1:HOTP-SHA1-6:QN08 \
@@ -76,6 +80,39 @@ Preview window:
  Counter Δ   OTP
 > -       [0] 237653
 ```
+
+Command (counter + challenge suite with JSON):
+```bash
+java -jar openauth-sim-standalone-<version>.jar ocra evaluate \
+  --suite "OCRA-1:HOTP-SHA1-6:C-QN08" \
+  --secret 3132333435363738393031323334353637383930 \
+  --challenge 12345678 \
+  --counter 0 \
+  --output-json
+```
+Output (success, inline):
+```json
+{
+  "event": "cli.ocra.evaluate",
+  "status": "success",
+  "reasonCode": "success",
+  "telemetryId": "cli-…",
+  "sanitized": true,
+  "data": {
+    "reasonCode": "success",
+    "mode": "inline",
+    "suite": "OCRA-1:HOTP-SHA1-6:C-QN08",
+    "otp": "897640",
+    "credentialReference": false,
+    "windowBackward": 0,
+    "windowForward": 0,
+    "previews": [
+      { "counter": "000000", "delta": 0, "otp": "897640" }
+    ]
+  }
+}
+```
+If a counter is supplied for a challenge-only suite, JSON output will show `status=invalid` and `reasonCode=validation_error` with `data.reason` explaining the mismatch.
 
 ## 4. Verify Historical OTPs
 Replays confirm whether a supplied OTP matches what the simulator would have produced previously. The verifier never mutates counters or session state, so you can run it repeatedly for audits.

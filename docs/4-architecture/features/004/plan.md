@@ -1,8 +1,8 @@
 # Feature Plan 004 – FIDO2/WebAuthn Assertions & Attestations
 
 _Linked specification:_ [docs/4-architecture/features/004/spec.md](docs/4-architecture/features/004/spec.md)  
-_Status:_ Complete  
-_Last updated:_ 2025-11-13
+_Status:_ Complete (maintenance change pending FR-004-05)  
+_Last updated:_ 2025-12-09
 
 ## Vision & Success Criteria
 Unify all assertion evaluation, replay, and attestation generation/verification work under Feature 004 so the CLI, REST, and UI surfaces derive their requirements from a single FR/NFR matrix, share fixtures, and emit the same sanitized telemetry events (`fido2.evaluate`, `fido2.replay`, `fido2.attest`, `fido2.attestReplay`). Success is measured by core/persistence assertion tests, attestation generator/metadata tests, Selenium coverage, and documentation/verification logs staying green after `./gradlew --no-daemon spotlessApply check`.
@@ -124,3 +124,4 @@ Log the gate results in this plan after the first clean `./gradlew --no-daemon s
 - Monitor [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md) for new dependencies introduced by future trust-anchor catalog enhancements and add entries referencing `WebAuthnMetadataCatalogue`.  
 - Schedule a drift gate once Feature 004 wraps to verify no regression tests were skipped and to capture lessons in the plan appendix.
 - Align FIDO2/WebAuthn Native Java API seams with Feature 014 – Native Java API Facade and ADR-0007 by identifying a small set of public Java entry points (assertion/attestation helpers or application services), documenting them, and adding a `use-fido2-from-java.md` how-to when scheduled.
+- Implement FR-004-05 (counter optional with Unix-seconds default) across CLI/REST/Native Java, update fixtures/OpenAPI/how-tos, and add tests + telemetry fields for derived counters.

@@ -2,6 +2,8 @@ package io.openauth.sim.application.eudi.openid4vp.fixtures;
 
 import io.openauth.sim.application.eudi.openid4vp.OpenId4VpAuthorizationRequestService;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,12 +19,10 @@ public final class FixtureSeedSequence implements OpenId4VpAuthorizationRequestS
     private final String requestIdPrefix;
 
     public FixtureSeedSequence() {
-        Path seedsFile = FixturePaths.resolve("docs", "test-vectors", "eudiw", "openid4vp", "seeds", "default.seed");
         Properties properties = new Properties();
-        try {
-            properties.load(Files.newBufferedReader(seedsFile, StandardCharsets.UTF_8));
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read OpenID4VP seed file " + seedsFile, ex);
+        boolean loaded = loadFromClasspath(properties);
+        if (!loaded) {
+            loaded = loadFromFilesystem(properties);
         }
         this.nonceSeed = properties.getProperty("nonceSeed", "oid4vp-nonce");
         this.stateSeed = properties.getProperty("stateSeed", "oid4vp-state");
@@ -46,5 +46,28 @@ public final class FixtureSeedSequence implements OpenId4VpAuthorizationRequestS
 
     private static String pad(int value) {
         return String.format("%04d", value);
+    }
+
+    private static boolean loadFromClasspath(Properties properties) {
+        try (InputStream stream =
+                FixtureSeedSequence.class.getClassLoader().getResourceAsStream("eudiw/openid4vp/seeds/default.seed")) {
+            if (stream == null) {
+                return false;
+            }
+            properties.load(new InputStreamReader(stream, StandardCharsets.UTF_8));
+            return true;
+        } catch (IOException ex) {
+            return false;
+        }
+    }
+
+    private static boolean loadFromFilesystem(Properties properties) {
+        Path seedsFile = FixturePaths.resolve("docs", "test-vectors", "eudiw", "openid4vp", "seeds", "default.seed");
+        try {
+            properties.load(Files.newBufferedReader(seedsFile, StandardCharsets.UTF_8));
+            return true;
+        } catch (IOException ex) {
+            return false;
+        }
     }
 }

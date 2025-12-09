@@ -648,6 +648,7 @@ Legend: verbose trace remains optional; result metrics (mask length, ATC, etc.) 
 | CLI-005-01 | `emv cap evaluate` | Inline/stored evaluation with preview controls + verbose toggle |
 | CLI-005-02 | `emv cap replay` | Replay OTPs with mismatch diagnostics |
 | CLI-005-03 | `emv cap seed` | Load fixture datasets into MapDB |
+| CLI-005-04 | `--output-json` | All EMV/CAP CLI commands emit JSON when present (ADR-0014). |
 
 ### Telemetry Events
 | ID | Event name | Fields / Redaction rules |

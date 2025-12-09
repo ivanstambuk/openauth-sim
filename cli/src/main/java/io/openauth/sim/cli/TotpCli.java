@@ -1,5 +1,6 @@
 package io.openauth.sim.cli;
 
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.application.telemetry.TotpTelemetryAdapter;
@@ -9,6 +10,9 @@ import io.openauth.sim.application.totp.TotpEvaluationApplicationService.Evaluat
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetrySignal;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.TelemetryStatus;
 import io.openauth.sim.cli.support.EphemeralCredentialStore;
+import io.openauth.sim.cli.support.JsonPrinter;
+import io.openauth.sim.cli.support.TelemetryJson;
+import io.openauth.sim.cli.support.VerboseTraceMapper;
 import io.openauth.sim.core.encoding.Base32SecretCodec;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -95,17 +99,26 @@ public final class TotpCli implements Callable<Integer> {
         return "cli-totp-" + UUID.randomUUID();
     }
 
-    private int failValidation(String event, TelemetrySignal signal, Map<String, Object> fields, String message) {
+    private int failValidation(
+            String event, TelemetrySignal signal, Map<String, Object> fields, String message, boolean outputJson) {
         TelemetryFrame frame = EVALUATION_TELEMETRY.validationFailure(
                 nextTelemetryId(), signal.reasonCode(), sanitizeMessage(message), true, fields);
-        writeFrame(err(), event, frame);
+        if (outputJson) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.USAGE;
     }
 
-    private int failUnexpected(String event, Map<String, Object> fields, String message) {
+    private int failUnexpected(String event, Map<String, Object> fields, String message, boolean outputJson) {
         TelemetryFrame frame = EVALUATION_TELEMETRY.error(
                 nextTelemetryId(), "unexpected_error", sanitizeMessage(message), false, fields);
-        writeFrame(err(), event, frame);
+        if (outputJson) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, fields), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.SOFTWARE;
     }
 
@@ -143,17 +156,21 @@ public final class TotpCli implements Callable<Integer> {
             return CredentialStoreFactory.openFileStore(databasePath());
         }
 
-        protected int failUnexpected(String event, Map<String, Object> fields, String message) {
-            return parent.failUnexpected(event, fields, message);
+        protected int failUnexpected(String event, Map<String, Object> fields, String message, boolean outputJson) {
+            return parent.failUnexpected(event, fields, message, outputJson);
         }
 
-        protected int failValidation(String event, TelemetrySignal signal, Map<String, Object> fields, String message) {
-            return parent.failValidation(event, signal, fields, message);
+        protected int failValidation(
+                String event, TelemetrySignal signal, Map<String, Object> fields, String message, boolean outputJson) {
+            return parent.failValidation(event, signal, fields, message, outputJson);
         }
     }
 
     @CommandLine.Command(name = "list", description = "Show stored TOTP credentials.")
     static final class ListCommand extends AbstractTotpCommand {
+
+        @CommandLine.Option(names = "--output-json", description = "Emit a single JSON object instead of text output")
+        boolean outputJson;
 
         @Override
         public Integer call() {
@@ -163,23 +180,56 @@ public final class TotpCli implements Callable<Integer> {
                         .sorted(Comparator.comparing(Credential::name))
                         .collect(Collectors.toList());
 
-                out().println("event=" + event("list") + " status=success count=" + credentials.size());
+                if (outputJson) {
+                    Map<String, Object> payload = new LinkedHashMap<>();
+                    payload.put("count", credentials.size());
+                    payload.put(
+                            "credentials",
+                            credentials.stream()
+                                    .map(credential -> {
+                                        Map<String, String> attributes =
+                                                TotpPersistenceDefaults.ensureDefaults(credential.attributes());
+                                        return Map.of(
+                                                "credentialId",
+                                                credential.name(),
+                                                "algorithm",
+                                                attributes.get(TotpPersistenceDefaults.ALGORITHM_ATTRIBUTE),
+                                                "digits",
+                                                attributes.get(TotpPersistenceDefaults.DIGITS_ATTRIBUTE),
+                                                "stepSeconds",
+                                                attributes.get(TotpPersistenceDefaults.STEP_SECONDS_ATTRIBUTE),
+                                                "driftBackwardSteps",
+                                                attributes.get(TotpPersistenceDefaults.DRIFT_BACKWARD_ATTRIBUTE),
+                                                "driftForwardSteps",
+                                                attributes.get(TotpPersistenceDefaults.DRIFT_FORWARD_ATTRIBUTE));
+                                    })
+                                    .toList());
+                    Map<String, Object> response = new LinkedHashMap<>();
+                    response.put("event", event("list"));
+                    response.put("status", "success");
+                    response.put("reasonCode", "success");
+                    response.put("data", payload);
+                    JsonPrinter.print(out(), response, true);
+                } else {
+                    out().println("event=" + event("list") + " status=success count=" + credentials.size());
 
-                for (Credential credential : credentials) {
-                    Map<String, String> attributes = TotpPersistenceDefaults.ensureDefaults(credential.attributes());
-                    String line = "credentialId="
-                            + credential.name()
-                            + " algorithm="
-                            + attributes.get(TotpPersistenceDefaults.ALGORITHM_ATTRIBUTE)
-                            + " digits="
-                            + attributes.get(TotpPersistenceDefaults.DIGITS_ATTRIBUTE)
-                            + " stepSeconds="
-                            + attributes.get(TotpPersistenceDefaults.STEP_SECONDS_ATTRIBUTE)
-                            + " driftBackwardSteps="
-                            + attributes.get(TotpPersistenceDefaults.DRIFT_BACKWARD_ATTRIBUTE)
-                            + " driftForwardSteps="
-                            + attributes.get(TotpPersistenceDefaults.DRIFT_FORWARD_ATTRIBUTE);
-                    out().println(line);
+                    for (Credential credential : credentials) {
+                        Map<String, String> attributes =
+                                TotpPersistenceDefaults.ensureDefaults(credential.attributes());
+                        String line = "credentialId="
+                                + credential.name()
+                                + " algorithm="
+                                + attributes.get(TotpPersistenceDefaults.ALGORITHM_ATTRIBUTE)
+                                + " digits="
+                                + attributes.get(TotpPersistenceDefaults.DIGITS_ATTRIBUTE)
+                                + " stepSeconds="
+                                + attributes.get(TotpPersistenceDefaults.STEP_SECONDS_ATTRIBUTE)
+                                + " driftBackwardSteps="
+                                + attributes.get(TotpPersistenceDefaults.DRIFT_BACKWARD_ATTRIBUTE)
+                                + " driftForwardSteps="
+                                + attributes.get(TotpPersistenceDefaults.DRIFT_FORWARD_ATTRIBUTE);
+                        out().println(line);
+                    }
                 }
 
                 return CommandLine.ExitCode.OK;
@@ -187,7 +237,8 @@ public final class TotpCli implements Callable<Integer> {
                 return failUnexpected(
                         event("list"),
                         Map.of(),
-                        "Failed to list TOTP credentials: " + sanitizeMessage(ex.getMessage()));
+                        "Failed to list TOTP credentials: " + sanitizeMessage(ex.getMessage()),
+                        outputJson);
             }
         }
     }
@@ -264,6 +315,9 @@ public final class TotpCli implements Callable<Integer> {
         @CommandLine.Option(names = "--verbose", description = "Emit a detailed verbose trace of the evaluation steps")
         boolean verbose;
 
+        @CommandLine.Option(names = "--output-json", description = "Emit a single JSON object instead of text output")
+        boolean outputJson;
+
         @Override
         public Integer call() {
             boolean storedMode = hasText(credentialId);
@@ -286,7 +340,8 @@ public final class TotpCli implements Callable<Integer> {
                                     true,
                                     fields),
                             fields,
-                            "Inline secrets cannot be combined with --credential-id");
+                            "Inline secrets cannot be combined with --credential-id",
+                            outputJson);
                 }
                 return handleStored(window, evaluationInstant, override, fields);
             }
@@ -302,45 +357,50 @@ public final class TotpCli implements Callable<Integer> {
                 TotpEvaluationApplicationService service = new TotpEvaluationApplicationService(store);
                 EvaluationResult result = service.evaluate(
                         new EvaluationCommand.Stored(credentialId, "", window, evaluationInstant, override), verbose);
-                return handleResult(result, event("evaluate"), true);
+                return handleResult(result, event("evaluate"), true, outputJson);
             } catch (Exception ex) {
                 return failUnexpected(
-                        event("evaluate"), fields, "Evaluation failed: " + sanitizeMessage(ex.getMessage()));
+                        event("evaluate"),
+                        fields,
+                        "Evaluation failed: " + sanitizeMessage(ex.getMessage()),
+                        outputJson);
             }
         }
 
-        private Integer handleResult(EvaluationResult result, String event, boolean credentialReference) {
+        private Integer handleResult(
+                EvaluationResult result, String event, boolean credentialReference, boolean outputJson) {
             TelemetrySignal signal = result.telemetry();
+            TelemetryFrame frame =
+                    addResultFields(signal.emit(EVALUATION_TELEMETRY, nextTelemetryId()), credentialReference, result);
             switch (signal.status()) {
                 case SUCCESS -> {
-                    TelemetryFrame frame = signal.emit(EVALUATION_TELEMETRY, nextTelemetryId());
+                    if (outputJson) {
+                        JsonPrinter.print(out(), buildResponse(event, frame, result), true);
+                        return CommandLine.ExitCode.OK;
+                    }
                     PrintWriter writer = out();
-                    writeFrame(writer, event, addResultFields(frame, credentialReference, result));
+                    writeFrame(writer, event, frame);
                     OtpPreviewTableFormatter.print(writer, result.previews());
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(writer, trace));
                     return CommandLine.ExitCode.OK;
                 }
                 case INVALID -> {
-                    Map<String, Object> fields = new LinkedHashMap<>();
-                    fields.put("credentialReference", credentialReference);
-                    fields.put("credentialId", result.credentialId());
-                    fields.put("matchedSkewSteps", result.matchedSkewSteps());
-                    int exitCode = failValidation(
-                            event,
-                            signal,
-                            fields,
-                            Optional.ofNullable(signal.reason()).orElse(signal.reasonCode()));
+                    if (outputJson) {
+                        JsonPrinter.print(out(), buildResponse(event, frame, result), true);
+                        return CommandLine.ExitCode.USAGE;
+                    }
+                    writeFrame(err(), event, frame);
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
-                    return exitCode;
+                    return CommandLine.ExitCode.USAGE;
                 }
                 case ERROR -> {
-                    Map<String, Object> fields = new LinkedHashMap<>();
-                    fields.put("credentialReference", credentialReference);
-                    fields.put("credentialId", result.credentialId());
-                    int exitCode = failUnexpected(
-                            event, fields, Optional.ofNullable(signal.reason()).orElse("TOTP evaluation failed"));
+                    if (outputJson) {
+                        JsonPrinter.print(out(), buildResponse(event, frame, result), true);
+                        return CommandLine.ExitCode.SOFTWARE;
+                    }
+                    writeFrame(err(), event, frame);
                     result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(err(), trace));
-                    return exitCode;
+                    return CommandLine.ExitCode.SOFTWARE;
                 }
             }
             throw new IllegalStateException("Unhandled telemetry status: " + signal.status());
@@ -360,6 +420,51 @@ public final class TotpCli implements Callable<Integer> {
                 merged.put("otp", result.otp());
             }
             return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), merged);
+        }
+
+        private Map<String, Object> buildResponse(String event, TelemetryFrame frame, EvaluationResult result) {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("reasonCode", result.telemetry().reasonCode());
+            data.put("credentialReference", result.credentialReference());
+            data.put("valid", result.valid());
+            data.put("matchedSkewSteps", result.matchedSkewSteps());
+            if (result.credentialId() != null && !result.credentialId().isBlank()) {
+                data.put("credentialId", result.credentialId());
+            }
+            if (result.otp() != null && !result.otp().isBlank()) {
+                data.put("otp", result.otp());
+            }
+            data.put("algorithm", result.algorithm().name());
+            if (result.digits() != null) {
+                data.put("digits", result.digits());
+            }
+            if (result.stepDuration() != null) {
+                data.put("stepSeconds", result.stepDuration().toSeconds());
+            }
+            if (result.driftWindow() != null) {
+                data.put("driftBackwardSteps", result.driftWindow().backwardSteps());
+                data.put("driftForwardSteps", result.driftWindow().forwardSteps());
+            }
+            if (result.previews() != null && !result.previews().isEmpty()) {
+                data.put(
+                        "previews",
+                        result.previews().stream().map(this::mapPreview).toList());
+            }
+            result.verboseTrace().ifPresent(trace -> data.put("trace", VerboseTraceMapper.toMap(trace)));
+            if (result.telemetry().reason() != null) {
+                data.put("reason", result.telemetry().reason());
+            }
+            return TelemetryJson.response(event, frame, data);
+        }
+
+        private Map<String, Object> mapPreview(OtpPreview preview) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            if (preview.counter() != null) {
+                map.put("counter", preview.counter());
+            }
+            map.put("delta", preview.delta());
+            map.put("otp", preview.otp());
+            return map;
         }
 
         private Integer handleInline(
@@ -383,17 +488,21 @@ public final class TotpCli implements Callable<Integer> {
                                     evaluationInstant,
                                     override),
                             verbose);
-                    return handleResult(result, event("evaluate"), false);
+                    return handleResult(result, event("evaluate"), false, outputJson);
                 }
             } catch (IllegalArgumentException ex) {
                 return failValidation(
                         event("evaluate"),
                         new TelemetrySignal(TelemetryStatus.INVALID, "validation_error", ex.getMessage(), true, fields),
                         fields,
-                        ex.getMessage());
+                        ex.getMessage(),
+                        outputJson);
             } catch (Exception ex) {
                 return failUnexpected(
-                        event("evaluate"), fields, "Evaluation failed: " + sanitizeMessage(ex.getMessage()));
+                        event("evaluate"),
+                        fields,
+                        "Evaluation failed: " + sanitizeMessage(ex.getMessage()),
+                        outputJson);
             }
         }
 

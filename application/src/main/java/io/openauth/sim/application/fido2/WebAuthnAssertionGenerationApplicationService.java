@@ -104,11 +104,13 @@ public final class WebAuthnAssertionGenerationApplicationService {
 
     private GenerationResult generateInline(GenerationCommand.Inline command, boolean verbose) {
         try {
+            WebAuthnCounterResolver.SignatureCounter counter =
+                    WebAuthnCounterResolver.resolve(command.signatureCounter());
             KeyMaterial keyMaterial = parsePrivateKey(command.privateKey(), command.algorithm());
             byte[] challenge = command.challenge().clone();
             byte[] clientDataJson = createClientDataJson(command.expectedType(), challenge, command.origin());
             byte[] authenticatorData = buildAuthenticatorData(
-                    command.relyingPartyId(), command.signatureCounter(), command.userVerificationRequired());
+                    command.relyingPartyId(), counter.value(), command.userVerificationRequired());
 
             byte[] signature =
                     signAssertion(command.algorithm(), keyMaterial.privateKey(), authenticatorData, clientDataJson);
@@ -138,7 +140,8 @@ public final class WebAuthnAssertionGenerationApplicationService {
                     artifacts.signature(),
                     artifacts.publicKeyCose(),
                     command.algorithm(),
-                    command.signatureCounter(),
+                    counter.value(),
+                    counter.derived(),
                     command.userVerificationRequired(),
                     false,
                     command.relyingPartyId(),
@@ -166,7 +169,16 @@ public final class WebAuthnAssertionGenerationApplicationService {
             }
         }
 
-        long signatureCounter = command.signatureCounterOverrideValue().orElse(descriptor.signatureCounter());
+        long signatureCounter;
+        boolean signatureCounterDerived = false;
+        if (command.signatureCounterOverrideValue().isPresent()) {
+            WebAuthnCounterResolver.SignatureCounter counter = WebAuthnCounterResolver.resolve(
+                    command.signatureCounterOverrideValue().orElse(null));
+            signatureCounter = counter.value();
+            signatureCounterDerived = counter.derived();
+        } else {
+            signatureCounter = descriptor.signatureCounter();
+        }
         boolean userVerificationRequired =
                 command.userVerificationRequiredOverrideValue().orElse(descriptor.userVerificationRequired());
 
@@ -251,6 +263,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 artifacts.publicKeyCose(),
                 inline.algorithm(),
                 signatureCounter,
+                signatureCounterDerived,
                 userVerificationRequired,
                 true,
                 descriptor.relyingPartyId(),
@@ -901,7 +914,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
                 String relyingPartyId,
                 String origin,
                 String expectedType,
-                long signatureCounter,
+                Long signatureCounter,
                 boolean userVerificationRequired,
                 byte[] challenge,
                 String privateKey)
@@ -992,6 +1005,7 @@ public final class WebAuthnAssertionGenerationApplicationService {
             byte[] publicKeyCose,
             WebAuthnSignatureAlgorithm algorithm,
             long signatureCounter,
+            boolean signatureCounterDerived,
             boolean userVerificationRequired,
             boolean credentialReference,
             String relyingPartyId,

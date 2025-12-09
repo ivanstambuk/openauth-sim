@@ -19,6 +19,7 @@ When communicating options to the user—whether resolving an open question or p
 
 ## Question Details
 
+
 ### Q010-02 – Documentation Link Policy
 
 **Context:** Feature 010 governs documentation & knowledge automation quality gates. Human-facing guides currently mention repo files using bare paths, and we need a rule that balances human readability with LLM/agent token footprint.

@@ -36,12 +36,15 @@ public final class TrustedAuthorityFixtures {
     }
 
     private static Map<String, Object> readSnapshot(String presetId) {
-        Path snapshotPath = resolveSnapshotPath(presetId);
-        String json;
-        try {
-            json = Files.readString(snapshotPath, StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            throw new IllegalStateException("Unable to read OpenID4VP trusted authority snapshot " + presetId, ex);
+        String resourcePath = "docs/test-vectors/eudiw/openid4vp/trust/snapshots/" + presetId + ".json";
+        String json = readUtf8FromClasspath(resourcePath);
+        if (json == null) {
+            Path snapshotPath = resolveSnapshotPath(presetId);
+            try {
+                json = Files.readString(snapshotPath, StandardCharsets.UTF_8);
+            } catch (IOException ex) {
+                throw new IllegalStateException("Unable to read OpenID4VP trusted authority snapshot " + presetId, ex);
+            }
         }
         Object parsed = SimpleJson.parse(json);
         if (!(parsed instanceof Map<?, ?> map)) {
@@ -64,6 +67,22 @@ public final class TrustedAuthorityFixtures {
             }
         }
         throw new IllegalStateException("Unable to locate trusted authority snapshot " + fileName);
+    }
+
+    private static String readUtf8FromClasspath(String classpathPath) {
+        for (ClassLoader loader : List.of(
+                TrustedAuthorityFixtures.class.getClassLoader(),
+                Thread.currentThread().getContextClassLoader())) {
+            try (var stream = loader.getResourceAsStream(classpathPath)) {
+                if (stream == null) {
+                    continue;
+                }
+                return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            } catch (IOException ignored) {
+                // try next loader
+            }
+        }
+        return null;
     }
 
     private static List<String> readStringList(Map<String, Object> root, String key, String presetId) {

@@ -13,9 +13,13 @@ import io.openauth.sim.application.ocra.OcraVerificationApplicationService.Verif
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationResult;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationValidationException;
 import io.openauth.sim.application.ocra.OcraVerificationRequests;
+import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.OcraTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.cli.support.JsonPrinter;
+import io.openauth.sim.cli.support.TelemetryJson;
+import io.openauth.sim.cli.support.VerboseTraceMapper;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
@@ -214,15 +218,27 @@ public final class OcraCli implements Callable<Integer> {
         return "cli-" + UUID.randomUUID();
     }
 
-    private int failValidation(String event, String reasonCode, String message) {
-        Map<String, String> fields = mapOf("reason", sanitizeMessage(message));
-        emit(err(), event, "invalid", reasonCode, true, fields);
+    private int failValidation(
+            String event, String reasonCode, String message, boolean outputJson, Map<String, String> fields) {
+        Map<String, String> payload = new LinkedHashMap<>(fields);
+        payload.putIfAbsent("reason", sanitizeMessage(message));
+        TelemetryFrame frame = buildFrame(adapterFor(event), "invalid", reasonCode, true, payload);
+        if (outputJson) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, new LinkedHashMap<>(payload)), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.USAGE;
     }
 
-    private int failUnexpected(String event, String message) {
+    private int failUnexpected(String event, String message, boolean outputJson) {
         Map<String, String> fields = mapOf("reason", sanitizeMessage(message));
-        emit(err(), event, "error", "unexpected_error", false, fields);
+        TelemetryFrame frame = buildFrame(adapterFor(event), "error", "unexpected_error", false, fields);
+        if (outputJson) {
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, new LinkedHashMap<>(fields)), true);
+        } else {
+            writeFrame(err(), event, frame);
+        }
         return CommandLine.ExitCode.SOFTWARE;
     }
 
@@ -234,6 +250,12 @@ public final class OcraCli implements Callable<Integer> {
 
         private final OcraCredentialFactory credentialFactory = new OcraCredentialFactory();
         private OcraCredentialPersistenceAdapter persistenceAdapter = new OcraCredentialPersistenceAdapter();
+
+        @CommandLine.Option(
+                names = "--output-json",
+                description = "Emit a single JSON object instead of text output",
+                scope = CommandLine.ScopeType.INHERIT)
+        boolean outputJson;
 
         protected PrintWriter out() {
             return parent.out();
@@ -262,11 +284,17 @@ public final class OcraCli implements Callable<Integer> {
         }
 
         protected int failValidation(String event, String reasonCode, String message) {
-            return parent.failValidation(event, reasonCode, message);
+            return failValidation(event, reasonCode, message, mapOf("reason", sanitizeMessage(message)));
+        }
+
+        protected int failValidation(String event, String reasonCode, String message, Map<String, String> fields) {
+            Map<String, String> payload = new LinkedHashMap<>(fields);
+            payload.putIfAbsent("reason", sanitizeMessage(message));
+            return parent.failValidation(event, reasonCode, message, outputJson, payload);
         }
 
         protected int failUnexpected(String event, String message) {
-            return parent.failUnexpected(event, message);
+            return parent.failUnexpected(event, message, outputJson);
         }
 
         protected void emitSuccess(String event, String reasonCode, Map<String, String> fields) {
@@ -374,7 +402,12 @@ public final class OcraCli implements Callable<Integer> {
                 Map<String, String> fields = new LinkedHashMap<>();
                 fields.put("credentialId", descriptor.name());
                 fields.put("suite", descriptor.suite().value());
-                emitSuccess(event, "created", fields);
+                if (outputJson) {
+                    TelemetryFrame frame = buildFrame(adapterFor(event), "success", "created", true, fields);
+                    JsonPrinter.print(out(), TelemetryJson.response(event, frame, new LinkedHashMap<>(fields)), true);
+                } else {
+                    emitSuccess(event, "created", fields);
+                }
                 return CommandLine.ExitCode.OK;
             } catch (IllegalArgumentException ex) {
                 return failValidation(event, "validation_error", ex.getMessage());
@@ -406,23 +439,53 @@ public final class OcraCli implements Callable<Integer> {
                 }
                 descriptors.sort(Comparator.comparing(OcraCredentialDescriptor::name));
 
-                Map<String, String> summary = new LinkedHashMap<>();
-                summary.put("count", Integer.toString(descriptors.size()));
-                emitSummary(event, "success", "success", summary);
+                if (outputJson) {
+                    Map<String, Object> payload = new LinkedHashMap<>();
+                    payload.put("count", descriptors.size());
+                    payload.put(
+                            "credentials",
+                            descriptors.stream()
+                                    .map(descriptor -> {
+                                        Map<String, Object> entry = new LinkedHashMap<>();
+                                        entry.put("credentialId", descriptor.name());
+                                        entry.put("suite", descriptor.suite().value());
+                                        entry.put(
+                                                "hasCounter",
+                                                descriptor.counter().isPresent());
+                                        entry.put("hasPin", descriptor.pinHash().isPresent());
+                                        entry.put(
+                                                "hasDrift",
+                                                descriptor
+                                                        .allowedTimestampDrift()
+                                                        .isPresent());
+                                        if (verbose && !descriptor.metadata().isEmpty()) {
+                                            entry.put("metadata", descriptor.metadata());
+                                        }
+                                        return entry;
+                                    })
+                                    .toList());
+                    TelemetryFrame frame = buildFrame(
+                            adapterFor(event), "success", "success", true, Map.of("count", "" + descriptors.size()));
+                    JsonPrinter.print(out(), TelemetryJson.response(event, frame, payload), true);
+                } else {
+                    Map<String, String> summary = new LinkedHashMap<>();
+                    summary.put("count", Integer.toString(descriptors.size()));
+                    emitSummary(event, "success", "success", summary);
 
-                for (OcraCredentialDescriptor descriptor : descriptors) {
-                    String line = String.format(
-                            Locale.ROOT,
-                            "credentialId=%s suite=%s hasCounter=%s hasPin=%s hasDrift=%s",
-                            descriptor.name(),
-                            descriptor.suite().value(),
-                            descriptor.counter().isPresent(),
-                            descriptor.pinHash().isPresent(),
-                            descriptor.allowedTimestampDrift().isPresent());
-                    out().println(line);
-                    if (verbose && !descriptor.metadata().isEmpty()) {
-                        descriptor.metadata().forEach((key, value) -> out().println(
-                                        String.format(Locale.ROOT, "  metadata.%s=%s", key, value.replace('\n', ' '))));
+                    for (OcraCredentialDescriptor descriptor : descriptors) {
+                        String line = String.format(
+                                Locale.ROOT,
+                                "credentialId=%s suite=%s hasCounter=%s hasPin=%s hasDrift=%s",
+                                descriptor.name(),
+                                descriptor.suite().value(),
+                                descriptor.counter().isPresent(),
+                                descriptor.pinHash().isPresent(),
+                                descriptor.allowedTimestampDrift().isPresent());
+                        out().println(line);
+                        if (verbose && !descriptor.metadata().isEmpty()) {
+                            descriptor.metadata().forEach((key, value) -> out().println(String.format(
+                                    Locale.ROOT, "  metadata.%s=%s", key, value.replace('\n', ' '))));
+                        }
                     }
                 }
                 return CommandLine.ExitCode.OK;
@@ -454,7 +517,12 @@ public final class OcraCli implements Callable<Integer> {
                 }
                 Map<String, String> fields = new LinkedHashMap<>();
                 fields.put("credentialId", credentialId.trim());
-                emitSuccess(event, "deleted", fields);
+                if (outputJson) {
+                    TelemetryFrame frame = buildFrame(adapterFor(event), "success", "deleted", true, fields);
+                    JsonPrinter.print(out(), TelemetryJson.response(event, frame, new LinkedHashMap<>(fields)), true);
+                } else {
+                    emitSuccess(event, "deleted", fields);
+                }
                 return CommandLine.ExitCode.OK;
             } catch (IllegalArgumentException ex) {
                 return failValidation(event, "validation_error", ex.getMessage());
@@ -590,9 +658,13 @@ public final class OcraCli implements Callable<Integer> {
                         fields.put("credentialId", credentialId.trim());
                         fields.put("suite", result.suite());
                         fields.put("otp", result.otp());
-                        emitSuccess(event, "success", fields);
-                        OtpPreviewTableFormatter.print(out(), result.previews());
-                        result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                        if (outputJson) {
+                            printEvaluateJson(event, "stored", fields, result);
+                        } else {
+                            emitSuccess(event, "success", fields);
+                            OtpPreviewTableFormatter.print(out(), result.previews());
+                            result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                        }
                         return CommandLine.ExitCode.OK;
                     }
                 }
@@ -623,9 +695,13 @@ public final class OcraCli implements Callable<Integer> {
                 fields.put("mode", "inline");
                 fields.put("suite", result.suite());
                 fields.put("otp", result.otp());
-                emitSuccess(event, "success", fields);
-                OtpPreviewTableFormatter.print(out(), result.previews());
-                result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                if (outputJson) {
+                    printEvaluateJson(event, "inline", fields, result);
+                } else {
+                    emitSuccess(event, "success", fields);
+                    OtpPreviewTableFormatter.print(out(), result.previews());
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                }
                 return CommandLine.ExitCode.OK;
             } catch (IllegalArgumentException ex) {
                 return failValidation(event, "validation_error", ex.getMessage());
@@ -634,6 +710,39 @@ public final class OcraCli implements Callable<Integer> {
             } catch (Exception ex) {
                 return failUnexpected(event, ex.getMessage());
             }
+        }
+
+        private void printEvaluateJson(
+                String event, String mode, Map<String, String> telemetryFields, EvaluationResult result) {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("reasonCode", "success");
+            data.put("mode", mode);
+            data.put("suite", result.suite());
+            data.put("otp", result.otp());
+            data.put("credentialReference", result.credentialReference());
+            if (telemetryFields.containsKey("credentialId")) {
+                data.put("credentialId", telemetryFields.get("credentialId"));
+            }
+            data.put("windowBackward", windowBackward);
+            data.put("windowForward", windowForward);
+            if (result.previews() != null && !result.previews().isEmpty()) {
+                data.put(
+                        "previews",
+                        result.previews().stream().map(this::mapPreview).toList());
+            }
+            result.verboseTrace().ifPresent(trace -> data.put("trace", VerboseTraceMapper.toMap(trace)));
+            TelemetryFrame frame = buildFrame(adapterFor(event), "success", "success", true, telemetryFields);
+            JsonPrinter.print(out(), TelemetryJson.response(event, frame, data), true);
+        }
+
+        private Map<String, Object> mapPreview(OtpPreview preview) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            if (preview.counter() != null) {
+                map.put("counter", preview.counter());
+            }
+            map.put("delta", preview.delta());
+            map.put("otp", preview.otp());
+            return map;
         }
     }
 
@@ -765,7 +874,9 @@ public final class OcraCli implements Callable<Integer> {
                         fields.put("credentialId", result.credentialId());
                         fields.put("suite", result.suite());
                         int exitCode = handleResult(event, result, fields);
-                        result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                        if (!outputJson) {
+                            result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                        }
                         return exitCode;
                     }
                 }
@@ -800,7 +911,9 @@ public final class OcraCli implements Callable<Integer> {
                 fields.put("suite", result.suite());
                 fields.put("descriptor", result.credentialId());
                 int exitCode = handleResult(event, result, fields);
-                result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                if (!outputJson) {
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                }
                 return exitCode;
 
             } catch (IllegalArgumentException ex) {
@@ -814,6 +927,33 @@ public final class OcraCli implements Callable<Integer> {
 
         private int handleResult(String event, VerificationResult result, Map<String, String> fields) {
             String reasonCode = reasonCodeFor(result.reason());
+            if (outputJson) {
+                String statusText =
+                        switch (result.status()) {
+                            case MATCH -> "match";
+                            case MISMATCH -> "mismatch";
+                            case INVALID -> "invalid";
+                        };
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("reasonCode", reasonCode);
+                data.put("credentialSource", fields.get("credentialSource"));
+                data.put("credentialId", result.credentialId());
+                data.put("suite", result.suite());
+                data.put("credentialReference", result.credentialReference());
+                data.put("responseDigits", result.responseDigits());
+                if (result.verboseTrace().isPresent()) {
+                    data.put(
+                            "trace",
+                            VerboseTraceMapper.toMap(result.verboseTrace().get()));
+                }
+                TelemetryFrame frame = buildFrame(adapterFor(event), statusText, reasonCode, true, fields);
+                JsonPrinter.print(out(), TelemetryJson.response(event, frame, data), true);
+                return switch (result.status()) {
+                    case MATCH -> CommandLine.ExitCode.OK;
+                    case MISMATCH -> EXIT_STRICT_MISMATCH;
+                    case INVALID -> CommandLine.ExitCode.USAGE;
+                };
+            }
             return switch (result.status()) {
                 case MATCH -> {
                     emitSummary(event, "match", reasonCode, fields);

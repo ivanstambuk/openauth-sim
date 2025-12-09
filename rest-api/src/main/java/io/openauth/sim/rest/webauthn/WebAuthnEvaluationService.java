@@ -126,8 +126,6 @@ class WebAuthnEvaluationService {
         metadata(trace, "cose.alg", Integer.toString(algorithm.coseIdentifier()));
         metadata(trace, "cose.alg.name", algorithm.name());
 
-        long signatureCounter = Optional.ofNullable(request.signatureCounter())
-                .orElseThrow(() -> validation("signature_counter_required", "Signature counter is required"));
         boolean userVerificationRequired =
                 Optional.ofNullable(request.userVerificationRequired()).orElse(false);
 
@@ -145,7 +143,9 @@ class WebAuthnEvaluationService {
                 .summary("Construct inline evaluation command")
                 .detail("GenerationCommand.Inline")
                 .attribute("credentialName", credentialName)
-                .attribute("signatureCounter", signatureCounter)
+                .attribute(
+                        "signatureCounter",
+                        Optional.ofNullable(request.signatureCounter()).orElse(null))
                 .attribute("userVerificationRequired", userVerificationRequired));
 
         GenerationCommand.Inline command = new GenerationCommand.Inline(
@@ -155,7 +155,7 @@ class WebAuthnEvaluationService {
                 relyingPartyId,
                 origin,
                 expectedType,
-                signatureCounter,
+                request.signatureCounter(),
                 userVerificationRequired,
                 challenge,
                 privateKey);
@@ -316,6 +316,8 @@ class WebAuthnEvaluationService {
                 result.origin(),
                 result.algorithm().label(),
                 result.userVerificationRequired(),
+                result.signatureCounter(),
+                result.signatureCounterDerived(),
                 null);
 
         WebAuthnGeneratedAssertion assertion = buildAssertion(result);
@@ -332,6 +334,7 @@ class WebAuthnEvaluationService {
         fields.put("algorithm", result.algorithm().label());
         fields.put("userVerificationRequired", result.userVerificationRequired());
         fields.put("signatureCounter", result.signatureCounter());
+        fields.put("signatureCounterDerived", result.signatureCounterDerived());
         return fields;
     }
 

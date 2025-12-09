@@ -40,6 +40,10 @@ _Last updated:_ 2025-11-13
 - [x] T-003-16 – Update roadmap/knowledge map/how-to guides to reference Feature 003 + new telemetry events (S-003-05, FR-003-09).  
   _Verification:_ `./gradlew --no-daemon spotlessApply check`
 
+- [ ] T-003-17 – Add `--output-json` to all OCRA CLI commands (ADR-0014).  
+  _Intent:_ Provide machine-consumable JSON output for OCRA evaluate/verify commands with tests and docs.  
+  _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
 ## Verification Log
 - 2025-09-30 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluateOpenApi*"`
 - 2025-10-03 – `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test`

@@ -34,7 +34,7 @@ final class Fido2CliTest {
     Path tempDir;
 
     private static final String PRIVATE_KEY_JWK = """
-      {
+            {
         "kty":"EC",
         "crv":"P-256",
         "x":"qdZggyTjMpAsFSTkjMWSwuBQuB3T-w6bDAphr8rHSVk",
@@ -117,6 +117,25 @@ final class Fido2CliTest {
     }
 
     @Test
+    void evaluateInlineEmitsJsonWhenRequested() throws Exception {
+        Path database = tempDir.resolve("fido2-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        Sample sample = WebAuthnGeneratorSamples.samples().get(0);
+
+        int exitCode = harness.execute("evaluate", "--preset-id", sample.key(), "--verbose", "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.fido2.evaluate\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"assertion\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
+    }
+
+    @Test
     void replayStoredDelegatesToEvaluation() throws Exception {
         Path database = tempDir.resolve("fido2.db");
         CommandHarness harness = CommandHarness.create(database);
@@ -190,6 +209,38 @@ final class Fido2CliTest {
 
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         assertTrue(harness.stdout().contains("\"type\":\"public-key\""));
+    }
+
+    @Test
+    void evaluateInlineDefaultsCounterWhenOmitted() {
+        Path database = tempDir.resolve("fido2-default-counter.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        Sample sample = WebAuthnGeneratorSamples.samples().get(0);
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--relying-party-id",
+                sample.relyingPartyId(),
+                "--origin",
+                sample.origin(),
+                "--type",
+                sample.expectedType(),
+                "--inline-credential-id",
+                encode(sample.credentialId()),
+                "--algorithm",
+                sample.algorithm().label(),
+                "--challenge",
+                encode(sample.challenge()),
+                "--private-key",
+                sample.privateKeyJwk(),
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(compact.contains("\"signatureCounterDerived\":true"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"signatureCounter\":"), () -> "stdout:\n" + stdout);
     }
 
     @Test

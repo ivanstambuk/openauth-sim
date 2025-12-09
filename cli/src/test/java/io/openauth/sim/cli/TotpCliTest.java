@@ -149,6 +149,38 @@ final class TotpCliTest {
     }
 
     @Test
+    void evaluateInlineEmitsJsonWhenRequested() throws Exception {
+        Path database = tempDir.resolve("totp-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        Instant issuedAt = STORED_VECTOR.timestamp();
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--secret",
+                STORED_VECTOR.secret().asHex(),
+                "--algorithm",
+                STORED_VECTOR.algorithm().name(),
+                "--digits",
+                String.valueOf(STORED_VECTOR.digits()),
+                "--step-seconds",
+                String.valueOf(STORED_VECTOR.stepDuration().toSeconds()),
+                "--timestamp",
+                Long.toString(issuedAt.getEpochSecond()),
+                "--verbose",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.totp.evaluate\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"otp\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+        assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
+    }
+
+    @Test
     void evaluateInlineSupportsBase32Secrets() throws Exception {
         Path database = tempDir.resolve("totp-base32.db");
         CommandHarness harness = CommandHarness.create(database);

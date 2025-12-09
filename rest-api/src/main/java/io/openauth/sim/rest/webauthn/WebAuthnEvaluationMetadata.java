@@ -13,6 +13,8 @@ record WebAuthnEvaluationMetadata(
         @JsonProperty("origin") String origin,
         @JsonProperty("algorithm") String algorithm,
         @JsonProperty("userVerificationRequired") boolean userVerificationRequired,
+        @JsonProperty("signatureCounter") Long signatureCounter,
+        @JsonProperty("signatureCounterDerived") Boolean signatureCounterDerived,
         @JsonProperty("error") String error) {
     // DTO marker
 }

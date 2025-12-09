@@ -127,6 +127,7 @@ Operator console Evaluate/Replay panels mirror the shared two-column layout (for
 |----|---------|-----------|
 | CLI-003-01 | `./bin/openauth maintenance ocra evaluate …` | Evaluates inline/stored descriptors, optionally outputs verbose trace payloads. |
 | CLI-003-02 | `./bin/openauth maintenance ocra verify …` | Verifies OTPs without counter mutation; returns hashed telemetry identifiers for auditing. |
+| CLI-003-03 | `--output-json` | All OCRA CLI commands emit JSON when present (ADR-0014). |
 
 ### Telemetry Events
 | ID | Event name | Fields / Notes |
