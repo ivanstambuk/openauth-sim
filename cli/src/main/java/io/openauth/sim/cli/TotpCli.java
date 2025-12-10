@@ -181,9 +181,9 @@ public final class TotpCli implements Callable<Integer> {
                         .collect(Collectors.toList());
 
                 if (outputJson) {
-                    Map<String, Object> payload = new LinkedHashMap<>();
-                    payload.put("count", credentials.size());
-                    payload.put(
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    data.put("count", credentials.size());
+                    data.put(
                             "credentials",
                             credentials.stream()
                                     .map(credential -> {
@@ -204,12 +204,11 @@ public final class TotpCli implements Callable<Integer> {
                                                 attributes.get(TotpPersistenceDefaults.DRIFT_FORWARD_ATTRIBUTE));
                                     })
                                     .toList());
-                    Map<String, Object> response = new LinkedHashMap<>();
-                    response.put("event", event("list"));
-                    response.put("status", "success");
-                    response.put("reasonCode", "success");
-                    response.put("data", payload);
-                    JsonPrinter.print(out(), response, true);
+                    Map<String, Object> telemetryFields = new LinkedHashMap<>();
+                    telemetryFields.put("count", credentials.size());
+                    TelemetryFrame frame = EVALUATION_TELEMETRY.status(
+                            "success", nextTelemetryId(), "success", true, null, telemetryFields);
+                    JsonPrinter.print(out(), TelemetryJson.response(event("list"), frame, data), true);
                 } else {
                     out().println("event=" + event("list") + " status=success count=" + credentials.size());
 

@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import picocli.CommandLine;
 
 /** Picocli facade for Feature 040 – EUDIW OpenID4VP simulator flows. */
@@ -31,6 +32,9 @@ import picocli.CommandLine;
         description = "Interact with the EUDIW OpenID4VP simulator (requests, wallet simulation, validation).",
         subcommands = {EudiwCli.RequestCommand.class, EudiwCli.WalletCommand.class, EudiwCli.ValidateCommand.class})
 public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
+
+    private static final String EVENT_PREFIX = "cli.eudiw.";
+    private static final AtomicLong TELEMETRY_SEQUENCE = new AtomicLong();
 
     private final EudiwCliServices services;
 
@@ -63,12 +67,70 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
         return services;
     }
 
-    void printPayload(Map<String, Object> payload, boolean outputJson) {
+    void printPayload(String event, Map<String, Object> payload, boolean outputJson) {
+        printPayload(event, payload, outputJson, "success", "success");
+    }
+
+    void printPayload(String event, Map<String, Object> payload, boolean outputJson, String status, String reasonCode) {
         if (outputJson) {
-            out().println(JsonWriter.toJson(payload));
-        } else {
+            out().println(JsonWriter.toJson(envelope(event, payload, status, reasonCode)));
+        } else if ("success".equals(status)) {
             out().println(payload);
+        } else {
+            err().println(formatErrorLine(event, status, reasonCode, payload));
         }
+    }
+
+    private String formatErrorLine(String event, String status, String reasonCode, Map<String, Object> payload) {
+        StringBuilder builder =
+                new StringBuilder("event=").append(event).append(" status=").append(status);
+        if (reasonCode != null && !reasonCode.isBlank()) {
+            builder.append(" reasonCode=").append(reasonCode);
+        }
+        Object reason = payload == null ? null : payload.get("reason");
+        if (reason != null) {
+            builder.append(" reason=").append(reason);
+        }
+        return builder.toString();
+    }
+
+    private static Map<String, Object> envelope(
+            String event, Map<String, Object> payload, String status, String reasonCode) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("event", event);
+        root.put("status", status);
+        root.put("reasonCode", reasonCode);
+        Object telemetryId = resolveTelemetryId(payload);
+        if (telemetryId == null) {
+            telemetryId = nextTelemetryId();
+        }
+        if (telemetryId != null) {
+            root.put("telemetryId", telemetryId);
+        }
+        root.put("sanitized", Boolean.TRUE);
+        root.put("data", payload);
+        return root;
+    }
+
+    private static String nextTelemetryId() {
+        return "oid4vp-cli-" + TELEMETRY_SEQUENCE.incrementAndGet();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object resolveTelemetryId(Map<String, Object> payload) {
+        Object telemetry = payload.get("telemetry");
+        if (!(telemetry instanceof Map<?, ?> telemetryMap)) {
+            return null;
+        }
+        Object fields = telemetryMap.get("fields");
+        if (!(fields instanceof Map<?, ?> fieldsMap)) {
+            return null;
+        }
+        return fieldsMap.get("telemetryId");
+    }
+
+    private static String cliEvent(String suffix) {
+        return EVENT_PREFIX + suffix;
     }
 
     static OpenId4VpAuthorizationRequestService.Profile parseAuthorizationProfile(String value) {
@@ -189,6 +251,7 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                     Optional<VerboseTrace> verboseTrace =
                             verbose ? Oid4vpVerboseTraceBuilder.authorization(result) : Optional.empty();
                     parent.parent.printPayload(
+                            cliEvent("request.create"),
                             Oid4vpCliMapper.authorization(
                                     result,
                                     verboseTrace
@@ -200,7 +263,12 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                     }
                     return CommandLine.ExitCode.OK;
                 } catch (IllegalArgumentException ex) {
-                    parent.parent.err().println("error=" + ex.getMessage());
+                    parent.parent.printPayload(
+                            cliEvent("request.create"),
+                            Map.of("reason", ex.getMessage()),
+                            outputJson,
+                            "invalid",
+                            "invalid_request");
                     return CommandLine.ExitCode.USAGE;
                 }
             }
@@ -284,6 +352,7 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                             parent.parent.services().walletSimulationService().simulate(request);
                     VerboseTrace verboseTrace = verbose ? Oid4vpVerboseTraceBuilder.wallet(result) : null;
                     parent.parent.printPayload(
+                            cliEvent("wallet.simulate"),
                             Oid4vpCliMapper.wallet(
                                     result, verboseTrace == null ? null : Oid4vpCliMapper.traceToMap(verboseTrace)),
                             outputJson);
@@ -292,7 +361,12 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                     }
                     return CommandLine.ExitCode.OK;
                 } catch (IllegalArgumentException ex) {
-                    parent.parent.err().println("error=" + ex.getMessage());
+                    parent.parent.printPayload(
+                            cliEvent("wallet.simulate"),
+                            Map.of("reason", ex.getMessage()),
+                            outputJson,
+                            "invalid",
+                            "invalid_request");
                     return CommandLine.ExitCode.USAGE;
                 }
             }
@@ -376,6 +450,7 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                 var result = parent.services().validationService().validate(validateRequest);
                 VerboseTrace verboseTrace = verbose ? Oid4vpVerboseTraceBuilder.validation(result) : null;
                 parent.printPayload(
+                        cliEvent("validate"),
                         Oid4vpCliMapper.validation(
                                 result, verboseTrace == null ? null : Oid4vpCliMapper.traceToMap(verboseTrace)),
                         outputJson);
@@ -384,10 +459,22 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                 }
                 return CommandLine.ExitCode.OK;
             } catch (Oid4vpValidationException ex) {
-                parent.err().println(JsonWriter.toJson(problemDetails(ex.problemDetails())));
+                Map<String, Object> problemDetails = problemDetails(ex.problemDetails());
+                problemDetails.put("reason", ex.problemDetails().detail());
+                parent.printPayload(
+                        cliEvent("validate"),
+                        problemDetails,
+                        outputJson,
+                        "invalid",
+                        ex.problemDetails().type());
                 return 2;
             } catch (IllegalArgumentException ex) {
-                parent.err().println("error=" + ex.getMessage());
+                parent.printPayload(
+                        cliEvent("validate"),
+                        Map.of("reason", ex.getMessage()),
+                        outputJson,
+                        "invalid",
+                        "invalid_request");
                 return CommandLine.ExitCode.USAGE;
             }
         }

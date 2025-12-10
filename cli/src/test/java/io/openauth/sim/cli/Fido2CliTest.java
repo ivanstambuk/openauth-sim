@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples;
 import io.openauth.sim.application.fido2.WebAuthnGeneratorSamples.Sample;
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
@@ -13,6 +14,7 @@ import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnFixtures.WebAuthnFixture;
 import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
@@ -23,6 +25,7 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -135,8 +138,7 @@ final class Fido2CliTest {
         assertTrue(compact.contains("\"event\":\"cli.fido2.evaluate\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"assertion\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-evaluate.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.evaluate"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 
@@ -209,8 +211,52 @@ final class Fido2CliTest {
         assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"event\":\"cli.fido2.replay\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"match\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-replay.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.replay"), stdout);
+    }
+
+    @Test
+    void replayStoredMismatchEmitsSuccessJsonStatus() throws Exception {
+        Path database = tempDir.resolve("fido2-replay-mismatch-json.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        WebAuthnFixture fixture = WebAuthnFixtures.loadPackedEs256();
+        harness.save("fido2-packed-es256", fixture, WebAuthnSignatureAlgorithm.ES256);
+
+        byte[] badSignature = fixture.request().signature().clone();
+        badSignature[0] ^= 0xFF;
+
+        int exitCode = harness.execute(
+                "replay",
+                "--credential-id",
+                "fido2-packed-es256",
+                "--relying-party-id",
+                "example.org",
+                "--origin",
+                "https://example.org",
+                "--type",
+                "webauthn.get",
+                "--expected-challenge",
+                encode(fixture.request().expectedChallenge()),
+                "--client-data",
+                encode(fixture.request().clientDataJson()),
+                "--authenticator-data",
+                encode(fixture.request().authenticatorData()),
+                "--signature",
+                encode(badSignature),
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.replay"), stdout);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) SimpleJson.parse(stdout);
+        assertEquals("success", root.get("status"));
+        assertEquals("signature_invalid", root.get("reasonCode"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertEquals(Boolean.FALSE, data.get("match"));
+        assertEquals("INVALID", data.get("evaluationStatus"));
     }
 
     @Test
@@ -239,8 +285,7 @@ final class Fido2CliTest {
         assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"event\":\"cli.fido2.vectors\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"vectors\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-vectors.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.vectors"), stdout);
     }
 
     @Test
@@ -302,8 +347,7 @@ final class Fido2CliTest {
         String compact = stdout.replace(" ", "").replace("\n", "");
         assertTrue(compact.contains("\"signatureCounterDerived\":true"), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"signatureCounter\":"), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-evaluate.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.evaluate"), stdout);
     }
 
     @Test
@@ -319,8 +363,7 @@ final class Fido2CliTest {
         assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"event\":\"cli.fido2.seed-attestations\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"addedCount\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-seed-attestations.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.seed-attestations"), stdout);
     }
 
     @Test
@@ -361,8 +404,7 @@ final class Fido2CliTest {
         assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"event\":\"cli.fido2.attest\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"attestation\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-attest.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.attest"), stdout);
     }
 
     @Test
@@ -396,8 +438,7 @@ final class Fido2CliTest {
         assertTrue(compact.contains("\"event\":\"cli.fido2.attestReplay\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"anchorMode\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"valid\":true"), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/fido2-attest-replay.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.fido2.attestReplay"), stdout);
     }
 
     @Test

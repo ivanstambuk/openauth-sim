@@ -17,6 +17,8 @@ import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.EmvCapTelemetryAdapter;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.cli.support.JsonPrinter;
+import io.openauth.sim.cli.support.TelemetryJson;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
 import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
@@ -28,7 +30,6 @@ import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -466,12 +467,12 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             private Integer onMatch(
                     TelemetrySignal signal, ReplayResult result, TelemetryFrame frame, Map<String, Object> metadata) {
                 if (outputJson) {
-                    parent.out().println(renderJsonResponse("match", signal, metadata, result));
+                    parent.out().println(renderJsonResponse("success", frame, metadata, result));
                     return CommandLine.ExitCode.OK;
                 }
                 PrintWriter writer = parent.out();
                 writeFrame(writer, REPLAY_EVENT, frame);
-                printSummary(writer, "match", signal.reasonCode(), metadata);
+                printSummary(writer, "success", signal.reasonCode(), metadata);
                 if (includeTrace) {
                     result.traceOptional().ifPresent(trace -> result.effectiveRequest()
                             .ifPresent(request -> printTrace(writer, trace)));
@@ -482,12 +483,12 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             private Integer onMismatch(
                     TelemetrySignal signal, ReplayResult result, TelemetryFrame frame, Map<String, Object> metadata) {
                 if (outputJson) {
-                    parent.out().println(renderJsonResponse("mismatch", signal, metadata, result));
+                    parent.out().println(renderJsonResponse("success", frame, metadata, result));
                     return CommandLine.ExitCode.OK;
                 }
                 PrintWriter writer = parent.out();
                 writeFrame(writer, REPLAY_EVENT, frame);
-                printSummary(writer, "mismatch", signal.reasonCode(), metadata);
+                printSummary(writer, "success", signal.reasonCode(), metadata);
                 return CommandLine.ExitCode.OK;
             }
 
@@ -614,28 +615,9 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
             }
 
             private String renderJsonResponse(
-                    String statusText, TelemetrySignal signal, Map<String, Object> metadata, ReplayResult result) {
-                StringBuilder builder = new StringBuilder();
-                builder.append("{\n");
-                builder.append("  \"status\":\"").append(escapeJson(statusText)).append("\",\n");
-                builder.append("  \"reasonCode\":\"")
-                        .append(escapeJson(signal.reasonCode()))
-                        .append("\",\n");
-                builder.append("  \"metadata\":{\n");
-                Iterator<Map.Entry<String, Object>> iterator =
-                        metadata.entrySet().iterator();
-                while (iterator.hasNext()) {
-                    Map.Entry<String, Object> entry = iterator.next();
-                    builder.append("    \"")
-                            .append(escapeJson(entry.getKey()))
-                            .append("\":")
-                            .append(formatJsonValue(entry.getValue()));
-                    if (iterator.hasNext()) {
-                        builder.append(",");
-                    }
-                    builder.append("\n");
-                }
-                builder.append("  }");
+                    String cliStatus, TelemetryFrame frame, Map<String, Object> metadata, ReplayResult result) {
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("metadata", metadata);
                 if (includeTrace && result.traceOptional().isPresent()) {
                     String expectedOtp =
                             (!result.match() && result.traceOptional().isPresent())
@@ -645,10 +627,12 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                                             .decimalizationOverlay()
                                             .otp()
                                     : null;
-                    appendTraceJson(builder, result.traceOptional().get(), expectedOtp);
+                    data.put("trace", traceJson(result.traceOptional().get(), expectedOtp));
                 }
-                builder.append("\n}");
-                return builder.toString();
+                TelemetryFrame jsonFrame =
+                        new TelemetryFrame(frame.event(), cliStatus, frame.sanitized(), frame.fields());
+                Map<String, Object> payload = TelemetryJson.response(REPLAY_EVENT, jsonFrame, data);
+                return JsonPrinter.toPrettyJson(payload);
             }
 
             private void printSummary(
@@ -1503,68 +1487,43 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
     }
 
     private static String renderJsonResponse(EvaluationResult result, EvaluationRequest request, TelemetryFrame frame) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("{\n");
-        builder.append("  \"otp\": \"").append(escapeJson(result.otp())).append("\",\n");
-        builder.append("  \"maskLength\": ").append(result.maskLength());
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("otp", result.otp());
+        data.put("maskLength", result.maskLength());
 
         List<OtpPreview> previews = result.previews();
-        builder.append(",\n  \"previews\": ");
-        if (previews.isEmpty()) {
-            builder.append("[]");
-        } else {
-            builder.append("[\n");
-            for (int index = 0; index < previews.size(); index++) {
-                OtpPreview preview = previews.get(index);
-                builder.append("    {\n");
-                builder.append("      \"counter\": ");
-                if (preview.counter() == null || preview.counter().isBlank()) {
-                    builder.append("null");
-                } else {
-                    builder.append("\"").append(escapeJson(preview.counter())).append("\"");
-                }
-                builder.append(",\n");
-                builder.append("      \"delta\": ").append(preview.delta()).append(",\n");
-                builder.append("      \"otp\": \"")
-                        .append(escapeJson(preview.otp()))
-                        .append("\"\n");
-                builder.append("    }");
-                if (index + 1 < previews.size()) {
-                    builder.append(",");
-                }
-                builder.append("\n");
+        List<Map<String, Object>> previewList = new ArrayList<>(previews.size());
+        for (OtpPreview preview : previews) {
+            Map<String, Object> previewMap = new LinkedHashMap<>();
+            if (preview.counter() == null || preview.counter().isBlank()) {
+                previewMap.put("counter", null);
+            } else {
+                previewMap.put("counter", preview.counter());
             }
-            builder.append("  ]");
+            previewMap.put("delta", preview.delta());
+            previewMap.put("otp", preview.otp());
+            previewList.add(previewMap);
         }
+        data.put("previews", previewList);
 
-        result.traceOptional().ifPresent(trace -> appendTraceJson(builder, trace, null));
-        builder.append(",\n  \"telemetry\": {\n");
-        builder.append("    \"event\": \"").append(escapeJson(frame.event())).append("\",\n");
-        builder.append("    \"status\": \"").append(escapeJson(frame.status())).append("\",\n");
-        builder.append("    \"reasonCode\": \"")
-                .append(escapeJson(result.telemetry().reasonCode()))
-                .append("\",\n");
-        builder.append("    \"sanitized\": ").append(frame.sanitized()).append(",\n");
-        builder.append("    \"fields\": {\n");
-        Iterator<Map.Entry<String, Object>> iterator = frame.fields().entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Object> entry = iterator.next();
-            builder.append("      \"")
-                    .append(escapeJson(entry.getKey()))
-                    .append("\": ")
-                    .append(formatJsonValue(entry.getValue()));
-            if (iterator.hasNext()) {
-                builder.append(",");
-            }
-            builder.append("\n");
+        result.traceOptional().ifPresent(trace -> data.put("trace", traceJson(trace, null)));
+
+        Map<String, Object> telemetry = new LinkedHashMap<>();
+        telemetry.put("event", frame.event());
+        telemetry.put("status", frame.status());
+        Object reasonCode = frame.fields().get("reasonCode");
+        if (reasonCode == null && result.telemetry() != null) {
+            reasonCode = result.telemetry().reasonCode();
         }
-        builder.append("    }\n  }\n}");
-        return builder.toString();
-    }
+        if (reasonCode != null) {
+            telemetry.put("reasonCode", reasonCode);
+        }
+        telemetry.put("sanitized", frame.sanitized());
+        telemetry.put("fields", deepCopyMap(frame.fields()));
+        data.put("telemetry", telemetry);
 
-    private static void appendTraceJson(StringBuilder builder, Trace trace, String expectedOtp) {
-        builder.append(",\n  \"trace\": ");
-        appendJsonValue(builder, traceJson(trace, expectedOtp), 1);
+        Map<String, Object> payload = TelemetryJson.response(EVENT_PREFIX + "evaluate", frame, data);
+        return JsonPrinter.toPrettyJson(payload);
     }
 
     private static void printTrace(PrintWriter writer, Trace trace) {
@@ -1856,13 +1815,6 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
         for (int i = 0; i < level; i++) {
             builder.append("  ");
         }
-    }
-
-    private static String formatJsonValue(Object value) {
-        if (value instanceof Number || value instanceof Boolean) {
-            return String.valueOf(value);
-        }
-        return "\"" + escapeJson(String.valueOf(value)) + "\"";
     }
 
     private static String escapeJson(String value) {

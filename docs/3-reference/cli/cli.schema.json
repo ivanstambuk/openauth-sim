@@ -1,0 +1,2990 @@
+{
+  "$schema": "https://opencli.org/draft.json",
+  "opencli": "0.1",
+  "info": {
+    "title": "OpenAuth Simulator CLI",
+    "version": "0.1.4",
+    "summary": "Authentication simulator CLI (HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW)",
+    "description": "Command-line interface for the OpenAuth Simulator. Commands cover evaluate/replay/seed flows and, when --output-json is set, emit a single JSON telemetry object instead of text output."
+  },
+  "examples": [
+    "java -jar openauth-sim-standalone-<version>.jar hotp evaluate --credential-id operator-demo --output-json",
+    "java -jar openauth-sim-standalone-<version>.jar totp evaluate --credential-id operator-demo --output-json",
+    "java -jar openauth-sim-standalone-<version>.jar ocra verify --suite OCRA-1:HOTP-SHA1-6:QN08 --credential-id inline-ocra --otp 123456 --output-json",
+    "java -jar openauth-sim-standalone-<version>.jar emv cap evaluate --mode RESPOND --credential-id emv-demo --output-json",
+    "java -jar openauth-sim-standalone-<version>.jar fido2 replay --credential-id packed-es256 --output-json",
+    "java -jar openauth-sim-standalone-<version>.jar eudiw request create --profile HAIP --output-json"
+  ],
+  "metadata": [
+    {
+      "name": "binary",
+      "value": {
+        "name": "openauth-sim",
+        "description": "Multi-protocol authentication simulator CLI (HOTP, TOTP, OCRA, FIDO2/WebAuthn, EMV/CAP, EUDIW/OpenID4VP)"
+      }
+    }
+  ],
+  "commands": [
+    {
+      "name": "hotp",
+      "description": "Manage HOTP credentials and evaluate responses.",
+      "examples": [
+        "java -jar openauth-sim-standalone-<version>.jar hotp evaluate --credential-id operator-demo --output-json"
+      ],
+      "commands": [
+        {
+          "name": "evaluate",
+          "description": "Validate HOTP responses for stored or inline credentials.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar hotp evaluate --credential-id operator-demo --window-forward 1 --verbose --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.hotp.evaluate",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.hotp.evaluate.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized HOTP CLI flags for this invocation, keyed by long option name (for example, \"--credential-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for HOTP evaluate).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Stored HOTP evaluation with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar hotp evaluate --credential-id operator-demo --window-forward 1 --verbose --output-json",
+                    "json": {
+                      "flags": {
+                        "--credential-id": "operator-demo",
+                        "--window-forward": 1,
+                        "--verbose": true,
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.hotp.evaluate",
+                "schema": { "$ref": "#/definitions/cli.hotp.evaluate" },
+                "examples": [
+                  {
+                    "description": "Stored HOTP evaluation (success)",
+                    "jsonRef": "#/definitions/cli.hotp.evaluate/examples/0",
+                    "stdout": "event=cli.hotp.evaluate status=success reasonCode=success telemetryId=cli-hotp-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List HOTP credentials.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar hotp list --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.hotp.list",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.hotp.list.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized HOTP CLI flags for this invocation, keyed by long option name (for example, \"--database\", \"--output-json\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for HOTP list).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "HOTP list with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar hotp list --output-json",
+                    "json": {
+                      "flags": {
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.hotp.list",
+                "schema": { "$ref": "#/definitions/cli.hotp.list" },
+                "examples": [
+                  {
+                    "description": "HOTP credential list (success)",
+                    "jsonRef": "#/definitions/cli.hotp.list/examples/0",
+                    "stdout": "event=cli.hotp.list status=success reasonCode=success telemetryId=cli-hotp-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "totp",
+      "description": "Manage TOTP credentials and evaluate time-based OTPs.",
+      "examples": [
+        "java -jar openauth-sim-standalone-<version>.jar totp evaluate --credential-id operator-demo --output-json"
+      ],
+      "commands": [
+        {
+          "name": "evaluate",
+          "description": "Evaluate TOTP codes for stored or inline credentials.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar totp evaluate --credential-id operator-demo --verbose --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.totp.evaluate",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.totp.evaluate.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized TOTP CLI flags for this invocation, keyed by long option name (for example, \"--credential-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for TOTP evaluate).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Stored TOTP evaluation with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar totp evaluate --credential-id operator-demo --verbose --output-json",
+                    "json": {
+                      "flags": {
+                        "--credential-id": "operator-demo",
+                        "--verbose": true,
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.totp.evaluate",
+                "schema": { "$ref": "#/definitions/cli.totp.evaluate" },
+                "examples": [
+                  {
+                    "description": "Stored TOTP evaluation (success)",
+                    "jsonRef": "#/definitions/cli.totp.evaluate/examples/0",
+                    "stdout": "event=cli.totp.evaluate status=success reasonCode=success telemetryId=cli-totp-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List TOTP credentials.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar totp list --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.totp.list",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.totp.list.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized TOTP CLI flags for this invocation, keyed by long option name (for example, \"--database\", \"--output-json\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for TOTP list).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "TOTP list with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar totp list --output-json",
+                    "json": {
+                      "flags": {
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.totp.list",
+                "schema": { "$ref": "#/definitions/cli.totp.list" },
+                "examples": [
+                  {
+                    "description": "TOTP credential list (success)",
+                    "jsonRef": "#/definitions/cli.totp.list/examples/0",
+                    "stdout": "event=cli.totp.list status=success reasonCode=success telemetryId=cli-totp-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ocra",
+      "description": "Manage OCRA credentials and verify challenge–response OTPs.",
+      "examples": [
+        "java -jar openauth-sim-standalone-<version>.jar ocra evaluate --suite OCRA-1:HOTP-SHA1-6:QA08 --secret 31323334 --challenge 12345678 --output-json",
+        "java -jar openauth-sim-standalone-<version>.jar ocra verify --suite OCRA-1:HOTP-SHA1-6:QN08 --credential-id inline-ocra --otp 123456 --output-json"
+      ],
+      "commands": [
+        {
+          "name": "import",
+          "description": "Persist an OCRA credential descriptor into the store.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar ocra import --credential-id account-1 --suite OCRA-1:HOTP-SHA1-6:QA08 --secret 31323334 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.ocra.import",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.ocra.import.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized OCRA import CLI flags for this invocation, keyed by long option name (for example, \"--credential-id\", \"--suite\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for OCRA import).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "OCRA import with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar ocra import --credential-id account-1 --suite OCRA-1:HOTP-SHA1-6:QA08 --secret 31323334 --output-json",
+                    "json": {
+                      "flags": {
+                        "--credential-id": "account-1",
+                        "--suite": "OCRA-1:HOTP-SHA1-6:QA08",
+                        "--secret": "31323334",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.ocra.import",
+                "schema": { "$ref": "#/definitions/cli.ocra.import" },
+                "examples": [
+                  {
+                    "description": "OCRA credential import (success)",
+                    "jsonRef": "#/definitions/cli.ocra.import/examples/0",
+                    "stdout": "event=cli.ocra.import status=success reasonCode=created telemetryId=cli-ocra-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "list",
+          "description": "List stored OCRA credentials.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar ocra list --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.ocra.list",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.ocra.list.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized OCRA list CLI flags for this invocation, keyed by long option name (for example, \"--database\", \"--output-json\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for OCRA list).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "OCRA list with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar ocra list --output-json",
+                    "json": {
+                      "flags": {
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.ocra.list",
+                "schema": { "$ref": "#/definitions/cli.ocra.list" },
+                "examples": [
+                  {
+                    "description": "OCRA credential list (success)",
+                    "jsonRef": "#/definitions/cli.ocra.list/examples/0",
+                    "stdout": "event=cli.ocra.list status=success reasonCode=success telemetryId=cli-ocra-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "delete",
+          "description": "Delete a stored OCRA credential.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar ocra delete --credential-id account-1 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.ocra.delete",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.ocra.delete.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized OCRA delete CLI flags for this invocation, keyed by long option name (for example, \"--credential-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for OCRA delete).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "OCRA delete with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar ocra delete --credential-id account-1 --output-json",
+                    "json": {
+                      "flags": {
+                        "--credential-id": "account-1",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.ocra.delete",
+                "schema": { "$ref": "#/definitions/cli.ocra.delete" },
+                "examples": [
+                  {
+                    "description": "OCRA credential delete (success)",
+                    "jsonRef": "#/definitions/cli.ocra.delete/examples/0",
+                    "stdout": "event=cli.ocra.delete status=success reasonCode=deleted telemetryId=cli-ocra-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "verify",
+          "description": "Verify a supplied OTP using OCRA.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar ocra verify --suite OCRA-1:HOTP-SHA1-6:QN08 --credential-id inline-ocra --otp 123456 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.ocra.verify",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.ocra.verify.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized OCRA CLI flags for this invocation, keyed by long option name (for example, \"--suite\", \"--otp\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for OCRA verify).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Inline OCRA verification with JSON output",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar ocra verify --suite OCRA-1:HOTP-SHA1-6:QN08 --credential-id inline-ocra --otp 123456 --output-json",
+                    "json": {
+                      "flags": {
+                        "--suite": "OCRA-1:HOTP-SHA1-6:QN08",
+                        "--credential-id": "inline-ocra",
+                        "--otp": "123456",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.ocra.verify",
+                "schema": { "$ref": "#/definitions/cli.ocra.verify" },
+                "examples": [
+                  {
+                    "description": "Inline OCRA verification (match)",
+                    "jsonRef": "#/definitions/cli.ocra.verify/examples/0",
+                    "stdout": "event=cli.ocra.verify status=success reasonCode=match telemetryId=cli-ocra-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "emv",
+      "description": "Evaluate EMV/CAP flows.",
+      "examples": [
+        "java -jar openauth-sim-standalone-<version>.jar emv cap evaluate --mode RESPOND --credential-id emv-demo --output-json"
+      ],
+      "commands": [
+        {
+          "name": "cap",
+          "description": "Derive EMV/CAP OTP values for Identify, Respond, and Sign modes.",
+          "commands": [
+            {
+              "name": "evaluate",
+              "description": "Derive an EMV/CAP OTP for the supplied parameters.",
+              "examples": [
+                "java -jar openauth-sim-standalone-<version>.jar emv cap evaluate --mode RESPOND --credential-id emv-demo --output-json"
+              ],
+              "metadata": [
+                {
+                  "name": "input",
+                  "value": {
+                    "event": "cli.emv.cap.evaluate",
+                    "schema": {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "title": "cli.emv.cap.evaluate.input",
+                      "type": "object",
+                      "properties": {
+                        "flags": {
+                          "type": "object",
+                          "description": "Normalized EMV/CAP evaluate CLI flags for this invocation, keyed by long option name (for example, \"--mode\", \"--credential-id\").",
+                          "additionalProperties": {
+                            "type": ["string", "number", "boolean", "null"]
+                          }
+                        },
+                        "positionals": {
+                          "type": "array",
+                          "description": "Raw positional arguments (unused for EMV/CAP evaluate).",
+                          "items": { "type": "string" }
+                        }
+                      },
+                      "required": ["flags"],
+                      "additionalProperties": false
+                    },
+                    "examples": [
+                      {
+                        "description": "Stored EMV/CAP RESPOND evaluation",
+                        "cli": "java -jar openauth-sim-standalone-<version>.jar emv cap evaluate --mode RESPOND --credential-id emv-demo --output-json",
+                        "json": {
+                          "flags": {
+                            "--mode": "RESPOND",
+                            "--credential-id": "emv-demo",
+                            "--output-json": true
+                          },
+                          "positionals": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "output",
+                  "value": {
+                    "event": "cli.emv.cap.evaluate",
+                    "schema": { "$ref": "#/definitions/cli.emv.cap.evaluate" },
+                    "examples": [
+                      {
+                        "description": "EMV/CAP RESPOND evaluation (success)",
+                        "jsonRef": "#/definitions/cli.emv.cap.evaluate/examples/0",
+                        "stdout": "event=cli.emv.cap.respond status=success reasonCode=generated telemetryId=cli-emv-cap-telemetry-id ..."
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "replay",
+              "description": "Replay EMV/CAP transactions against stored or inline descriptors.",
+              "examples": [
+                "java -jar openauth-sim-standalone-<version>.jar emv cap replay --mode RESPOND --credential-id emv-demo --output-json"
+              ],
+              "metadata": [
+                {
+                  "name": "input",
+                  "value": {
+                    "event": "cli.emv.cap.replay",
+                    "schema": {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "title": "cli.emv.cap.replay.input",
+                      "type": "object",
+                      "properties": {
+                        "flags": {
+                          "type": "object",
+                          "description": "Normalized EMV/CAP replay CLI flags for this invocation, keyed by long option name (for example, \"--mode\", \"--credential-id\").",
+                          "additionalProperties": {
+                            "type": ["string", "number", "boolean", "null"]
+                          }
+                        },
+                        "positionals": {
+                          "type": "array",
+                          "description": "Raw positional arguments (unused for EMV/CAP replay).",
+                          "items": { "type": "string" }
+                        }
+                      },
+                      "required": ["flags"],
+                      "additionalProperties": false
+                    },
+                    "examples": [
+                      {
+                        "description": "Stored EMV/CAP RESPOND replay",
+                        "cli": "java -jar openauth-sim-standalone-<version>.jar emv cap replay --mode RESPOND --credential-id emv-demo --output-json",
+                        "json": {
+                          "flags": {
+                            "--mode": "RESPOND",
+                            "--credential-id": "emv-demo",
+                            "--output-json": true
+                          },
+                          "positionals": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "output",
+                  "value": {
+                    "event": "cli.emv.cap.replay",
+                    "schema": { "$ref": "#/definitions/cli.emv.cap.replay" },
+                    "examples": [
+                  {
+                    "description": "EMV/CAP RESPOND replay (match)",
+                    "jsonRef": "#/definitions/cli.emv.cap.replay/examples/0",
+                    "stdout": "event=cli.emv.cap.replay status=success reasonCode=match telemetryId=cli-emv-cap-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fido2",
+      "description": "Evaluate WebAuthn assertions, verify attestation payloads, and replay diagnostics.",
+      "examples": [
+        "java -jar openauth-sim-standalone-<version>.jar fido2 evaluate --preset-id packed-es256 --output-json",
+        "java -jar openauth-sim-standalone-<version>.jar fido2 replay --credential-id packed-es256 --output-json"
+      ],
+      "commands": [
+        {
+          "name": "evaluate",
+          "description": "Evaluate stored or inline WebAuthn assertions.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar fido2 evaluate --preset-id packed-es256 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.fido2.evaluate",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.fido2.evaluate.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized FIDO2 CLI flags for this invocation, keyed by long option name (for example, \"--preset-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for fido2 evaluate).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Preset-based WebAuthn assertion generation",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar fido2 evaluate --preset-id packed-es256 --output-json",
+                    "json": {
+                      "flags": {
+                        "--preset-id": "packed-es256",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.fido2.evaluate",
+                "schema": { "$ref": "#/definitions/cli.fido2.evaluate" },
+                "examples": [
+                  {
+                    "description": "Preset-based WebAuthn assertion (success)",
+                    "jsonRef": "#/definitions/cli.fido2.evaluate/examples/0",
+                    "stdout": "event=cli.fido2.evaluate status=success reasonCode=generated telemetryId=cli-fido2-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "replay",
+          "description": "Replay stored WebAuthn assertions against expected verifiers.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar fido2 replay --credential-id packed-es256 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.fido2.replay",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.fido2.replay.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized FIDO2 CLI flags for this invocation, keyed by long option name (for example, \"--credential-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for fido2 replay).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Replay stored WebAuthn assertion",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar fido2 replay --credential-id packed-es256 --output-json",
+                    "json": {
+                      "flags": {
+                        "--credential-id": "packed-es256",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.fido2.replay",
+                "schema": { "$ref": "#/definitions/cli.fido2.replay" },
+                "examples": [
+                  {
+                    "description": "Replay stored WebAuthn assertion (verified)",
+                    "jsonRef": "#/definitions/cli.fido2.replay/examples/0",
+                    "stdout": "event=cli.fido2.replay status=success reasonCode=verified telemetryId=cli-fido2-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "attest",
+          "description": "Generate WebAuthn attestation objects.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar fido2 attest --preset-id packed-es256 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.fido2.attest",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.fido2.attest.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized FIDO2 attestation CLI flags for this invocation, keyed by long option name (for example, \"--preset-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for fido2 attest).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Preset-based WebAuthn attestation generation",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar fido2 attest --preset-id packed-es256 --output-json",
+                    "json": {
+                      "flags": {
+                        "--preset-id": "packed-es256",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.fido2.attest",
+                "schema": { "$ref": "#/definitions/cli.fido2.attest" },
+                "examples": [
+                  {
+                    "description": "Preset-based WebAuthn attestation (success)",
+                    "jsonRef": "#/definitions/cli.fido2.attest/examples/0",
+                    "stdout": "event=cli.fido2.attest status=success reasonCode=generated telemetryId=cli-fido2-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "attest-replay",
+          "description": "Replay WebAuthn attestation objects against trust anchors.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar fido2 attest-replay --preset-id packed-es256 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.fido2.attestReplay",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.fido2.attestReplay.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized FIDO2 attestation replay CLI flags for this invocation, keyed by long option name (for example, \"--preset-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for fido2 attest-replay).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Replay WebAuthn attestation against preset trust anchors",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar fido2 attest-replay --preset-id packed-es256 --output-json",
+                    "json": {
+                      "flags": {
+                        "--preset-id": "packed-es256",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.fido2.attestReplay",
+                "schema": { "$ref": "#/definitions/cli.fido2.attestReplay" },
+                "examples": [
+                  {
+                    "description": "WebAuthn attestation replay (verified)",
+                    "jsonRef": "#/definitions/cli.fido2.attestReplay/examples/0",
+                    "stdout": "event=cli.fido2.attestReplay status=success reasonCode=verified telemetryId=cli-fido2-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "seed-attestations",
+          "description": "Seed WebAuthn attestation credentials into the store.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar fido2 seed-attestations --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.fido2.seed-attestations",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.fido2.seed-attestations.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized FIDO2 seed-attestations CLI flags for this invocation, keyed by long option name.",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for fido2 seed-attestations).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Seed WebAuthn attestation fixtures",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar fido2 seed-attestations --output-json",
+                    "json": {
+                      "flags": {
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.fido2.seed-attestations",
+                "schema": { "$ref": "#/definitions/cli.fido2.seed-attestations" },
+                "examples": [
+                  {
+                    "description": "WebAuthn attestation seeding summary",
+                    "jsonRef": "#/definitions/cli.fido2.seed-attestations/examples/0",
+                    "stdout": "event=cli.fido2.seed-attestations status=success reasonCode=success telemetryId=cli-fido2-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "vectors",
+          "description": "List available WebAuthn JSON bundle sample vectors.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar fido2 vectors --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.fido2.vectors",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.fido2.vectors.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized FIDO2 vectors CLI flags for this invocation, keyed by long option name.",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for fido2 vectors).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "List available WebAuthn vectors",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar fido2 vectors --output-json",
+                    "json": {
+                      "flags": {
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.fido2.vectors",
+                "schema": { "$ref": "#/definitions/cli.fido2.vectors" },
+                "examples": [
+                  {
+                    "description": "WebAuthn vector listing",
+                    "jsonRef": "#/definitions/cli.fido2.vectors/examples/0",
+                    "stdout": "event=cli.fido2.vectors status=success telemetryId=cli-fido2-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "eudiw",
+      "description": "EUDIW OpenID4VP simulator flows.",
+      "examples": [
+        "java -jar openauth-sim-standalone-<version>.jar eudiw request create --profile HAIP --output-json"
+      ],
+      "commands": [
+        {
+          "name": "request",
+          "description": "Create EUDIW authorization requests.",
+          "commands": [
+            {
+              "name": "create",
+              "description": "Create a HAIP-aligned authorization request.",
+              "examples": [
+                "java -jar openauth-sim-standalone-<version>.jar eudiw request create --profile HAIP --output-json"
+              ],
+              "metadata": [
+                {
+                  "name": "input",
+                  "value": {
+                    "event": "cli.eudiw.request.create",
+                    "schema": {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "title": "cli.eudiw.request.create.input",
+                      "type": "object",
+                      "properties": {
+                        "flags": {
+                          "type": "object",
+                          "description": "Normalized EUDIW request CLI flags for this invocation, keyed by long option name (for example, \"--profile\", \"--response-mode\").",
+                          "additionalProperties": {
+                            "type": ["string", "number", "boolean", "null"]
+                          }
+                        },
+                        "positionals": {
+                          "type": "array",
+                          "description": "Raw positional arguments (unused for eudiw request create).",
+                          "items": { "type": "string" }
+                        }
+                      },
+                      "required": ["flags"],
+                      "additionalProperties": false
+                    },
+                    "examples": [
+                      {
+                        "description": "Create a HAIP-aligned authorization request",
+                        "cli": "java -jar openauth-sim-standalone-<version>.jar eudiw request create --profile HAIP --output-json",
+                        "json": {
+                          "flags": {
+                            "--profile": "HAIP",
+                            "--output-json": true
+                          },
+                          "positionals": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "output",
+                  "value": {
+                    "event": "cli.eudiw.request.create",
+                    "schema": { "$ref": "#/definitions/cli.eudiw.request.create" },
+                    "examples": [
+                      {
+                        "description": "HAIP authorization request (created)",
+                        "jsonRef": "#/definitions/cli.eudiw.request.create/examples/0",
+                        "stdout": "event=cli.eudiw.request.create status=success telemetryId=oid4vp-telemetry-id ..."
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "wallet",
+          "description": "Simulate wallet responses.",
+          "commands": [
+            {
+              "name": "simulate",
+              "description": "Generate deterministic wallet responses for a request.",
+              "examples": [
+                "java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate --request-id HAIP-0001 --output-json"
+              ],
+              "metadata": [
+                {
+                  "name": "input",
+                  "value": {
+                    "event": "cli.eudiw.wallet.simulate",
+                    "schema": {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "title": "cli.eudiw.wallet.simulate.input",
+                      "type": "object",
+                      "properties": {
+                        "flags": {
+                          "type": "object",
+                          "description": "Normalized EUDIW wallet simulate CLI flags for this invocation, keyed by long option name (for example, \"--request-id\").",
+                          "additionalProperties": {
+                            "type": ["string", "number", "boolean", "null"]
+                          }
+                        },
+                        "positionals": {
+                          "type": "array",
+                          "description": "Raw positional arguments (unused for eudiw wallet simulate).",
+                          "items": { "type": "string" }
+                        }
+                      },
+                      "required": ["flags"],
+                      "additionalProperties": false
+                    },
+                    "examples": [
+                      {
+                        "description": "Simulate a wallet response for HAIP-0001",
+                        "cli": "java -jar openauth-sim-standalone-<version>.jar eudiw wallet simulate --request-id HAIP-0001 --output-json",
+                        "json": {
+                          "flags": {
+                            "--request-id": "HAIP-0001",
+                            "--output-json": true
+                          },
+                          "positionals": []
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "output",
+                  "value": {
+                    "event": "cli.eudiw.wallet.simulate",
+                    "schema": { "$ref": "#/definitions/cli.eudiw.wallet.simulate" },
+                    "examples": [
+                      {
+                        "description": "Wallet simulation (success)",
+                        "jsonRef": "#/definitions/cli.eudiw.wallet.simulate/examples/0",
+                        "stdout": "event=cli.eudiw.wallet.simulate status=SUCCESS telemetryId=oid4vp-telemetry-id ..."
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "validate",
+          "description": "Validate VP Tokens against Trusted Authorities.",
+          "examples": [
+            "java -jar openauth-sim-standalone-<version>.jar eudiw validate --request-id HAIP-0001 --output-json"
+          ],
+          "metadata": [
+            {
+              "name": "input",
+              "value": {
+                "event": "cli.eudiw.validate",
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "title": "cli.eudiw.validate.input",
+                  "type": "object",
+                  "properties": {
+                    "flags": {
+                      "type": "object",
+                      "description": "Normalized EUDIW validate CLI flags for this invocation, keyed by long option name (for example, \"--request-id\").",
+                      "additionalProperties": {
+                        "type": ["string", "number", "boolean", "null"]
+                      }
+                    },
+                    "positionals": {
+                      "type": "array",
+                      "description": "Raw positional arguments (unused for eudiw validate).",
+                      "items": { "type": "string" }
+                    }
+                  },
+                  "required": ["flags"],
+                  "additionalProperties": false
+                },
+                "examples": [
+                  {
+                    "description": "Validate wallet response for HAIP-0001",
+                    "cli": "java -jar openauth-sim-standalone-<version>.jar eudiw validate --request-id HAIP-0001 --output-json",
+                    "json": {
+                      "flags": {
+                        "--request-id": "HAIP-0001",
+                        "--output-json": true
+                      },
+                      "positionals": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "output",
+              "value": {
+                "event": "cli.eudiw.validate",
+                "schema": { "$ref": "#/definitions/cli.eudiw.validate" },
+                "examples": [
+                  {
+                    "description": "Wallet response validation (success)",
+                    "jsonRef": "#/definitions/cli.eudiw.validate/examples/0",
+                    "stdout": "event=cli.eudiw.validate status=SUCCESS telemetryId=oid4vp-telemetry-id ..."
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "definitions": {
+    "cli.hotp.evaluate": {
+      "title": "cli.hotp.evaluate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.hotp.evaluate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "generated",
+            "success",
+            "credential_not_found",
+            "validation_error",
+            "counter_overflow",
+            "unexpected_error"
+          ]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["credentialReference", "previousCounter", "nextCounter"],
+          "properties": {
+            "reasonCode": {
+              "type": "string",
+              "enum": [
+                "generated",
+                "success",
+                "credential_not_found",
+                "validation_error",
+                "counter_overflow",
+                "unexpected_error"
+              ]
+            },
+            "credentialReference": { "type": "boolean" },
+            "credentialId": { "type": "string" },
+            "algorithm": { "type": "string" },
+            "digits": { "type": "integer" },
+            "previousCounter": { "type": "integer" },
+            "nextCounter": { "type": "integer" },
+            "otp": { "type": "string" },
+            "previews": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["delta", "otp"],
+                "properties": {
+                  "counter": { "type": ["string", "null"] },
+                  "delta": { "type": "integer" },
+                  "otp": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.hotp.evaluate",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-hotp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "reasonCode": "success",
+            "credentialReference": false,
+            "algorithm": "SHA1",
+            "digits": 6,
+            "previousCounter": 0,
+            "nextCounter": 1,
+            "otp": "123456",
+            "previews": [
+              {
+                "delta": 0,
+                "otp": "123456"
+              }
+            ],
+            "trace": {
+              "operation": "hotp.evaluate",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cli.hotp.list": {
+      "title": "cli.hotp.list",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.hotp.list"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["success", "validation_error", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["count", "credentials"],
+          "properties": {
+            "count": { "type": "integer" },
+            "credentials": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["credentialId", "algorithm", "digits", "counter"],
+                "properties": {
+                  "credentialId": { "type": "string" },
+                  "algorithm": { "type": "string" },
+                  "digits": { "type": ["string", "integer"] },
+                  "counter": { "type": ["string", "integer"] }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.hotp.list",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-hotp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "count": 1,
+            "credentials": [
+              {
+                "credentialId": "hotp-demo",
+                "algorithm": "SHA1",
+                "digits": 6,
+                "counter": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "cli.hotp.issue": {
+      "title": "cli.hotp.issue",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.hotp.issue"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["issued", "validation_error", "type_mismatch", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["credentialId"],
+          "properties": {
+            "credentialId": { "type": "string" },
+            "reason": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.hotp.issue",
+          "status": "success",
+          "reasonCode": "issued",
+          "telemetryId": "cli-hotp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "credentialId": "hotp-demo"
+          }
+        }
+      ]
+    },
+    "cli.totp.evaluate": {
+      "title": "cli.totp.evaluate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.totp.evaluate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "generated",
+            "validated",
+            "credential_not_found",
+            "otp_invalid_format",
+            "otp_out_of_window",
+            "shared_secret_invalid",
+            "validation_error",
+            "unexpected_error"
+          ]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["credentialReference", "valid", "matchedSkewSteps", "algorithm"],
+          "properties": {
+            "reasonCode": {
+              "type": "string",
+              "enum": [
+                "generated",
+                "validated",
+                "credential_not_found",
+                "otp_invalid_format",
+                "otp_out_of_window",
+                "shared_secret_invalid",
+                "validation_error",
+                "unexpected_error"
+              ]
+            },
+            "credentialReference": { "type": "boolean" },
+            "valid": { "type": "boolean" },
+            "matchedSkewSteps": { "type": "integer" },
+            "algorithm": { "type": "string" },
+            "digits": { "type": "integer" },
+            "stepSeconds": { "type": "integer" },
+            "driftBackwardSteps": { "type": "integer" },
+            "driftForwardSteps": { "type": "integer" },
+            "otp": { "type": "string" },
+            "previews": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["delta", "otp"],
+                "properties": {
+                  "counter": { "type": ["string", "null"] },
+                  "delta": { "type": "integer" },
+                  "otp": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "trace": { "type": "object" },
+            "reason": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.totp.evaluate",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-totp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "reasonCode": "success",
+            "credentialReference": false,
+            "valid": true,
+            "matchedSkewSteps": 0,
+            "algorithm": "SHA1",
+            "digits": 6,
+            "stepSeconds": 30,
+            "driftBackwardSteps": 0,
+            "driftForwardSteps": 0,
+            "otp": "123456",
+            "previews": [
+              {
+                "delta": 0,
+                "otp": "123456"
+              }
+            ],
+            "trace": {
+              "operation": "totp.evaluate",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cli.totp.list": {
+      "title": "cli.totp.list",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.totp.list"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["success", "validation_error", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["count", "credentials"],
+          "properties": {
+            "count": { "type": "integer" },
+            "credentials": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "credentialId",
+                  "algorithm",
+                  "digits",
+                  "stepSeconds",
+                  "driftBackwardSteps",
+                  "driftForwardSteps"
+                ],
+                "properties": {
+                  "credentialId": { "type": "string" },
+                  "algorithm": { "type": "string" },
+                  "digits": { "type": ["string", "integer"] },
+                  "stepSeconds": { "type": ["string", "integer"] },
+                  "driftBackwardSteps": { "type": ["string", "integer"] },
+                  "driftForwardSteps": { "type": ["string", "integer"] }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.totp.list",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-totp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "count": 1,
+            "credentials": [
+              {
+                "credentialId": "totp-demo",
+                "algorithm": "SHA1",
+                "digits": 6,
+                "stepSeconds": 30,
+                "driftBackwardSteps": 1,
+                "driftForwardSteps": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "cli.ocra.evaluate": {
+      "title": "cli.ocra.evaluate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.ocra.evaluate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "success",
+            "credential_conflict",
+            "credential_missing",
+            "credential_not_found",
+            "challenge_not_permitted",
+            "challenge_required",
+            "challenge_length",
+            "challenge_format",
+            "timestamp_not_permitted",
+            "timestamp_invalid",
+            "missing_required",
+            "not_hexadecimal",
+            "invalid_hex_length",
+            "validation_error",
+            "unexpected_error"
+          ]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["mode", "suite", "otp", "credentialReference"],
+          "properties": {
+            "reasonCode": {
+              "type": "string",
+              "enum": [
+                "success",
+                "credential_conflict",
+                "credential_missing",
+                "credential_not_found",
+                "challenge_not_permitted",
+                "challenge_required",
+                "challenge_length",
+                "challenge_format",
+                "timestamp_not_permitted",
+                "timestamp_invalid",
+                "missing_required",
+                "not_hexadecimal",
+                "invalid_hex_length",
+                "validation_error",
+                "unexpected_error"
+              ]
+            },
+            "mode": { "type": "string" },
+            "suite": { "type": "string" },
+            "otp": { "type": "string" },
+            "credentialReference": { "type": "boolean" },
+            "credentialId": { "type": "string" },
+            "windowBackward": { "type": "integer" },
+            "windowForward": { "type": "integer" },
+            "previews": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["delta", "otp"],
+                "properties": {
+                  "counter": { "type": ["string", "null"] },
+                  "delta": { "type": "integer" },
+                  "otp": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.ocra.evaluate",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-ocra-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "reasonCode": "success",
+            "mode": "inline",
+            "suite": "OCRA-1:HOTP-SHA1-6:QA08",
+            "otp": "123456",
+            "credentialReference": false,
+            "windowBackward": 1,
+            "windowForward": 1,
+            "previews": [
+              {
+                "delta": 0,
+                "otp": "123456"
+              }
+            ],
+            "trace": {
+              "operation": "ocra.evaluate",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cli.ocra.verify": {
+      "title": "cli.ocra.verify",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.ocra.verify"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": { "type": "string", "enum": ["match", "strict_mismatch", "validation_error", "credential_not_found", "unexpected_error"] },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["credentialSource", "suite", "credentialReference", "responseDigits"],
+          "properties": {
+            "reasonCode": { "type": "string", "enum": ["match", "strict_mismatch", "validation_error", "credential_not_found", "unexpected_error"] },
+            "credentialSource": { "type": "string" },
+            "credentialId": { "type": "string" },
+            "suite": { "type": "string" },
+            "credentialReference": { "type": "boolean" },
+            "responseDigits": { "type": "integer" },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.ocra.verify",
+          "status": "success",
+          "reasonCode": "match",
+          "telemetryId": "cli-ocra-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "reasonCode": "match",
+            "credentialSource": "inline",
+            "credentialId": "inline-ocra",
+            "suite": "OCRA-1:HOTP-SHA1-6:QN08",
+            "credentialReference": false,
+            "responseDigits": 6,
+            "trace": {
+              "operation": "ocra.verify",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cli.ocra.import": {
+      "title": "cli.ocra.import",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.ocra.import"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["created", "validation_error", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "credentialId": { "type": "string" },
+            "suite": { "type": "string" },
+            "reason": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.ocra.import",
+          "status": "success",
+          "reasonCode": "created",
+          "telemetryId": "cli-ocra-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "credentialId": "account-1",
+            "suite": "OCRA-1:HOTP-SHA1-6:QA08"
+          }
+        }
+      ]
+    },
+    "cli.ocra.list": {
+      "title": "cli.ocra.list",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.ocra.list"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["success", "validation_error", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["count", "credentials"],
+          "properties": {
+            "count": { "type": "integer" },
+            "credentials": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["credentialId", "suite", "hasCounter", "hasPin", "hasDrift"],
+                "properties": {
+                  "credentialId": { "type": "string" },
+                  "suite": { "type": "string" },
+                  "hasCounter": { "type": "boolean" },
+                  "hasPin": { "type": "boolean" },
+                  "hasDrift": { "type": "boolean" },
+                  "metadata": { "type": "object" }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.ocra.list",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-ocra-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "count": 2,
+            "credentials": [
+              {
+                "credentialId": "alpha",
+                "suite": "OCRA-1:HOTP-SHA1-6:QA08",
+                "hasCounter": false,
+                "hasPin": false,
+                "hasDrift": false
+              },
+              {
+                "credentialId": "beta",
+                "suite": "OCRA-1:HOTP-SHA1-6:C-QN08",
+                "hasCounter": true,
+                "hasPin": false,
+                "hasDrift": false
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "cli.ocra.delete": {
+      "title": "cli.ocra.delete",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.ocra.delete"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["deleted", "credential_not_found", "validation_error", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "credentialId": { "type": "string" },
+            "reason": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.ocra.delete",
+          "status": "success",
+          "reasonCode": "deleted",
+          "telemetryId": "cli-ocra-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "credentialId": "account-1"
+          }
+        }
+      ]
+    },
+    "cli.emv.cap.evaluate": {
+      "title": "cli.emv.cap.evaluate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.emv.cap.evaluate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["generated", "invalid_input", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["otp", "maskLength", "previews", "telemetry"],
+          "properties": {
+            "otp": { "type": "string" },
+            "maskLength": { "type": "integer" },
+            "previews": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["delta", "otp"],
+                "properties": {
+                  "counter": { "type": ["string", "null"] },
+                  "delta": { "type": "integer" },
+                  "otp": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "trace": { "type": "object" },
+            "telemetry": {
+              "type": "object",
+              "required": ["event", "status", "reasonCode", "sanitized", "fields"],
+              "properties": {
+                "event": { "type": "string" },
+                "status": { "type": "string" },
+                "reasonCode": {
+                  "type": "string",
+                  "enum": ["generated", "invalid_input", "unexpected_error"]
+                },
+                "sanitized": { "type": "boolean" },
+                "fields": {
+                  "type": "object",
+                  "required": ["telemetryId", "mode"],
+                  "properties": {
+                    "telemetryId": { "type": "string" },
+                    "mode": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.emv.cap.evaluate",
+          "status": "success",
+          "reasonCode": "generated",
+          "telemetryId": "cli-emv-cap-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "otp": "42511495",
+            "maskLength": 8,
+            "previews": [
+              {
+                "counter": "00B4",
+                "delta": 0,
+                "otp": "42511495"
+              }
+            ],
+            "trace": {
+              "masterKeySha256": "sha256:...",
+              "sessionKey": "5EC8B9...",
+              "atc": "00B4",
+              "branchFactor": 4,
+              "height": 8,
+              "maskLength": 8,
+              "previewWindow": {
+                "backward": 0,
+                "forward": 0
+              },
+              "generateAcInput": {
+                "terminal": "0000000000000000000000000000800000000000000000000000000000",
+                "icc": "100000B4A50006040000"
+              },
+              "generateAcResult": "8000B47F32A79FDA94564306770A03A48000",
+              "bitmask": "....1F...........FFFFF..........8...",
+              "maskedDigitsOverlay": "....14...........45643..........8...",
+              "issuerApplicationData": "06770A03A48000",
+              "iccPayloadTemplate": "1000XXXXA50006040000",
+              "iccPayloadResolved": "100000B4A50006040000"
+            },
+            "telemetry": {
+              "event": "emv.cap.respond",
+              "status": "success",
+              "reasonCode": "generated",
+              "sanitized": true,
+              "fields": {
+                "telemetryId": "cli-emv-cap-telemetry-id",
+                "mode": "RESPOND",
+                "atc": "00B4",
+                "branchFactor": 4,
+                "height": 8,
+                "ipbMaskLength": 18,
+                "maskedDigitsCount": 8,
+                "previewWindowBackward": 0,
+                "previewWindowForward": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "cli.emv.cap.replay": {
+      "title": "cli.emv.cap.replay",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.emv.cap.replay"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": { "type": "string", "enum": ["match", "otp_mismatch", "invalid_input", "unexpected_error"] },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["metadata"],
+          "properties": {
+            "metadata": {
+              "type": "object",
+              "required": ["credentialSource", "mode"],
+              "properties": {
+                "credentialSource": { "type": "string" },
+                "credentialId": { "type": "string" },
+                "mode": { "type": "string" },
+                "driftBackward": { "type": "integer" },
+                "driftForward": { "type": "integer" },
+                "matchedDelta": { "type": "integer" }
+              },
+              "additionalProperties": true
+            },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.emv.cap.replay",
+          "status": "success",
+          "reasonCode": "match",
+          "telemetryId": "cli-emv-cap-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "metadata": {
+              "credentialSource": "stored",
+              "mode": "RESPOND",
+              "driftBackward": 0,
+              "driftForward": 0
+            },
+            "trace": {
+              "masterKeySha256": "sha256:...",
+              "sessionKey": "5EC8B9...",
+              "atc": "00C8",
+              "branchFactor": 4,
+              "height": 8,
+              "maskLength": 8,
+              "previewWindow": {
+                "backward": 0,
+                "forward": 0
+              },
+              "generateAcInput": {
+                "terminal": "0000000000000000000000000000800000000000000000000000000000",
+                "icc": "100000C8A50006040000"
+              },
+              "generateAcResult": "8000...",
+              "bitmask": "....1F...........FFFFF..........8...",
+              "maskedDigitsOverlay": "....14...........45643..........8...",
+              "issuerApplicationData": "06770A03A48000",
+              "iccPayloadTemplate": "1000XXXXA50006040000",
+              "iccPayloadResolved": "100000C8A50006040000"
+            }
+          }
+        }
+      ]
+    },
+    "cli.fido2.evaluate": {
+      "title": "cli.fido2.evaluate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.fido2.evaluate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["generated", "validation_error", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": [
+            "credentialReference",
+            "credentialSource",
+            "credentialId",
+            "relyingPartyId",
+            "origin",
+            "algorithm",
+            "signatureCounter",
+            "signatureCounterDerived",
+            "userVerificationRequired",
+            "assertion"
+          ],
+          "properties": {
+            "reasonCode": {
+              "type": "string",
+              "enum": ["generated", "validation_error", "unexpected_error"]
+            },
+            "credentialReference": { "type": "boolean" },
+            "credentialSource": { "type": "string" },
+            "credentialId": { "type": "string" },
+            "relyingPartyId": { "type": "string" },
+            "origin": { "type": "string" },
+            "algorithm": { "type": "string" },
+            "signatureCounter": { "type": "integer" },
+            "signatureCounterDerived": { "type": "boolean" },
+            "userVerificationRequired": { "type": "boolean" },
+            "assertion": {
+              "type": "object",
+              "required": ["type", "id", "rawId", "response"],
+              "properties": {
+                "type": { "type": "string" },
+                "id": { "type": "string" },
+                "rawId": { "type": "string" },
+                "response": {
+                  "type": "object",
+                  "required": ["clientDataJSON", "authenticatorData", "signature"],
+                  "properties": {
+                    "clientDataJSON": { "type": "string" },
+                    "authenticatorData": { "type": "string" },
+                    "signature": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "publicKeyCose": { "type": "string" },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.fido2.evaluate",
+          "status": "success",
+          "reasonCode": "generated",
+          "telemetryId": "cli-fido2-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "credentialReference": false,
+            "credentialSource": "inline",
+            "credentialId": "BASE64URL_ID",
+            "relyingPartyId": "example.org",
+            "origin": "https://example.org",
+            "algorithm": "ES256",
+            "signatureCounter": 0,
+            "signatureCounterDerived": true,
+            "userVerificationRequired": false,
+            "assertion": {
+              "type": "public-key",
+              "id": "BASE64URL_ID",
+              "rawId": "BASE64URL_ID",
+              "response": {
+                "clientDataJSON": "BASE64URL",
+                "authenticatorData": "BASE64URL",
+                "signature": "BASE64URL"
+              }
+            },
+            "publicKeyCose": "BASE64URL"
+          }
+        }
+      ]
+    },
+    "cli.fido2.replay": {
+      "title": "cli.fido2.replay",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.fido2.replay"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "match",
+            "verified",
+            "credential_not_found",
+            "client_data_type_mismatch",
+            "client_data_challenge_mismatch",
+            "origin_mismatch",
+            "rp_id_hash_mismatch",
+            "signature_invalid",
+            "user_verification_required",
+            "counter_regression",
+            "attestation_format_mismatch",
+            "attestation_object_invalid",
+            "verification_failed",
+            "unexpected_error"
+          ]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["credentialReference", "credentialId", "credentialSource", "match", "evaluationStatus"],
+          "properties": {
+            "reasonCode": {
+              "type": "string",
+              "enum": [
+                "match",
+                "verified",
+                "credential_not_found",
+                "client_data_type_mismatch",
+                "client_data_challenge_mismatch",
+                "origin_mismatch",
+                "rp_id_hash_mismatch",
+                "signature_invalid",
+                "user_verification_required",
+                "counter_regression",
+                "attestation_format_mismatch",
+                "attestation_object_invalid",
+                "verification_failed",
+                "unexpected_error"
+              ]
+            },
+            "credentialReference": { "type": "boolean" },
+            "credentialId": { "type": "string" },
+            "credentialSource": { "type": "string" },
+            "match": { "type": "boolean" },
+            "evaluationStatus": { "type": "string" },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.fido2.replay",
+          "status": "success",
+          "reasonCode": "verified",
+          "telemetryId": "cli-fido2-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "credentialReference": true,
+            "credentialId": "packed-es256",
+            "credentialSource": "stored",
+            "match": true,
+            "evaluationStatus": "SUCCESS",
+            "trace": {
+              "operation": "fido2.assertion.replay.stored",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "cli.fido2.attest": {
+      "title": "cli.fido2.attest",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.fido2.attest"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "generated",
+            "credential_id_required",
+            "challenge_required",
+            "invalid_format",
+            "invalid_payload",
+            "missing_option",
+            "credential_private_key_required",
+            "attestation_private_key_required",
+            "custom_root_required",
+            "attestation_id_not_applicable",
+            "input_source_invalid",
+            "missing_signing_mode",
+            "stored_credential_not_found",
+            "unexpected_error"
+          ]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["attestation"],
+          "properties": {
+            "attestation": {
+              "type": "object",
+              "required": ["id", "rawId", "type", "format", "response"],
+              "properties": {
+                "id": { "type": "string" },
+                "rawId": { "type": "string" },
+                "type": { "type": "string" },
+                "format": { "type": "string" },
+                "response": {
+                  "type": "object",
+                  "required": ["clientDataJSON", "attestationObject"],
+                  "properties": {
+                    "clientDataJSON": { "type": "string" },
+                    "attestationObject": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.fido2.attest",
+          "status": "success",
+          "reasonCode": "generated",
+          "telemetryId": "cli-fido2-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "attestation": {
+              "id": "BASE64URL_ID",
+              "rawId": "BASE64URL_ID",
+              "type": "public-key",
+              "format": "packed",
+              "response": {
+                "clientDataJSON": "BASE64URL",
+                "attestationObject": "BASE64URL"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "cli.fido2.attestReplay": {
+      "title": "cli.fido2.attestReplay",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.fido2.attestReplay"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "match",
+            "verified",
+            "self_attested",
+            "anchor_mismatch",
+            "stored_credential_not_found",
+            "stored_attestation_required",
+            "stored_attestation_missing_attribute",
+            "stored_attestation_invalid",
+            "stored_trust_anchor_unsupported",
+            "replay_failed",
+            "client_data_type_mismatch",
+            "client_data_challenge_mismatch",
+            "origin_mismatch",
+            "rp_id_hash_mismatch",
+            "signature_invalid",
+            "user_verification_required",
+            "counter_regression",
+            "attestation_format_mismatch",
+            "attestation_object_invalid",
+            "verification_failed",
+            "unexpected_error"
+          ]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["anchorMode", "valid"],
+          "properties": {
+            "anchorMode": { "type": "string" },
+            "valid": { "type": "boolean" },
+            "trace": { "type": "object" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.fido2.attestReplay",
+          "status": "success",
+          "reasonCode": "verified",
+          "telemetryId": "cli-fido2-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "anchorMode": "preset",
+            "valid": true
+          }
+        }
+      ]
+    },
+    "cli.fido2.seed-attestations": {
+      "title": "cli.fido2.seed-attestations",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.fido2.seed-attestations"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["success", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["addedCount"],
+          "properties": {
+            "addedCount": { "type": "integer" },
+            "presetIds": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.fido2.seed-attestations",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-fido2-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "addedCount": 3
+          }
+        }
+      ]
+    },
+    "cli.fido2.vectors": {
+      "title": "cli.fido2.vectors",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.fido2.vectors"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": {
+          "type": "string",
+          "enum": ["success", "unexpected_error"]
+        },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "type": "object",
+          "required": ["vectors"],
+          "properties": {
+            "vectors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["vectorId", "algorithm"],
+                "properties": {
+                  "vectorId": { "type": "string" },
+                  "algorithm": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "attestationVectors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["attestationId", "format", "algorithm"],
+                "properties": {
+                  "attestationId": { "type": "string" },
+                  "format": { "type": "string" },
+                  "algorithm": { "type": "string" },
+                  "relyingPartyId": { "type": "string" },
+                  "origin": { "type": "string" },
+                  "section": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            },
+            "count": { "type": "integer" },
+            "attestationCount": { "type": "integer" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.fido2.vectors",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "cli-fido2-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "vectors": [
+              {
+                "vectorId": "packed-es256",
+                "algorithm": "ES256"
+              }
+            ],
+            "attestationVectors": [],
+            "count": 1,
+            "attestationCount": 0
+          }
+        }
+      ]
+    },
+    "cli.eudiw.request.create": {
+      "title": "cli.eudiw.request.create",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.eudiw.request.create"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": { "type": "string" },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["requestId", "profile", "requestUri", "authorizationRequest", "telemetry"],
+              "properties": {
+                "requestId": { "type": "string" },
+                "profile": { "type": "string" },
+                "requestUri": { "type": "string" },
+                "authorizationRequest": {
+                  "type": "object",
+                  "required": ["clientId", "nonce", "state", "responseMode", "presentationDefinition"],
+                  "properties": {
+                    "clientId": { "type": "string" },
+                    "nonce": { "type": "string" },
+                    "state": { "type": "string" },
+                    "responseMode": { "type": "string" },
+                    "presentationDefinition": { "type": "string" }
+                  },
+                  "additionalProperties": true
+                },
+                "qr": { "type": "object" },
+                "trace": { "type": "object" },
+                "telemetry": { "type": "object" }
+              },
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "required": ["type", "title", "status", "detail"],
+              "properties": {
+                "type": { "type": "string" },
+                "title": { "type": "string" },
+                "status": { "type": "integer" },
+                "detail": { "type": "string" },
+                "violations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["field", "message"],
+                    "properties": {
+                      "field": { "type": "string" },
+                      "message": { "type": "string" }
+                    },
+                    "additionalProperties": true
+                  },
+                  "default": []
+                }
+              },
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "required": ["reason"],
+              "properties": {
+                "reason": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.eudiw.request.create",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "oid4vp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "requestId": "HAIP-0001",
+            "profile": "HAIP",
+            "requestUri": "https://sim.openauth.local/oid4vp/request/HAIP-0001",
+            "authorizationRequest": {
+              "clientId": "x509_hash:pid-haip-verifier",
+              "nonce": "eudiw-openid4vp-nonce-seed-v1-0001",
+              "state": "eudiw-openid4vp-state-seed-v1-0001",
+              "responseMode": "direct_post.jwt",
+              "presentationDefinition": "{ ... }"
+            },
+            "qr": {
+              "ascii": "QR::openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001",
+              "uri": "openid-vp://?request_uri=https://sim.openauth.local/oid4vp/request/HAIP-0001"
+            },
+            "trace": {
+              "operation": "eudiw.request.create",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            },
+            "telemetry": {
+              "event": "oid4vp.request.created",
+              "fields": {
+                "requestId": "HAIP-0001",
+                "nonceMasked": "******1-0001",
+                "responseMode": "DIRECT_POST_JWT",
+                "requestUri": "https://sim.openauth.local/oid4vp/request/HAIP-0001",
+                "telemetryId": "oid4vp-telemetry-id"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "cli.eudiw.wallet.simulate": {
+      "title": "cli.eudiw.wallet.simulate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.eudiw.wallet.simulate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": { "type": "string" },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["requestId", "status", "profile", "responseMode", "presentations", "telemetry"],
+              "properties": {
+                "requestId": { "type": "string" },
+                "status": { "type": "string" },
+                "profile": { "type": "string" },
+                "responseMode": { "type": "string" },
+                "presentations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["credentialId", "format", "holderBinding", "vpToken", "disclosureHashes"],
+                    "properties": {
+                      "credentialId": { "type": "string" },
+                      "format": { "type": "string" },
+                      "holderBinding": { "type": "boolean" },
+                      "trustedAuthorityMatch": { "type": ["string", "null"] },
+                      "vpToken": { "type": "object" },
+                      "disclosureHashes": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "trace": { "type": "object" },
+                "telemetry": { "type": "object" }
+              },
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "required": ["type", "title", "status", "detail"],
+              "properties": {
+                "type": { "type": "string" },
+                "title": { "type": "string" },
+                "status": { "type": "integer" },
+                "detail": { "type": "string" },
+                "violations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["field", "message"],
+                    "properties": {
+                      "field": { "type": "string" },
+                      "message": { "type": "string" }
+                    },
+                    "additionalProperties": true
+                  },
+                  "default": []
+                }
+              },
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "required": ["reason"],
+              "properties": {
+                "reason": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.eudiw.wallet.simulate",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "oid4vp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "requestId": "HAIP-0001",
+            "status": "SUCCESS",
+            "profile": "HAIP",
+            "responseMode": "DIRECT_POST_JWT",
+            "presentations": [
+              {
+                "credentialId": "pid-haip-baseline",
+                "format": "dc+sd-jwt",
+                "holderBinding": true,
+                "trustedAuthorityMatch": null,
+                "vpToken": {
+                  "vp_token": "BASE64URL",
+                  "presentation_submission": {}
+                },
+                "disclosureHashes": [
+                  "sha-256:..."
+                ]
+              }
+            ],
+            "trace": {
+              "operation": "eudiw.wallet.simulate",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            },
+            "telemetry": {
+              "event": "oid4vp.wallet.responded",
+              "fields": {
+                "requestId": "HAIP-0001",
+                "telemetryId": "oid4vp-telemetry-id",
+                "presentations": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "cli.eudiw.validate": {
+      "title": "cli.eudiw.validate",
+      "type": "object",
+      "required": ["event", "status", "reasonCode", "telemetryId", "sanitized", "data"],
+      "properties": {
+        "event": { "type": "string", "enum": ["cli.eudiw.validate"] },
+        "status": { "type": "string", "enum": ["success", "invalid", "error"] },
+        "reasonCode": { "type": "string" },
+        "telemetryId": { "type": "string" },
+        "sanitized": { "type": "boolean" },
+        "data": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["requestId", "status", "profile", "responseMode", "presentations", "telemetry"],
+              "properties": {
+                "requestId": { "type": "string" },
+                "status": { "type": "string" },
+                "profile": { "type": "string" },
+                "responseMode": { "type": "string" },
+                "presentations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["credentialId", "format", "holderBinding", "vpToken", "disclosureHashes"],
+                    "properties": {
+                      "credentialId": { "type": "string" },
+                      "format": { "type": "string" },
+                      "holderBinding": { "type": "boolean" },
+                      "trustedAuthorityMatch": { "type": ["string", "null"] },
+                      "vpToken": { "type": "object" },
+                      "disclosureHashes": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "trace": { "type": "object" },
+                "telemetry": { "type": "object" }
+              },
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "required": ["type", "title", "status", "detail"],
+              "properties": {
+                "type": { "type": "string" },
+                "title": { "type": "string" },
+                "status": { "type": "integer" },
+                "detail": { "type": "string" },
+                "violations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["field", "message"],
+                    "properties": {
+                      "field": { "type": "string" },
+                      "message": { "type": "string" }
+                    },
+                    "additionalProperties": true
+                  },
+                  "default": []
+                }
+              },
+              "additionalProperties": true
+            },
+            {
+              "type": "object",
+              "required": ["reason"],
+              "properties": {
+                "reason": { "type": "string" }
+              },
+              "additionalProperties": true
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event": "cli.eudiw.validate",
+          "status": "success",
+          "reasonCode": "success",
+          "telemetryId": "oid4vp-telemetry-id",
+          "sanitized": true,
+          "data": {
+            "requestId": "HAIP-0001",
+            "status": "SUCCESS",
+            "profile": "HAIP",
+            "responseMode": "DIRECT_POST_JWT",
+            "presentations": [
+              {
+                "credentialId": "pid-haip-baseline",
+                "format": "dc+sd-jwt",
+                "holderBinding": true,
+                "trustedAuthorityMatch": null,
+                "vpToken": {
+                  "vp_token": "BASE64URL",
+                  "presentation_submission": {}
+                },
+                "disclosureHashes": [
+                  "sha-256:..."
+                ]
+              }
+            ],
+            "trace": {
+              "operation": "eudiw.validate",
+              "steps": [
+                {
+                  "id": "step.01",
+                  "summary": "..."
+                }
+              ]
+            },
+            "telemetry": {
+              "event": "oid4vp.response.validated",
+              "fields": {
+                "responseMode": "DIRECT_POST_JWT",
+                "telemetryId": "oid4vp-telemetry-id",
+                "profile": "HAIP",
+                "requestId": "HAIP-0001",
+                "walletPreset": "pid-haip-baseline",
+                "presentations": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -273,9 +273,9 @@ public final class HotpCli implements Callable<Integer> {
                         .toList();
 
                 if (outputJson) {
-                    Map<String, Object> payload = new LinkedHashMap<>();
-                    payload.put("count", credentials.size());
-                    payload.put(
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    data.put("count", credentials.size());
+                    data.put(
                             "credentials",
                             credentials.stream()
                                     .map(credential -> Map.of(
@@ -288,12 +288,11 @@ public final class HotpCli implements Callable<Integer> {
                                             "counter",
                                             credential.attributes().get("hotp.counter")))
                                     .toList());
-                    Map<String, Object> response = new LinkedHashMap<>();
-                    response.put("event", event("list"));
-                    response.put("status", "success");
-                    response.put("reasonCode", "success");
-                    response.put("data", payload);
-                    JsonPrinter.print(out(), response, true);
+                    Map<String, Object> telemetryFields = new LinkedHashMap<>();
+                    telemetryFields.put("count", credentials.size());
+                    TelemetryFrame frame = ISSUANCE_TELEMETRY.status(
+                            "success", nextTelemetryId(), "success", true, null, telemetryFields);
+                    JsonPrinter.print(out(), TelemetryJson.response(event("list"), frame, data), true);
                 } else {
                     out().printf(
                                     Locale.ROOT,

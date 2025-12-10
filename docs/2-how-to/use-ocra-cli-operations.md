@@ -64,7 +64,7 @@ Successful evaluations print the OTP and telemetry ID. If required parameters ar
 ### Output formats
 - **Default (no flag):** key=value telemetry line plus preview table on success.
 - **JSON (`--output-json`):** single object with `event`, `status`, `reasonCode`, `telemetryId`, `sanitized`, and a `data` payload (otp, suite, mode, credential reference, previews, optional trace when `--verbose` is set).
-- JSON schema for `--output-json` (verify): [docs/3-reference/cli/output-schemas/ocra-verify.schema.json](../3-reference/cli/output-schemas/ocra-verify.schema.json)
+- JSON schema for `--output-json` (verify, event `cli.ocra.verify`) lives in the global registry [docs/3-reference/cli/cli.schema.json](../3-reference/cli/cli.schema.json) under `definitions["cli.ocra.verify"]`.
 
 #### Sample inline evaluation output
 Command (challenge-only suite):
@@ -127,7 +127,7 @@ java -jar openauth-sim-standalone-<version>.jar ocra verify \
   --challenge SESSION01 \
   --session-hex 00112233445566778899AABBCCDDEEFF102132435465768798A9BACBDCEDF0EF112233445566778899AABBCCDDEEFF0089ABCDEF0123456789ABCDEF01234567
 ```
-Exit code `0` signals a match, while `2` indicates `reasonCode=strict_mismatch`. Missing or malformed context returns exit code `64` with `reasonCode=validation_failure`.
+Exit code `0` signals a match, while `2` indicates `reasonCode=strict_mismatch`. Missing or malformed context returns exit code `64` with `reasonCode=validation_failure`. In all cases the telemetry line shows `status=success` for verification outcomes; the domain result lives in `reasonCode`.
 
 ### 4.2 Inline secret mode
 Supply the suite and secret directly when no stored credential exists.
@@ -142,7 +142,7 @@ java -jar openauth-sim-standalone-<version>.jar ocra verify \
 Inline verification shares exit codes with the stored path.
 
 ### 4.3 Audit interpretation
-Every run emits `event=cli.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) so you can correlate findings without exposing secrets. Example lines live in [docs/3-reference/cli-ocra-telemetry-snapshot.md](docs/3-reference/cli-ocra-telemetry-snapshot.md). Capture the `telemetryId`, `credentialSource`, and `reasonCode` fields when recording audits—`match` confirms the OTP is legitimate, `strict_mismatch` proves an exact replay failed, and `validation_failure` means the operator-provided context was incomplete.
+Every run emits `event=cli.ocra.verify` with hashed payloads (`otpHash`, `contextFingerprint`) so you can correlate findings without exposing secrets. Example lines live in [docs/3-reference/cli-ocra-telemetry-snapshot.md](docs/3-reference/cli-ocra-telemetry-snapshot.md). Capture the `telemetryId`, `credentialSource`, and `reasonCode` fields when recording audits—`match` confirms the OTP is legitimate, `strict_mismatch` proves an exact replay failed, and `validation_failure` means the operator-provided context was incomplete. The envelope `status` remains `success` for both match and mismatch; use `reasonCode` for the outcome.
 
 ### 4.4 Failure scenarios
 - Supply the wrong OTP to rehearse incident handling. The command exits with status `2` and prints `reasonCode=strict_mismatch`.

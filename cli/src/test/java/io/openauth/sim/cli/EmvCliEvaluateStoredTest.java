@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
@@ -77,17 +78,24 @@ final class EmvCliEvaluateStoredTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout().trim();
         assertFalse(stdout.isEmpty(), "JSON output should be emitted");
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/emv-cap-evaluate.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.emv.cap.evaluate"), stdout);
 
         Object parsed = SimpleJson.parse(stdout);
         assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.emv.cap.evaluate", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("generated", root.get("reasonCode"));
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present at the envelope level");
 
-        assertNotNull(root.get("otp"), "OTP field should be present");
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> previews = (List<Map<String, Object>>) root.get("previews");
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+
+        assertNotNull(data.get("otp"), "OTP field should be present");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> previews = (List<Map<String, Object>>) data.get("previews");
         assertNotNull(previews, "Preview array should be present");
         assertFalse(previews.isEmpty(), "Preview array should include the evaluated entry");
         Map<String, Object> previewEntry = previews.get(0);
@@ -95,7 +103,7 @@ final class EmvCliEvaluateStoredTest {
         assertEquals(0, ((Number) previewEntry.get("delta")).intValue());
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> telemetry = (Map<String, Object>) root.get("telemetry");
+        Map<String, Object> telemetry = (Map<String, Object>) data.get("telemetry");
         assertNotNull(telemetry, "Telemetry payload should be present");
         @SuppressWarnings("unchecked")
         Map<String, Object> fields = (Map<String, Object>) telemetry.get("fields");
@@ -106,7 +114,7 @@ final class EmvCliEvaluateStoredTest {
         assertEquals(0, ((Number) fields.get("previewWindowForward")).intValue());
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        Map<String, Object> trace = (Map<String, Object>) data.get("trace");
         assertNotNull(trace, "Trace payload should be present by default");
         assertTraceSchema(trace);
     }

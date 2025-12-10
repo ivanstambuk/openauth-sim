@@ -53,7 +53,7 @@ java -jar openauth-sim-standalone-<version>.jar hotp evaluate \
 ```
 - Default output: telemetry line (success/invalid/error) followed by a preview table and `generatedOtp=<value>`; verbose trace printed after the table when `--verbose` is set.
 - `--output-json`: single object with `data` fields such as `credentialReference`, `credentialId`, `algorithm`, `digits`, `previousCounter/nextCounter`, `otp`, `previews[]`, and optional `trace` when `--verbose` is present.
-- JSON schema for `--output-json`: [docs/3-reference/cli/output-schemas/hotp-evaluate.schema.json](../3-reference/cli/output-schemas/hotp-evaluate.schema.json)
+- JSON schema for `--output-json` (event `cli.hotp.evaluate`) lives in the global registry [docs/3-reference/cli/cli.schema.json](../3-reference/cli/cli.schema.json) under `definitions["cli.hotp.evaluate"]`.
 
 ### Inline mode
 ```bash

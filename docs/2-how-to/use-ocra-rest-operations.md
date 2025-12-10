@@ -141,8 +141,8 @@ curl -s \
 The response mirrors the stored path but reports `credentialSource="inline"` in telemetry.
 
 ### 4.3 Interpreting responses
-- `status=match` / `reasonCode=match` – OTP replay succeeded (`200 OK`).
-- `status=mismatch` / `reasonCode=strict_mismatch` – the OTP or context differs from the recorded values (`200 OK`).
+- `status=success` / `reasonCode=match` – OTP replay succeeded (`200 OK`).
+- `status=success` / `reasonCode=strict_mismatch` – the OTP or context differs from the recorded values (`200 OK`).
 - `status=invalid` / `reasonCode=validation_failure` – request failed validation (`422 Unprocessable Entity`).
 - `reasonCode=credential_not_found` – MapDB does not contain the requested ID (`404 Not Found`).
 

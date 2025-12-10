@@ -1,13 +1,16 @@
 package io.openauth.sim.cli.eudi.openid4vp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
+import io.openauth.sim.core.json.SimpleJson;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
@@ -41,8 +44,19 @@ final class Oid4vpCliContractTest {
         assertTrue(stdout.contains("\"trace\""), stdout);
         assertTrue(stdout.contains("\"operation\":\"eudiw.request.create\""), stdout);
         assertTrue(stdout.contains("\"steps\""), stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/eudiw-request-create.schema.json"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.eudiw.request.create", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        assertTrue(root.get("data") instanceof Map, "data object should be present on the envelope");
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.eudiw.request.create"), stdout);
     }
 
     @Test
@@ -71,8 +85,19 @@ final class Oid4vpCliContractTest {
         assertTrue(stdout.contains("\"operation\":\"eudiw.wallet.simulate\""), stdout);
         assertTrue(stdout.contains("\"steps\""), stdout);
         assertTrue(stdout.contains("\"vp_token_hash\""), stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/eudiw-wallet-simulate.schema.json"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.eudiw.wallet.simulate", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        assertTrue(root.get("data") instanceof Map, "data object should be present on the envelope");
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.eudiw.wallet.simulate"), stdout);
     }
 
     @Test
@@ -81,13 +106,75 @@ final class Oid4vpCliContractTest {
 
         int exitCode = harness.execute(
                 "validate", "--preset", "pid-haip-baseline", "--trusted-authority", "aki:unknown", "--output-json");
-
         assertEquals(2, exitCode, harness.stderr());
-        String stderr = harness.stderr();
-        assertTrue(stderr.contains("invalid_scope"), stderr);
-        assertTrue(stderr.contains("\"status\":400"), stderr);
-        assertTrue(stderr.contains("Trusted Authority"), stderr);
-        assertTrue(stderr.contains("violations"), stderr);
+        String stdout = harness.stdout();
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.eudiw.validate", root.get("event"));
+        assertEquals("invalid", root.get("status"));
+        assertTrue(root.get("reasonCode").toString().contains("invalid_scope"), stdout);
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertTrue(data.get("type").toString().contains("invalid_scope"), stdout);
+        assertEquals(400, data.get("status"));
+        assertTrue(data.get("detail").toString().contains("Trusted Authority"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.eudiw.validate"), stdout);
+    }
+
+    @Test
+    void validateEmitsSuccessEnvelopeWhenTrustedAuthorityMatches() throws Exception {
+        CommandHarness harness = CommandHarness.create();
+
+        int exitCode = harness.execute(
+                "validate",
+                "--request-id",
+                "HAIP-0001",
+                "--preset",
+                "pid-haip-baseline",
+                "--trusted-authority",
+                "aki:s9tIpP7qrS9=",
+                "--verbose",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout();
+        assertTrue(stdout.contains("\"status\":\"SUCCESS\""), stdout);
+        assertTrue(stdout.contains("\"trustedAuthorityMatch\":\"aki:s9tIpP7qrS9=\""), stdout);
+        assertTrue(stdout.contains("\"trace\""), stdout);
+        assertTrue(stdout.contains("\"steps\""), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.eudiw.validate", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals("HAIP-0001", data.get("requestId"));
+        assertEquals("SUCCESS", data.get("status"));
+        assertEquals("HAIP", data.get("profile"));
+        assertEquals("DIRECT_POST_JWT", data.get("responseMode"));
+        @SuppressWarnings("unchecked")
+        java.util.List<Map<String, Object>> presentations =
+                (java.util.List<Map<String, Object>>) data.get("presentations");
+        assertNotNull(presentations, "presentations list should be present");
+        assertTrue(!presentations.isEmpty(), "presentations list should not be empty");
+        Map<String, Object> first = presentations.get(0);
+        assertEquals("pid-haip-baseline", first.get("credentialId"));
+        assertEquals("dc+sd-jwt", first.get("format"));
+        assertEquals(Boolean.TRUE, first.get("holderBinding"));
+        assertEquals("aki:s9tIpP7qrS9=", first.get("trustedAuthorityMatch"));
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.eudiw.validate"), stdout);
     }
 
     private static final class CommandHarness {

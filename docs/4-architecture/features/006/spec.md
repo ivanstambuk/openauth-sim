@@ -399,7 +399,7 @@ All endpoints surface problem-details errors with `type`, `title`, `status`, and
 
 ### CLI Commands / Flags
 
-The Picocli surface adopts three top-level commands under `eudiw` and mirrors REST payloads. All commands honour `--output-json` (pretty-print REST-equivalent payloads) and `--verbose`/`--no-verbose` flags (default `--no-verbose`).
+The Picocli surface adopts three top-level commands under `eudiw` and mirrors REST payloads. All commands honour `--output-json` (pretty-print REST-equivalent payloads using the shared `event/status/reasonCode/telemetryId/sanitized/data` envelope from ADR-0014) and `--verbose`/`--no-verbose` flags (default `--no-verbose`).
 
 | ID | Command | Behaviour |
 |----|---------|-----------|

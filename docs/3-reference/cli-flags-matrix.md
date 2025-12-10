@@ -3,7 +3,7 @@
 _Status: Draft_
 _Last updated: 2025-12-09_
 
-JSON schemas for `--output-json` payloads live in [docs/3-reference/cli/output-schemas](cli/output-schemas) (one per command with embedded examples).
+JSON schemas for `--output-json` payloads now live in a single global registry at [docs/3-reference/cli/cli.schema.json](cli/cli.schema.json), with one definition per CLI JSON `event` (for example `cli.hotp.evaluate`, `cli.ocra.verify`, `cli.fido2.replay`). Historical per-command schema files under `docs/3-reference/cli/output-schemas` have been removed; the global registry is the only authoritative source.
 
 Quick reference for the Picocli facades. Each table lists the mandatory vs optional flags, their defaults, and how JSON/trace output behaves. Use the per-protocol how-tos for end-to-end examples.
 

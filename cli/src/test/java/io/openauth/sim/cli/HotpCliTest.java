@@ -2,9 +2,12 @@ package io.openauth.sim.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.otp.hotp.HotpJsonVectorFixtures;
@@ -15,6 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
@@ -64,6 +68,50 @@ final class HotpCliTest {
     }
 
     @Test
+    void importEmitsJsonWhenRequested() throws Exception {
+        Path databasePath = databasePath();
+        CommandHarness harness = harness(databasePath);
+        HotpJsonVector sample = vector(0L);
+
+        int exitCode = harness.execute(
+                "import",
+                "--credential-id",
+                CREDENTIAL_ID,
+                "--secret",
+                sample.secret().asHex(),
+                "--digits",
+                String.valueOf(sample.digits()),
+                "--counter",
+                String.valueOf(sample.counter()),
+                "--algorithm",
+                sample.algorithm().name(),
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        System.out.println("Hotp evaluateInlineEmitsJsonWhenRequested payload: " + stdout);
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.hotp.issue\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.hotp.issue"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.hotp.issue", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("issued", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals(CREDENTIAL_ID, data.get("credentialId"));
+    }
+
+    @Test
     void importFailsForUnknownAlgorithm() throws Exception {
         Path databasePath = databasePath();
         CommandHarness harness = harness(databasePath);
@@ -102,6 +150,42 @@ final class HotpCliTest {
         String output = harness.stdout();
         assertTrue(output.contains("event=cli.hotp.list"));
         assertTrue(output.contains("count=0"));
+    }
+
+    @Test
+    void listEmitsJsonWhenRequested() throws Exception {
+        Path databasePath = databasePath();
+        importCredential(databasePath);
+
+        CommandHarness harness = harness(databasePath);
+        int exitCode = harness.execute("list", "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.hotp.list\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.hotp.list"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.hotp.list", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals(1, ((Number) data.get("count")).intValue());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) data.get("credentials");
+        assertNotNull(credentials, "credentials list should be present");
+        assertEquals(1, credentials.size(), "expected a single credential entry");
+        assertEquals(CREDENTIAL_ID, credentials.get(0).get("credentialId"));
     }
 
     @Test
@@ -173,8 +257,7 @@ final class HotpCliTest {
         assertTrue(compact.contains("\"event\":\"cli.hotp.evaluate\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"otp\":\"" + sample.otp() + "\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/hotp-evaluate.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.hotp.evaluate"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 

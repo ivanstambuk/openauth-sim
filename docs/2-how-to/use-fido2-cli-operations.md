@@ -7,7 +7,7 @@ The `fido2` Picocli facade lets you validate WebAuthn assertions and attestation
 
 > JSON output: every `fido2` subcommand (`evaluate`, `replay`, `attest`, `attest-replay`, `seed-attestations`, `vectors`) now supports `--output-json` to emit a single JSON object instead of text. Combine it with `--verbose` to embed the verbose trace alongside telemetry fields (`event`, `status`, `reasonCode`, `telemetryId`).
 > Counter defaults: `--signature-counter` is now optional. When omitted, the CLI derives the counter from the current Unix epoch seconds (clamped to uint32) and returns the derived value in JSON/telemetry; provide `--signature-counter` when you need a fixed value.
-> JSON schemas: evaluate [docs/3-reference/cli/output-schemas/fido2-evaluate.schema.json](../3-reference/cli/output-schemas/fido2-evaluate.schema.json) · replay [../3-reference/cli/output-schemas/fido2-replay.schema.json](../3-reference/cli/output-schemas/fido2-replay.schema.json) · vectors [../3-reference/cli/output-schemas/fido2-vectors.schema.json](../3-reference/cli/output-schemas/fido2-vectors.schema.json) · seed-attestations [../3-reference/cli/output-schemas/fido2-seed-attestations.schema.json](../3-reference/cli/output-schemas/fido2-seed-attestations.schema.json) · attest [../3-reference/cli/output-schemas/fido2-attest.schema.json](../3-reference/cli/output-schemas/fido2-attest.schema.json) · attest-replay [../3-reference/cli/output-schemas/fido2-attest-replay.schema.json](../3-reference/cli/output-schemas/fido2-attest-replay.schema.json)
+> JSON schemas live in the global registry [docs/3-reference/cli/cli.schema.json](../3-reference/cli/cli.schema.json): evaluate (`definitions["cli.fido2.evaluate"]`) · replay (`definitions["cli.fido2.replay"]`) · vectors (`definitions["cli.fido2.vectors"]`) · seed-attestations (`definitions["cli.fido2.seed-attestations"]`) · attest (`definitions["cli.fido2.attest"]`) · attest-replay (`definitions["cli.fido2.attestReplay"]`).
 
 ## Prerequisites
 - Java 17 (`JAVA_HOME` must point to a JDK 17 install).
@@ -193,7 +193,7 @@ java -jar openauth-sim-standalone-<version>.jar fido2 replay \
   --credential-id resident-key-es256
 ```
 
-Replay output reports whether the supplied assertion matches the stored credential (`credentialSource=stored`, `match=true`) and surfaces sanitized errors (for example `reason=mismatch`) when verification fails.
+Replay output reports whether the supplied assertion matches the stored credential (`credentialSource=stored`, `match=true`) and surfaces sanitized errors via `reasonCode` (for example `reasonCode=signature_invalid`) when verification fails. The envelope `status` remains `success` for both match and mismatch; rely on `reasonCode`, `match`, and `evaluationStatus` for the outcome.
 
 Output formats:
 - Default: single telemetry line (`event=cli.fido2.replay status=success credentialSource=stored match=true …`).
@@ -301,7 +301,7 @@ java -jar openauth-sim-standalone-<version>.jar fido2 attest-replay \
   --trust-anchor-file packed-anchor.pem
 ```
 
-The replay output reports whether the supplied anchors matched the attestation chain (`anchorTrusted=true/false`) and keeps the telemetry footprint in sync with the REST and UI facades.
+The replay output reports whether the supplied anchors matched the attestation chain (`anchorTrusted=true/false`) and keeps the telemetry footprint in sync with the REST and UI facades. Even when verification fails, `status` stays `success` and the domain outcome is carried in `reasonCode` (for example `stored_attestation_invalid`).
 
 ### Stored replay
 After seeding credentials (`fido2 seed-attestations` or the REST/UI seed controls), replay a stored attestation with the identifier returned by the seed step:

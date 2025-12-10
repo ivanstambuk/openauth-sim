@@ -3,6 +3,7 @@ package io.openauth.sim.rest.emv.cap;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 import java.util.Objects;
 
@@ -28,6 +29,9 @@ final class EmvCapTelemetryPayload {
     }
 
     @JsonProperty("reasonCode")
+    @Schema(
+            description = "Machine-readable outcome code",
+            allowableValues = {"generated", "match", "otp_mismatch", "invalid_input", "unexpected_error"})
     String reasonCode() {
         return reasonCode;
     }

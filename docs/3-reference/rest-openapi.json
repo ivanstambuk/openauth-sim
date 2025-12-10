@@ -521,26 +521,6 @@
           "required" : true
         },
         "responses" : {
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Verification payload failed validation",
             "content" : {
@@ -565,6 +545,16 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
                 }
               }
             }
@@ -597,6 +587,16 @@
                 }
               }
             }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -618,6 +618,16 @@
           "required" : true
         },
         "responses" : {
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -652,16 +662,6 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -764,8 +764,8 @@
               }
             }
           },
-          "422" : {
-            "description" : "Validation error",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -774,8 +774,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -814,8 +814,8 @@
               }
             }
           },
-          "422" : {
-            "description" : "Validation error",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -824,8 +824,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1021,22 +1021,22 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapReplayErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Replay completed",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/EmvCapReplayResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapReplayErrorResponse"
                 }
               }
             }
@@ -1061,22 +1061,22 @@
           "required" : true
         },
         "responses" : {
-          "500" : {
-            "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Evaluation completed",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/EmvCapEvaluationResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
                 }
               }
             }
@@ -1503,7 +1503,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "verified", "credential_not_found", "client_data_type_mismatch", "client_data_challenge_mismatch", "origin_mismatch", "rp_id_hash_mismatch", "signature_invalid", "user_verification_required", "counter_regression", "attestation_format_mismatch", "attestation_object_invalid", "verification_failed", "unexpected_error" ]
           },
           "match" : {
             "type" : "boolean"
@@ -1523,7 +1525,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "verified", "credential_not_found", "client_data_type_mismatch", "client_data_challenge_mismatch", "origin_mismatch", "rp_id_hash_mismatch", "signature_invalid", "user_verification_required", "counter_regression", "attestation_format_mismatch", "attestation_object_invalid", "verification_failed", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -1693,7 +1697,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "validation_error", "credential_not_found", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -1817,7 +1823,8 @@
           "reasonCode" : {
             "type" : "string",
             "description" : "Reason code associated with the result",
-            "example" : "generated"
+            "example" : "generated",
+            "enum" : [ "generated", "credential_id_required", "challenge_required", "invalid_format", "invalid_payload", "missing_option", "credential_private_key_required", "attestation_private_key_required", "custom_root_required", "attestation_id_not_applicable", "input_source_invalid", "missing_signing_mode", "stored_credential_not_found", "match", "verified", "self_attested", "anchor_mismatch", "stored_attestation_required", "stored_attestation_missing_attribute", "stored_attestation_invalid", "stored_trust_anchor_unsupported", "replay_failed", "client_data_type_mismatch", "client_data_challenge_mismatch", "origin_mismatch", "rp_id_hash_mismatch", "signature_invalid", "user_verification_required", "counter_regression", "attestation_format_mismatch", "attestation_object_invalid", "verification_failed", "unexpected_error" ]
           },
           "attestationFormat" : {
             "type" : "string",
@@ -2036,7 +2043,8 @@
           "reasonCode" : {
             "type" : "string",
             "description" : "Reason code describing the failure",
-            "example" : "client_data_challenge_mismatch"
+            "example" : "client_data_challenge_mismatch",
+            "enum" : [ "generated", "credential_id_required", "challenge_required", "invalid_format", "invalid_payload", "missing_option", "credential_private_key_required", "attestation_private_key_required", "custom_root_required", "attestation_id_not_applicable", "input_source_invalid", "missing_signing_mode", "stored_credential_not_found", "match", "verified", "self_attested", "anchor_mismatch", "stored_attestation_required", "stored_attestation_missing_attribute", "stored_attestation_invalid", "stored_trust_anchor_unsupported", "replay_failed", "client_data_type_mismatch", "client_data_challenge_mismatch", "origin_mismatch", "rp_id_hash_mismatch", "signature_invalid", "user_verification_required", "counter_regression", "attestation_format_mismatch", "attestation_object_invalid", "verification_failed", "unexpected_error" ]
           },
           "message" : {
             "type" : "string",
@@ -2271,7 +2279,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_out_of_window", "credential_not_found", "validation_error", "unexpected_error" ]
           },
           "metadata" : {
             "$ref" : "#/components/schemas/TotpReplayMetadata"
@@ -2288,7 +2298,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_out_of_window", "credential_not_found", "validation_error", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -2380,7 +2392,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "validated", "credential_not_found", "otp_invalid_format", "otp_out_of_window", "shared_secret_invalid", "validation_error", "unexpected_error" ]
           }
         }
       },
@@ -2413,7 +2427,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "validated", "credential_not_found", "otp_invalid_format", "otp_out_of_window", "shared_secret_invalid", "validation_error", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -2520,7 +2536,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "validated", "credential_not_found", "otp_invalid_format", "otp_out_of_window", "shared_secret_invalid", "validation_error", "unexpected_error" ]
           },
           "valid" : {
             "type" : "boolean"
@@ -2728,7 +2746,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "strict_mismatch", "validation_error", "credential_not_found", "unexpected_error" ]
           },
           "metadata" : {
             "$ref" : "#/components/schemas/OcraVerificationMetadata"
@@ -2783,26 +2803,6 @@
           }
         }
       },
-      "OcraEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
       "OcraEvaluationResponse" : {
         "type" : "object",
         "properties" : {
@@ -2819,6 +2819,26 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/OtpPreviewResponse"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
+      "OcraEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
             }
           },
           "trace" : {
@@ -2902,7 +2922,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_mismatch", "credential_not_found", "invalid_hotp_metadata", "validation_error", "unexpected_error" ]
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpReplayMetadata"
@@ -2919,7 +2941,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_mismatch", "credential_not_found", "invalid_hotp_metadata", "validation_error", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -2994,7 +3018,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "credential_not_found", "validation_error", "counter_overflow", "unexpected_error" ]
           },
           "otp" : {
             "type" : "string"
@@ -3020,7 +3046,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "credential_not_found", "validation_error", "counter_overflow", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -3385,7 +3413,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_mismatch", "invalid_input", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -3547,7 +3577,9 @@
             "type" : "string"
           },
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_mismatch", "invalid_input", "unexpected_error" ]
           },
           "metadata" : {
             "$ref" : "#/components/schemas/EmvCapReplayMetadata"
@@ -3935,29 +3967,6 @@
           }
         }
       },
-      "EmvCapEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/EmvCapTracePayload"
-          }
-        }
-      },
       "EmvCapEvaluationResponse" : {
         "type" : "object",
         "properties" : {
@@ -3986,7 +3995,9 @@
         "type" : "object",
         "properties" : {
           "reasonCode" : {
-            "type" : "string"
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "match", "otp_mismatch", "invalid_input", "unexpected_error" ]
           },
           "fields" : {
             "type" : "object",
@@ -4002,6 +4013,31 @@
           },
           "sanitized" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "EmvCapEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "invalid_input", "unexpected_error" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/EmvCapTracePayload"
           }
         }
       },

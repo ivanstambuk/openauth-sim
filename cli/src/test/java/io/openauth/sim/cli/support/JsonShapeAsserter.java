@@ -32,6 +32,11 @@ public final class JsonShapeAsserter {
         }
     }
 
+    public static void assertMatchesShape(Object schema, String actualJson) {
+        Object actual = SimpleJson.parse(actualJson);
+        validate("<inline-schema>", schema, actual);
+    }
+
     @SuppressWarnings("unchecked")
     private static void validate(String source, Object schema, Object actual) {
         if (!(schema instanceof Map<?, ?> mapSchema)) {

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples;
 import io.openauth.sim.application.emv.cap.EmvCapSeedSamples.SeedSample;
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapVectorFixtures.EmvCapVector;
@@ -150,19 +151,26 @@ final class EmvCliTest {
         String stdout = harness.stdout().trim();
         assertFalse(stdout.isEmpty(), "JSON output must not be empty");
 
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/emv-cap-evaluate.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.emv.cap.evaluate"), stdout);
 
         Object parsed = SimpleJson.parse(stdout);
         assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) parsed;
-
-        assertEquals(vector.outputs().otpDecimal(), root.get("otp"));
-        assertEquals(countMaskedDigits(vector.outputs()), ((Number) root.get("maskLength")).intValue());
+        assertEquals("cli.emv.cap.evaluate", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("generated", root.get("reasonCode"));
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present at the envelope level");
 
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> previews = (List<Map<String, Object>>) root.get("previews");
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+
+        assertEquals(vector.outputs().otpDecimal(), data.get("otp"));
+        assertEquals(countMaskedDigits(vector.outputs()), ((Number) data.get("maskLength")).intValue());
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> previews = (List<Map<String, Object>>) data.get("previews");
         assertNotNull(previews, "Preview array should be present");
         assertFalse(previews.isEmpty(), "Preview array must include the evaluated entry");
         Map<String, Object> primaryPreview = previews.get(0);
@@ -171,7 +179,7 @@ final class EmvCliTest {
         assertEquals(vector.outputs().otpDecimal(), primaryPreview.get("otp"));
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        Map<String, Object> trace = (Map<String, Object>) data.get("trace");
         assertNotNull(trace, "Trace payload should be present by default");
         assertEquals(expectedMasterKeyDigest(vector), trace.get("masterKeySha256"));
         assertEquals(vector.outputs().sessionKeyHex(), trace.get("sessionKey"));
@@ -201,7 +209,7 @@ final class EmvCliTest {
         assertTraceSchema(trace);
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> telemetry = (Map<String, Object>) root.get("telemetry");
+        Map<String, Object> telemetry = (Map<String, Object>) data.get("telemetry");
         assertEquals("emv.cap.respond", telemetry.get("event"));
         assertEquals("success", telemetry.get("status"));
         assertEquals("generated", telemetry.get("reasonCode"));
@@ -259,7 +267,9 @@ final class EmvCliTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) parsed;
         @SuppressWarnings("unchecked")
-        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trace = (Map<String, Object>) data.get("trace");
         assertNotNull(trace, "Trace payload should be present by default");
 
         assertTraceSchema(trace);
@@ -387,9 +397,11 @@ final class EmvCliTest {
         assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) parsed;
-        assertEquals(vector.outputs().otpDecimal(), root.get("otp"));
-        assertEquals(countMaskedDigits(vector.outputs()), ((Number) root.get("maskLength")).intValue());
-        assertFalse(root.containsKey("trace"), "Trace payload must be omitted when includeTrace=false");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertEquals(vector.outputs().otpDecimal(), data.get("otp"));
+        assertEquals(countMaskedDigits(vector.outputs()), ((Number) data.get("maskLength")).intValue());
+        assertFalse(data.containsKey("trace"), "Trace payload must be omitted when includeTrace=false");
     }
 
     @Test

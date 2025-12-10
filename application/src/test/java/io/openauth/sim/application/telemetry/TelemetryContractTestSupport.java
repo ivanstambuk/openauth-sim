@@ -124,7 +124,7 @@ public final class TelemetryContractTestSupport {
     }
 
     public static void assertHotpEvaluationSuccessFrame(TelemetryFrame frame) {
-        assertFrame(frame, HOTP_EVALUATION_EVENT, "success", "match", true, hotpEvaluationSuccessFields());
+        assertFrame(frame, HOTP_EVALUATION_EVENT, "success", "generated", true, hotpEvaluationSuccessFields());
     }
 
     public static void assertHotpEvaluationValidationFrame(TelemetryFrame frame, boolean sanitized) {
@@ -137,7 +137,7 @@ public final class TelemetryContractTestSupport {
     }
 
     public static void assertHotpIssuanceSuccessFrame(TelemetryFrame frame) {
-        assertFrame(frame, HOTP_ISSUANCE_EVENT, "issued", "issued", true, hotpIssuanceSuccessFields());
+        assertFrame(frame, HOTP_ISSUANCE_EVENT, "success", "issued", true, hotpIssuanceSuccessFields());
     }
 
     public static void assertHotpReplaySuccessFrame(

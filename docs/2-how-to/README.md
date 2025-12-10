@@ -57,7 +57,7 @@ Document deterministic runbooks for common tasks across all four consumption sur
 - [Use the HOTP CLI](use-hotp-cli-operations.md)
 - [Use the TOTP CLI](use-totp-cli-operations.md)
 - Flag defaults and JSON/trace hints: [CLI flags matrix](../3-reference/cli-flags-matrix.md)
-- JSON schemas for `--output-json`: see [docs/3-reference/cli/output-schemas](../3-reference/cli/output-schemas)
+- JSON schemas for `--output-json`: see the global CLI registry [docs/3-reference/cli/cli.schema.json](../3-reference/cli/cli.schema.json) (one `definitions[...]` entry per CLI JSON `event`).
 
 **CLI MapDB vs inline quick reference**
 - Stored-mode commands hit MapDB (`--database` controls the path): HOTP/TOTP/OCRA `import|list|delete|evaluate|verify` (stored), EMV/CAP `seed|evaluate|replay` when `--credential-id`/`--preset-id` is used, FIDO2/WebAuthn `evaluate|replay|seed|seed-attestations` with stored credentials/attestations.  

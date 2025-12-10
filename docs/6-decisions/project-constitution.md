@@ -23,6 +23,7 @@ This constitution establishes the non-negotiable operating principles for the Op
 - Author or update a feature specification before producing plans, tasks, or code.
 - Treat the specification as the source of truth; implementation plans, tasks, and code must reference it explicitly.
 - Store specifications under ``docs/4-architecture/features`/<NNN>/spec.md` with traceable identifiers (e.g., Feature 001).
+- Treat every repository change (code, documentation, schemas, fixtures, configuration) as an outcome of the specification-driven pipeline; ad-hoc/manual edits that bypass specs, plans, and tasks are not allowed.
 
 ### Principle 2 – Clarification Gate
 - Resolve ambiguous scope before planning by capturing every high-impact question for the feature; escalate every medium-impact uncertainty the same way, while tidying low-level or lightweight ambiguities directly and noting the fixes in the governing spec/plan.

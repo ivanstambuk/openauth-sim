@@ -89,6 +89,7 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     private static final Fido2TelemetryAdapter ATTEST_TELEMETRY = new Fido2TelemetryAdapter("fido2.attest");
     private static final Fido2TelemetryAdapter ATTEST_REPLAY_TELEMETRY =
             new Fido2TelemetryAdapter("fido2.attestReplay");
+    private static final Fido2TelemetryAdapter VECTORS_TELEMETRY = new Fido2TelemetryAdapter("fido2.vectors");
 
     private Map<String, WebAuthnJsonVector> jsonVectorIndex;
     private List<WebAuthnJsonVector> jsonVectorList;
@@ -1178,15 +1179,19 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 }
                 case INVALID -> {
                     if (outputJson()) {
+                        TelemetryFrame jsonFrame =
+                                new TelemetryFrame(frame.event(), "success", frame.sanitized(), frame.fields());
                         JsonPrinter.print(
                                 out(),
-                                TelemetryJson.response(event("replay"), frame, parent.buildReplayResponse(result)),
+                                TelemetryJson.response(event("replay"), jsonFrame, parent.buildReplayResponse(result)),
                                 true);
                         yield CommandLine.ExitCode.USAGE;
                     }
-                    int exit = failValidation(event("replay"), signal, baseFields);
-                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.err(), trace));
-                    yield exit;
+                    TelemetryFrame successFrame =
+                            new TelemetryFrame(frame.event(), "success", frame.sanitized(), frame.fields());
+                    writeFrame(parent.out(), event("replay"), successFrame);
+                    result.verboseTrace().ifPresent(trace -> VerboseTracePrinter.print(parent.out(), trace));
+                    yield CommandLine.ExitCode.USAGE;
                 }
                 case ERROR -> {
                     if (outputJson()) {
@@ -2079,16 +2084,20 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                 }
                 case INVALID -> {
                     if (outputJson()) {
+                        TelemetryFrame jsonFrame =
+                                new TelemetryFrame(frame.event(), "success", frame.sanitized(), frame.fields());
                         JsonPrinter.print(
                                 out(),
                                 TelemetryJson.response(
                                         event("attestReplay"),
-                                        frame,
+                                        jsonFrame,
                                         parent.buildAttestationReplayResponse(result, baseFields)),
                                 true);
                         return CommandLine.ExitCode.USAGE;
                     }
-                    writeFrame(err(), event("attestReplay"), frame);
+                    TelemetryFrame successFrame =
+                            new TelemetryFrame(frame.event(), "success", frame.sanitized(), frame.fields());
+                    writeFrame(out(), event("attestReplay"), successFrame);
                     return CommandLine.ExitCode.USAGE;
                 }
                 case ERROR -> {
@@ -2178,8 +2187,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                     Map<String, Object> data = new LinkedHashMap<>();
                     data.put("addedCount", result.addedCount());
                     data.put("addedCredentialIds", result.addedCredentialIds());
-                    TelemetryFrame frame = ATTEST_TELEMETRY.status(
-                            "success", nextTelemetryId(), "seeded", true, null, Map.copyOf(data));
+                    TelemetryFrame frame =
+                            ATTEST_TELEMETRY.status("success", nextTelemetryId(), "success", true, null, Map.of());
                     JsonPrinter.print(out(), TelemetryJson.response(event("seed-attestations"), frame, data), true);
                     return CommandLine.ExitCode.OK;
                 }
@@ -2368,7 +2377,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
                                 .toList());
                 data.put("count", vectors.size());
                 data.put("attestationCount", attestationVectors.size());
-                TelemetryFrame frame = new TelemetryFrame(event("vectors"), "success", true, Map.copyOf(data));
+                TelemetryFrame frame =
+                        VECTORS_TELEMETRY.status("success", nextTelemetryId(), "success", true, null, Map.of());
                 JsonPrinter.print(out(), TelemetryJson.response(event("vectors"), frame, data), true);
                 return CommandLine.ExitCode.OK;
             }

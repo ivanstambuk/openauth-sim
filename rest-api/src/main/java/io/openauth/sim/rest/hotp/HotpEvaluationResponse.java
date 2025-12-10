@@ -4,13 +4,26 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.rest.OtpPreviewResponse;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 /** REST payload returned by HOTP evaluation endpoints. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpEvaluationResponse(
         @JsonProperty("status") String status,
-        @JsonProperty("reasonCode") String reasonCode,
+
+        @Schema(
+                description = "Machine-readable outcome code",
+                allowableValues = {
+                    "generated",
+                    "credential_not_found",
+                    "validation_error",
+                    "counter_overflow",
+                    "unexpected_error"
+                })
+        @JsonProperty("reasonCode")
+        String reasonCode,
+
         @JsonProperty("otp") String otp,
         @JsonProperty("previews") List<OtpPreviewResponse> previews,
         @JsonProperty("metadata") HotpEvaluationMetadata metadata,

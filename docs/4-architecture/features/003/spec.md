@@ -158,7 +158,7 @@ Operator console Evaluate/Replay panels mirror the shared two-column layout (for
 ## Telemetry & Observability
 - `core.ocra.validation`, `core.ocra.secret.validation`, `core.ocra.execution`, and `core.ocra.verify` provide sanitized event frames for domain-level operations.
 - `rest.ocra.evaluate` / `rest.ocra.verify` mirror status/outcome fields plus `credentialSource`, `hasSessionPayload`, `durationMs`, and hashed OTP/context fingerprints.
-- `cli.ocra.*` events include `command`, `outcome`, and hashed identifiers; CLI logs never print raw OTPs.
+- `cli.ocra.*` events include `command`, `outcome`, and hashed identifiers; CLI logs never print raw OTPs. When `--output-json` is present, envelopes follow ADR-0014 (`event`, `status`, `reasonCode`, `telemetryId`, `sanitized`, `data`) and OCRA CLI `reasonCode` values are taken from the closed per-event enums defined in `docs/3-reference/cli/cli.schema.json` (for example `created`, `validation_error`, `credential_not_found`, `match`, `strict_mismatch`, `unexpected_error`).
 - Operator console telemetry proxies REST traces, forwarding `data-trace-id` attributes so verbose trace dock stays in sync.
 
 ## Documentation Deliverables

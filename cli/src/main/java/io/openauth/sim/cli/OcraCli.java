@@ -930,8 +930,7 @@ public final class OcraCli implements Callable<Integer> {
             if (outputJson) {
                 String statusText =
                         switch (result.status()) {
-                            case MATCH -> "match";
-                            case MISMATCH -> "mismatch";
+                            case MATCH, MISMATCH -> "success";
                             case INVALID -> "invalid";
                         };
                 Map<String, Object> data = new LinkedHashMap<>();
@@ -956,11 +955,11 @@ public final class OcraCli implements Callable<Integer> {
             }
             return switch (result.status()) {
                 case MATCH -> {
-                    emitSummary(event, "match", reasonCode, fields);
+                    emitSummary(event, "success", reasonCode, fields);
                     yield CommandLine.ExitCode.OK;
                 }
                 case MISMATCH -> {
-                    emitSummary(event, "mismatch", reasonCode, fields);
+                    emitSummary(event, "success", reasonCode, fields);
                     yield EXIT_STRICT_MISMATCH;
                 }
                 case INVALID -> handleInvalid(event, result.reason(), fields);

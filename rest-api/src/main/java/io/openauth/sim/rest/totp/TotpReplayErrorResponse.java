@@ -1,12 +1,27 @@
 package io.openauth.sim.rest.totp;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 record TotpReplayErrorResponse(
         @JsonProperty("status") String status,
-        @JsonProperty("reasonCode") String reasonCode,
+
+        @Schema(
+                description = "Machine-readable outcome code",
+                allowableValues = {
+                    "match",
+                    "otp_out_of_window",
+                    "credential_not_found",
+                    "validation_error",
+                    "unexpected_error"
+                })
+        @JsonProperty("reasonCode")
+        String reasonCode,
+
         @JsonProperty("message") String message,
         @JsonProperty("details") Map<String, Object> details,
         @JsonProperty("trace") VerboseTracePayload trace) {

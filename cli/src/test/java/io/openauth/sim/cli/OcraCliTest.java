@@ -3,9 +3,11 @@ package io.openauth.sim.cli;
 import static io.openauth.sim.cli.TelemetryOutputAssertions.telemetryLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService.VerificationReason;
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
@@ -15,6 +17,7 @@ import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures;
 import io.openauth.sim.core.credentials.ocra.OcraJsonVectorFixtures.OcraOneWayVector;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator.OcraExecutionContext;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
@@ -29,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -101,7 +105,7 @@ class OcraCliTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String output = harness.stdout() + harness.stderr();
         Map<String, String> telemetry = telemetryLine(output, "cli.ocra.verify");
-        assertEquals("match", telemetry.get("status"));
+        assertEquals("success", telemetry.get("status"));
         assertEquals("match", telemetry.get("reasonCode"));
         assertEquals("stored", telemetry.get("credentialSource"));
         assertEquals("true", telemetry.get("sanitized"));
@@ -141,7 +145,7 @@ class OcraCliTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String output = harness.stdout() + harness.stderr();
         Map<String, String> telemetry = telemetryLine(output, "cli.ocra.verify");
-        assertEquals("match", telemetry.get("status"));
+        assertEquals("success", telemetry.get("status"));
         assertEquals("match", telemetry.get("reasonCode"));
         assertEquals("inline", telemetry.get("credentialSource"));
         assertEquals("true", telemetry.get("sanitized"));
@@ -181,11 +185,11 @@ class OcraCliTest {
         String stdout = harness.stdout().trim();
         String compact = stdout.replace(" ", "").replace("\n", "");
         assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"status\":\"success\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"event\":\"cli.ocra.verify\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"reasonCode\":\"match\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/ocra-verify.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.ocra.verify"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 
@@ -221,7 +225,7 @@ class OcraCliTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String output = harness.stdout() + harness.stderr();
         Map<String, String> telemetry = telemetryLine(output, "cli.ocra.verify");
-        assertEquals("match", telemetry.get("status"));
+        assertEquals("success", telemetry.get("status"));
         assertEquals("match", telemetry.get("reasonCode"));
         assertEquals("inline", telemetry.get("credentialSource"));
     }
@@ -293,7 +297,7 @@ class OcraCliTest {
 
         assertEquals(2, exitCode, harness.stdout() + harness.stderr());
         Map<String, String> telemetry = telemetryLine(harness.stdout() + harness.stderr(), "cli.ocra.verify");
-        assertEquals("mismatch", telemetry.get("status"));
+        assertEquals("success", telemetry.get("status"));
         assertEquals("strict_mismatch", telemetry.get("reasonCode"));
         assertEquals("true", telemetry.get("sanitized"));
 
@@ -423,7 +427,7 @@ class OcraCliTest {
 
         assertEquals(2, exitCode, harness.stdout() + harness.stderr());
         Map<String, String> telemetry = telemetryLine(harness.stdout() + harness.stderr(), "cli.ocra.verify");
-        assertEquals("mismatch", telemetry.get("status"));
+        assertEquals("success", telemetry.get("status"));
         assertEquals("inline", telemetry.get("credentialSource"));
         assertEquals("strict_mismatch", telemetry.get("reasonCode"));
     }
@@ -678,6 +682,86 @@ class OcraCliTest {
     }
 
     @Test
+    @DisplayName("evaluate command emits JSON envelope when requested")
+    void evaluateInlineEmitsJsonWhenRequested() {
+        CommandHarness harness = CommandHarness.create();
+
+        String challenge = "12345678";
+        int exitCode = harness.execute(
+                "evaluate",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret",
+                DEFAULT_SECRET_HEX,
+                "--challenge",
+                challenge,
+                "--window-backward",
+                "1",
+                "--window-forward",
+                "1",
+                "--verbose",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.ocra.evaluate\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"mode\":\"inline\""), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.ocra.evaluate"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.ocra.evaluate", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals("inline", data.get("mode"));
+        assertEquals(DEFAULT_SUITE, data.get("suite"));
+        assertEquals(Boolean.FALSE, data.get("credentialReference"));
+
+        assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
+    }
+
+    @Test
+    @DisplayName("evaluate command emits JSON envelope for validation errors")
+    void evaluateEmitsJsonForValidationError() {
+        CommandHarness harness = CommandHarness.create();
+
+        int exitCode = harness.execute(
+                "evaluate",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret",
+                "not-hex",
+                "--challenge",
+                "12345678",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.USAGE, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.ocra.evaluate\""), () -> "stdout:\n" + stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.ocra.evaluate", root.get("event"));
+        assertEquals("invalid", root.get("status"));
+        assertEquals("not_hexadecimal", root.get("reasonCode"));
+    }
+
+    @Test
     @DisplayName("evaluate command supports stored credential mode")
     void evaluateStoredCredential() throws Exception {
         Path tempDir = Files.createTempDirectory("ocra-cli-evaluate");
@@ -728,6 +812,132 @@ class OcraCliTest {
         assertTrue(stdout.contains("credentialId=beta"));
         assertTrue(stdout.contains("suite=OCRA-1:HOTP-SHA1-6:QA08"));
         assertTrue(stdout.contains("suite=OCRA-1:HOTP-SHA1-6:C-QN08"));
+
+        deleteRecursively(tempDir);
+    }
+
+    @Test
+    @DisplayName("import command emits JSON envelope when requested")
+    void importEmitsJsonWhenRequested() throws Exception {
+        Path tempDir = Files.createTempDirectory("ocra-cli-import-json");
+        Path database = tempDir.resolve("store.db");
+
+        CommandHarness harness = CommandHarness.create();
+        int exitCode = harness.execute(
+                "--database",
+                database.toAbsolutePath().toString(),
+                "import",
+                "--credential-id",
+                "alpha",
+                "--suite",
+                DEFAULT_SUITE,
+                "--secret",
+                DEFAULT_SECRET_HEX,
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.ocra.import\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.ocra.import"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.ocra.import", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("created", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals("alpha", data.get("credentialId"));
+        assertEquals(DEFAULT_SUITE, data.get("suite"));
+
+        deleteRecursively(tempDir);
+    }
+
+    @Test
+    @DisplayName("list command emits JSON envelope when requested")
+    void listEmitsJsonWhenRequested() throws Exception {
+        Path tempDir = Files.createTempDirectory("ocra-cli-list-json");
+        Path database = tempDir.resolve("store.db");
+        seedCredential(database, "alpha", "OCRA-1:HOTP-SHA1-6:QA08", null);
+        seedCredential(database, "beta", "OCRA-1:HOTP-SHA1-6:C-QN08", 1L);
+
+        CommandHarness harness = CommandHarness.create();
+        int exitCode = harness.execute("--database", database.toAbsolutePath().toString(), "list", "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.ocra.list\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.ocra.list"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.ocra.list", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals(2, ((Number) data.get("count")).intValue());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) data.get("credentials");
+        assertNotNull(credentials, "credentials list should be present");
+        assertEquals(2, credentials.size(), "expected two credential entries");
+
+        deleteRecursively(tempDir);
+    }
+
+    @Test
+    @DisplayName("delete command emits JSON envelope when requested")
+    void deleteEmitsJsonWhenRequested() throws Exception {
+        Path tempDir = Files.createTempDirectory("ocra-cli-delete-json");
+        Path database = tempDir.resolve("store.db");
+        seedCredential(database, "alpha", DEFAULT_SUITE, null);
+
+        CommandHarness harness = CommandHarness.create();
+        int exitCode = harness.execute(
+                "--database",
+                database.toAbsolutePath().toString(),
+                "delete",
+                "--credential-id",
+                "alpha",
+                "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.ocra.delete\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.ocra.delete"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.ocra.delete", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("deleted", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals("alpha", data.get("credentialId"));
 
         deleteRecursively(tempDir);
     }

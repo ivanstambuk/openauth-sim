@@ -122,6 +122,7 @@ HOTP stored + inline evaluations live inside the unified operator console tab an
 
 ## Telemetry & Observability
 - Telemetry emits via `TelemetryContracts` with sanitized hashes, matching OCRA parity.
+- `cli.hotp.issue` JSON envelopes map to `status="success", reasonCode="issued"` on success; validation failures use `status="invalid"` with `reasonCode` in {`validation_error`, `type_mismatch`}; unexpected errors use `status="error", reasonCode="unexpected_error"`.
 - Application layer owns HOTP counter persistence and telemetry metadata; stored evaluations increment the moving factor
   immediately after successful evaluation.
 - Replay path logs non-mutating evaluations for audit.

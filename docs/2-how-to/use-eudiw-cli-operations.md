@@ -9,10 +9,10 @@ The `eudiw` Picocli entry point (Feature 040) lets you create HAIP/Baseline au
 - Java 17 with `JAVA_HOME` pointed at a JDK 17 install.
 - The standalone fat JAR built or downloaded (`openauth-sim-standalone-<version>.jar`).
 - Optional: run the REST API in parallel so you can fetch QR links or inspect Swagger, but it is not required for CLI-only runs.
-JSON schemas for `--output-json`:
-- `request create`: [docs/3-reference/cli/output-schemas/eudiw-request-create.schema.json](../3-reference/cli/output-schemas/eudiw-request-create.schema.json)
-- `wallet simulate`: [docs/3-reference/cli/output-schemas/eudiw-wallet-simulate.schema.json](../3-reference/cli/output-schemas/eudiw-wallet-simulate.schema.json)
-- `validate`: [docs/3-reference/cli/output-schemas/eudiw-validate.schema.json](../3-reference/cli/output-schemas/eudiw-validate.schema.json)
+JSON schemas for `--output-json` live in the global registry [docs/3-reference/cli/cli.schema.json](../3-reference/cli/cli.schema.json):
+- `request create` (event `cli.eudiw.request.create`): `definitions["cli.eudiw.request.create"]`
+- `wallet simulate` (event `cli.eudiw.wallet.simulate`): `definitions["cli.eudiw.wallet.simulate"]`
+- `validate` (event `cli.eudiw.validate`): `definitions["cli.eudiw.validate"]`
 
 ## Quick commands (stored, inline, failure)
 - Stored request + JSON + QR:  

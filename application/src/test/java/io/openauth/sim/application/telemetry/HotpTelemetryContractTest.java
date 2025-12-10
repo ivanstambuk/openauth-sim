@@ -12,7 +12,8 @@ final class HotpTelemetryContractTest {
         HotpTelemetryAdapter adapter = TelemetryContracts.hotpEvaluationAdapter();
 
         Map<String, Object> fields = TelemetryContractTestSupport.hotpEvaluationSuccessFields();
-        TelemetryFrame frame = adapter.success(TelemetryContractTestSupport.telemetryId(), fields);
+        TelemetryFrame frame =
+                adapter.status("success", TelemetryContractTestSupport.telemetryId(), "generated", true, null, fields);
 
         TelemetryContractTestSupport.assertHotpEvaluationSuccessFrame(frame);
     }
@@ -47,13 +48,9 @@ final class HotpTelemetryContractTest {
     void hotpIssuanceAdapterProducesIssuedFrame() {
         HotpTelemetryAdapter adapter = TelemetryContracts.hotpIssuanceAdapter();
 
-        TelemetryFrame frame = adapter.status(
-                "issued",
-                TelemetryContractTestSupport.telemetryId(),
-                "issued",
-                true,
-                null,
-                TelemetryContractTestSupport.hotpIssuanceSuccessFields());
+        Map<String, Object> fields = TelemetryContractTestSupport.hotpIssuanceSuccessFields();
+        fields.put("reasonCode", "issued");
+        TelemetryFrame frame = adapter.success(TelemetryContractTestSupport.telemetryId(), fields);
 
         TelemetryContractTestSupport.assertHotpIssuanceSuccessFrame(frame);
     }

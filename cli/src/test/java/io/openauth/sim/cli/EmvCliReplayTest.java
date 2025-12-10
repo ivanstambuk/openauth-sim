@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures;
 import io.openauth.sim.core.emv.cap.EmvCapReplayFixtures.ReplayFixture;
@@ -61,7 +62,7 @@ final class EmvCliReplayTest {
         String stdout = harness.stdout();
         String masterKeyDigest = expectedMasterKeyDigest(vector);
         assertTrue(stdout.contains("event=cli.emv.cap.replay"), stdout);
-        assertTrue(stdout.contains("status=match"), stdout);
+        assertTrue(stdout.contains("status=success"), stdout);
         assertTrue(stdout.contains("reasonCode=match"), stdout);
         assertTrue(stdout.contains("credentialSource=stored"), stdout);
         assertTrue(stdout.contains("matchedDelta=0"), stdout);
@@ -116,19 +117,21 @@ final class EmvCliReplayTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout().trim();
         assertFalse(stdout.isEmpty(), "JSON output must be present");
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/emv-cap-replay.schema.json"), stdout);
-        assertTrue(stdout.contains("\"status\":\"mismatch\""), stdout);
-        assertTrue(stdout.contains("\"reasonCode\":\"otp_mismatch\""), stdout);
-        assertTrue(stdout.contains("\"credentialSource\":\"inline\""), stdout);
-        assertTrue(stdout.contains("\"mode\":\"" + fixture.mode().name() + "\""), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.emv.cap.replay"), stdout);
 
         Object parsed = SimpleJson.parse(stdout);
         assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) parsed;
         @SuppressWarnings("unchecked")
-        Map<String, Object> trace = (Map<String, Object>) root.get("trace");
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+
+        assertEquals("cli.emv.cap.replay", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("otp_mismatch", root.get("reasonCode"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trace = (Map<String, Object>) data.get("trace");
         assertNotNull(trace, "Trace payload should be present when includeTrace is true");
         assertTraceSchema(trace);
         String expectedOtp = (String) trace.get("expectedOtp");
@@ -143,7 +146,7 @@ final class EmvCliReplayTest {
         assertNotNull(decimalization, "Decimalization overlay should be present in provenance");
         assertEquals(decimalization.get("otp"), expectedOtp);
         @SuppressWarnings("unchecked")
-        Map<String, Object> metadata = (Map<String, Object>) root.get("metadata");
+        Map<String, Object> metadata = (Map<String, Object>) data.get("metadata");
         assertNotNull(metadata, "Metadata payload should exist on CLI JSON output");
         assertEquals(
                 mismatch.expectedOtpHash(),
@@ -253,9 +256,23 @@ final class EmvCliReplayTest {
         assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
         String stdout = harness.stdout().trim();
         assertFalse(stdout.isEmpty(), "JSON output must be present");
-        assertTrue(stdout.contains("\"status\":\"match\""), stdout);
-        assertTrue(stdout.contains("\"reasonCode\":\"match\""), stdout);
-        assertTrue(stdout.contains("\"credentialSource\":\"inline\""), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.emv.cap.replay"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+
+        assertEquals("cli.emv.cap.replay", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("match", root.get("reasonCode"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> metadata = (Map<String, Object>) data.get("metadata");
+        assertNotNull(metadata, "Metadata payload should exist on CLI JSON output");
+        assertEquals("inline", metadata.get("credentialSource"));
     }
 
     @Test

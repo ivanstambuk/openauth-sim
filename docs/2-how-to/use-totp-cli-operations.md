@@ -40,7 +40,7 @@ java -jar openauth-sim-standalone-<version>.jar totp evaluate \
 ```
 - Default output: telemetry line (success/invalid/error) then a preview table; verbose trace printed when `--verbose` is set.
 - `--output-json`: single object with `data` fields such as `credentialReference`, `credentialId`, `valid`, `matchedSkewSteps`, `algorithm`, `digits`, `stepSeconds`, `driftBackwardSteps`, `driftForwardSteps`, `otp` (when valid), `previews[]`, and optional `trace` when `--verbose` is present.
-- JSON schema for `--output-json`: [docs/3-reference/cli/output-schemas/totp-evaluate.schema.json](../3-reference/cli/output-schemas/totp-evaluate.schema.json)
+- JSON schema for `--output-json` (event `cli.totp.evaluate`) lives in the global registry [docs/3-reference/cli/cli.schema.json](../3-reference/cli/cli.schema.json) under `definitions["cli.totp.evaluate"]`.
 
 ### Inline mode
 ```bash

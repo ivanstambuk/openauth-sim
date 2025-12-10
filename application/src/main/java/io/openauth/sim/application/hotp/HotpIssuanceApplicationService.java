@@ -134,7 +134,8 @@ public final class HotpIssuanceApplicationService {
 
     private TelemetrySignal issuanceSuccessSignal(IssuanceCommand command, int metadataSize, boolean created) {
         Map<String, Object> fields = issuanceFields(command, metadataSize, created);
-        return new TelemetrySignal(TelemetryStatus.SUCCESS, "issued", null, true, fields, "issued");
+        fields.put("reasonCode", "issued");
+        return new TelemetrySignal(TelemetryStatus.SUCCESS, "issued", null, true, fields, null);
     }
 
     private TelemetrySignal issuanceValidationFailure(IssuanceCommand command, String reason, int metadataSize) {

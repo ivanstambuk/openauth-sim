@@ -32,10 +32,24 @@ event=cli.ocra.evaluate status=success reasonCode=success sanitized=true mode=in
 ```
 
 ```bash
+./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db verify --credential-id docs-token --otp 237653 --challenge 00000000"
+```
+```
+event=cli.ocra.verify status=success reasonCode=match sanitized=true credentialSource=stored credentialId=docs-token suite=OCRA-1:HOTP-SHA1-6:QN08 credentialReference=true responseDigits=6
+```
+
+```bash
+./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db verify --credential-id docs-token --otp 111111 --challenge 00000000"
+```
+```
+event=cli.ocra.verify status=success reasonCode=strict_mismatch sanitized=true credentialSource=stored credentialId=docs-token suite=OCRA-1:HOTP-SHA1-6:QN08 credentialReference=true responseDigits=6
+```
+
+```bash
 ./gradlew :cli:runOcraCli --args="--database build/tmp/cli-ocra/docs.db delete --credential-id docs-token"
 ```
 ```
 event=cli.ocra.delete status=success reasonCode=deleted sanitized=true credentialId=docs-token
 ```
 
-Use these samples to validate future telemetry changes—any additional field must keep `sanitized=true` when potential secret material is involved.
+Use these samples to validate future telemetry changes—any additional field must keep `sanitized=true` when potential secret material is involved and `reasonCode` values must remain within the per-event enums defined in `docs/3-reference/cli/cli.schema.json`.

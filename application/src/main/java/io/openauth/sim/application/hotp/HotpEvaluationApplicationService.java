@@ -182,7 +182,7 @@ public final class HotpEvaluationApplicationService {
             }
 
             return switch (status) {
-                case SUCCESS -> adapter.success(telemetryId, fields);
+                case SUCCESS -> adapter.status("success", telemetryId, reasonCode, sanitized, reason, fields);
                 case INVALID -> adapter.validationFailure(telemetryId, reasonCode, reason, sanitized, fields);
                 case ERROR -> adapter.error(telemetryId, reasonCode, reason, sanitized, fields);
             };

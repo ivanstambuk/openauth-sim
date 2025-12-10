@@ -15,7 +15,44 @@ record WebAuthnAttestationMetadata(
         @JsonProperty("telemetryId")
         String telemetryId,
 
-        @Schema(description = "Reason code associated with the result", example = "generated")
+        @Schema(
+                description = "Reason code associated with the result",
+                example = "generated",
+                allowableValues = {
+                    "generated",
+                    "credential_id_required",
+                    "challenge_required",
+                    "invalid_format",
+                    "invalid_payload",
+                    "missing_option",
+                    "credential_private_key_required",
+                    "attestation_private_key_required",
+                    "custom_root_required",
+                    "attestation_id_not_applicable",
+                    "input_source_invalid",
+                    "missing_signing_mode",
+                    "stored_credential_not_found",
+                    "match",
+                    "verified",
+                    "self_attested",
+                    "anchor_mismatch",
+                    "stored_attestation_required",
+                    "stored_attestation_missing_attribute",
+                    "stored_attestation_invalid",
+                    "stored_trust_anchor_unsupported",
+                    "replay_failed",
+                    "client_data_type_mismatch",
+                    "client_data_challenge_mismatch",
+                    "origin_mismatch",
+                    "rp_id_hash_mismatch",
+                    "signature_invalid",
+                    "user_verification_required",
+                    "counter_regression",
+                    "attestation_format_mismatch",
+                    "attestation_object_invalid",
+                    "verification_failed",
+                    "unexpected_error"
+                })
         @JsonProperty("reasonCode")
         String reasonCode,
 

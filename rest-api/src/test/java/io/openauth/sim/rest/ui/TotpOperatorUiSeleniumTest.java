@@ -1099,8 +1099,8 @@ final class TotpOperatorUiSeleniumTest {
         selectOption("totpReplayStoredCredentialId", STORED_CREDENTIAL_ID);
         WebElement storedReplaySelect = driver.findElement(By.id("totpReplayStoredCredentialId"));
         ((JavascriptExecutor) driver)
-                .executeScript("arguments[0].dispatchEvent(new Event('change', { bubbles: true }))",
-                        storedReplaySelect);
+                .executeScript(
+                        "arguments[0].dispatchEvent(new Event('change', { bubbles: true }))", storedReplaySelect);
         WebElement sampleStatus = waitFor(By.cssSelector("[data-testid='totp-replay-sample-status']"));
         waitUntilTextPopulated(sampleStatus, Duration.ofSeconds(10));
 

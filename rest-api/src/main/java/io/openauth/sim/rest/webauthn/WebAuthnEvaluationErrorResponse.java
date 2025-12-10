@@ -2,11 +2,18 @@ package io.openauth.sim.rest.webauthn;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
 record WebAuthnEvaluationErrorResponse(
         @JsonProperty("status") String status,
-        @JsonProperty("reasonCode") String reasonCode,
+
+        @Schema(
+                description = "Machine-readable outcome code",
+                allowableValues = {"validation_error", "credential_not_found", "unexpected_error"})
+        @JsonProperty("reasonCode")
+        String reasonCode,
+
         @JsonProperty("message") String message,
         @JsonProperty("details") Map<String, Object> details,
         @JsonProperty("metadata") Map<String, Object> metadata,

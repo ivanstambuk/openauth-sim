@@ -1,9 +1,12 @@
 package io.openauth.sim.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.cli.support.CliJsonSchemas;
 import io.openauth.sim.cli.support.JsonShapeAsserter;
+import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
@@ -23,6 +26,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -65,6 +70,50 @@ final class TotpCliTest {
         assertTrue(stdout.toLowerCase().contains("algorithm=sha1"));
         assertTrue(stdout.contains("stepSeconds=30"));
         assertTrue(stdout.contains("driftBackwardSteps=1 driftForwardSteps=1"));
+    }
+
+    @Test
+    void listEmitsJsonWhenRequested() throws Exception {
+        Path database = tempDir.resolve("totp-json-list.db");
+        CommandHarness harness = CommandHarness.create(database);
+
+        TotpDescriptor descriptor = TotpDescriptor.create(
+                CREDENTIAL_ID,
+                STORED_VECTOR.secret(),
+                STORED_VECTOR.algorithm(),
+                STORED_VECTOR.digits(),
+                STORED_VECTOR.stepDuration(),
+                TotpDriftWindow.of(STORED_VECTOR.driftBackwardSteps(), STORED_VECTOR.driftForwardSteps()));
+        harness.save(descriptor);
+
+        int exitCode = harness.execute("list", "--output-json");
+
+        assertEquals(CommandLine.ExitCode.OK, exitCode, harness.stderr());
+        String stdout = harness.stdout().trim();
+        String compact = stdout.replace(" ", "").replace("\n", "");
+        assertTrue(stdout.startsWith("{"), () -> "stdout:\n" + stdout);
+        assertTrue(compact.contains("\"event\":\"cli.totp.list\""), () -> "stdout:\n" + stdout);
+
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.totp.list"), stdout);
+
+        Object parsed = SimpleJson.parse(stdout);
+        assertTrue(parsed instanceof Map, () -> "Unexpected JSON payload: " + stdout);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        assertEquals("cli.totp.list", root.get("event"));
+        assertEquals("success", root.get("status"));
+        assertEquals("success", root.get("reasonCode"));
+        assertNotNull(root.get("telemetryId"), "telemetryId should be present on the envelope");
+        assertEquals(Boolean.TRUE, root.get("sanitized"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) root.get("data");
+        assertNotNull(data, "data object should be present on the envelope");
+        assertEquals(1, ((Number) data.get("count")).intValue());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) data.get("credentials");
+        assertNotNull(credentials, "credentials list should be present");
+        assertEquals(1, credentials.size(), "expected a single credential entry");
+        assertEquals(CREDENTIAL_ID, credentials.get(0).get("credentialId"));
     }
 
     @Test
@@ -178,8 +227,7 @@ final class TotpCliTest {
         assertTrue(compact.contains("\"event\":\"cli.totp.evaluate\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"otp\""), () -> "stdout:\n" + stdout);
         assertTrue(compact.contains("\"trace\""), () -> "stdout:\n" + stdout);
-        JsonShapeAsserter.assertMatchesShape(
-                Path.of("docs/3-reference/cli/output-schemas/totp-evaluate.schema.json"), stdout);
+        JsonShapeAsserter.assertMatchesShape(CliJsonSchemas.schemaForEvent("cli.totp.evaluate"), stdout);
         assertTrue(harness.stderr().isBlank(), () -> "stderr:\n" + harness.stderr());
     }
 
