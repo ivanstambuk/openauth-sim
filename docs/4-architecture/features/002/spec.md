@@ -15,6 +15,9 @@ alongside existing HOTP/OCRA flows. Scope includes core domain, persistence desc
 facades, operator UI panels, shared fixtures, telemetry parity, and documentation. This feature ships a single end-to-end
 slice spanning core → application → CLI/REST → operator console; issuance/enrolment remains out of scope.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - G-002-01 – Provide deterministic TOTP evaluation/replay with telemetry parity across core/application/CLI/REST.
 - G-002-02 – Extend operator console with TOTP stored/inline/replay flows, presets, seeding, auto-fill helpers.

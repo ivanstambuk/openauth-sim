@@ -186,6 +186,7 @@ Toolchain telemetry flows through `TelemetryContracts` adapters so CLI/REST/UI d
 ## Documentation Deliverables
 - Update roadmap/knowledge map/session log ([docs/_current-session.md](docs/_current-session.md)) with toolchain status, wrapper upgrades, and verification commands.
 - Ensure [AGENTS.md](AGENTS.md) references reflection policy, sealed hierarchies, SpotBugs/PMD expectations, and CLI/Gradle command lists.
+- Maintain the cross-facade playbook ([docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md)) so facade invariants (layering, persistence, telemetry, contract governance) remain discoverable without duplicating rules across protocol specs.
 - Maintain hotspot reports, whitelist files, and wrapper/plugin version notes inside plan/tasks for future auditors.
 - Document CLI JSON schema governance: record that `docs/3-reference/cli/cli.schema.json` is the single global registry for all CLI `--output-json` events (one definition per `event`), that tests load schemas via `CliJsonSchemas`, and that any per-command `docs/3-reference/cli/output-schemas/*.schema.json` files are legacy references rather than the authoritative source.
 

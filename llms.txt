@@ -10,6 +10,7 @@ AGENTS.md
 ReadMe.LLM
 docs/4-architecture/roadmap.md
 docs/4-architecture/knowledge-map.md
+docs/4-architecture/facade-contract-playbook.md
 docs/architecture-graph.json
 
 # Governance and documentation automation
@@ -40,4 +41,3 @@ docs/2-how-to
 
 # REST/OpenAPI contracts
 docs/3-reference
-

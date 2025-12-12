@@ -12,6 +12,9 @@
 ## Overview
 Deliver a deterministic simulator for remote (cross-device) OpenID for Verifiable Presentations (OpenID4VP 1.0) flows that align with the High Assurance Interoperability Profile (HAIP). The simulator plays both verifier and wallet roles so REST, CLI, and operator UI facades can demonstrate complete presentation exchanges without external wallets while remaining scoped to redirect/QR journeys (DC-API/same-device paths stay out of scope per Non-Goals). Operators choose between HAIP-enforced and Baseline profiles via a shared toggle: HAIP mode enforces signed/encrypted `direct_post.jwt` journeys, whereas Baseline relaxes enforcement but surfaces a warning banner. Each authorization request mints deterministic `requestId`, `nonce`, and `state` values for telemetry/replay; those identifiers stay internal to telemetry/trace payloads so the UI does not expose them outside verbose traces. The scope includes SD-JWT VC (`application/dc+sd-jwt`) and ISO/IEC 18013-5 mdoc (`mso_mdoc`) credential formats, HAIP-mandated encryption for `direct_post.jwt`, Trusted Authorities filtering with friendly labels, and PID fixtures (`eu.europa.ec.eudi.pid.1`). Synthetic fixtures ship first (issuer/holder keys, disclosures, DeviceResponses) together with ingestion seams for official EU conformance bundles and ETSI Trust List metadata once released, keeping Generate/Validate flows consistent across CLI/REST/UI.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - Generate HAIP-compliant OpenID4VP authorization requests (DCQL queries, nonce/state, optional JAR) and surface QR / deep-link handoffs for cross-device wallets.
 - Produce deterministic wallet responses (SD-JWT VC + optional KB-JWT, ISO/IEC 18013-5 DeviceResponse) and validate them against per-format rules and Trusted Authorities constraints.

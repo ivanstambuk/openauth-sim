@@ -23,6 +23,9 @@ optional encryption inside the existing `CredentialStore` abstraction while sust
 NFR-012-01. Facade modules consume the same storage APIs and operators rely on this specification as the single governance
 source for persistence guidance.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - G-012-01 – Document the shared credential-store contract (profiles, cache settings, telemetry, maintenance helpers,
   encryption) so every module references consistent behaviour.

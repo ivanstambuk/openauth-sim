@@ -159,6 +159,24 @@ _Last updated:_ 2025-12-12
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-013-21 – Facade contract playbook (docs) (FR-013-10, FR-013-11).  
+  _Intent:_ Author `docs/4-architecture/facade-contract-playbook.md` as the single cross-facade reference for how protocol
+  features expose Native Java, CLI, REST, UI, MCP, and standalone seams (contracts, naming, telemetry, and enforcement).  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-22 – Facade contract playbook (spec/runbook links) (FR-013-10).  
+  _Intent:_ Add minimal references from the relevant feature specs (001–006, 009, 012–015) plus governance docs (session
+  quick reference / knowledge map / AGENTS) to the playbook so agents discover it during session kickoffs and facade work.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-23 – Remove temporary facade playbook plan after migration (FR-013-10).  
+  _Intent:_ Delete `docs/tmp/5-facade-contract-playbook-plan.md` once Feature 013 docs encode the work and verification is
+  green.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity; adapter layer runner refactor)
@@ -169,6 +187,7 @@ _Last updated:_ 2025-12-12
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – extracted Gradle quality conventions into `gradle/quality-conventions.gradle` and applied via `gradle/quality-conventions.gradle.kts`)
 - 2025-12-12 – `./gradlew --no-daemon qualityGate` (PASS – quality gate remains green after conventions extraction)
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – removed `docs/tmp/4-gradle-quality-conventions-plan.md` after migration)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – published facade contract playbook, linked relevant specs/runbooks, and removed `docs/tmp/5-facade-contract-playbook-plan.md`)
 - 2025-11-16 – `./gradlew --no-daemon spotlessApply check` (PASS – Option A MCP design captured in plan/tasks; no code shipped)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture` (PASS – typed task verifies fixture parity before every REST test/check run)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture` (PASS – mirrors canonical docs fixture into `rest-api/docs` and logs copy locations)

@@ -12,7 +12,8 @@
 ## Overview
 Introduce first-class EMV Chip Authentication Program (CAP) support that mirrors the reference calculator workflows while fitting the OpenAuth Simulator architecture. Scope now covers reusable core derivation utilities, application orchestration, REST and CLI facades, operator console integration, and MapDB-backed credential seeding so every surface can evaluate Identify/Respond/Sign flows with consistent telemetry and traces. Documentation across REST, CLI, and operator UI guides captures the extended fixture set delivered in T3908c/T3909 so operators can reproduce reference flows end-to-end.
 
-
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
 
 ## Goals
 - Deliver end-to-end EMV/CAP evaluation and replay flows across core, application, REST, CLI, and operator UI with verbose traces.

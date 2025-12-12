@@ -15,6 +15,9 @@ parallel with OCRA. Scope includes core domain/fixtures, shared persistence, app
 facades, operator UI flows, replay tooling, and documentation. This feature ships a single end-to-end slice spanning
 core → application → CLI/REST → operator console; issuance remains out of scope.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - G-001-01 – Provide deterministic HOTP evaluation flows in core/application/CLI/REST with telemetry parity.
 - G-001-02 – Extend operator console with HOTP stored/inline evaluation + replay and deterministic seeding.

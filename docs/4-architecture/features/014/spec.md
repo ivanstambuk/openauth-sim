@@ -21,6 +21,9 @@ that demonstrate calculation-only usage from load-testing tools. This feature co
 (Native Java API Facade Strategy), and mandates incremental backlog work in Features 001, 002, 004, 005, and 006 to mirror
 the existing OCRA Native Java API.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - G-014-01 – Treat Native Java usage as a facade alongside CLI, REST, and operator UI, with clear documentation and
   stability expectations recorded in this spec and ADR-0007.

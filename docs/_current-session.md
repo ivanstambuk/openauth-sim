@@ -507,3 +507,10 @@ githooks
 - Verification log (2025-12-11): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapCredentialDirectoryControllerTest"` (PASS).
 - Verification log (2025-12-11): `./gradlew --no-daemon :core-architecture-tests:test` (PASS).
 - Verification log (2025-12-11): `./gradlew --no-daemon spotlessApply check` (PASS – full gate after EMV facade refactor + ArchUnit expansion).
+
+### Workstream – Facade contract playbook (2025-12-12)
+
+- Documentation log (2025-12-12): Added [docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md) as the canonical cross-facade contract reference (Native Java, CLI, REST, UI, MCP, standalone), linked it from feature specs 001–006, 009, 012–015, and added discovery hooks in [AGENTS.md](AGENTS.md), [llms.txt](llms.txt), [docs/4-architecture/knowledge-map.md](docs/4-architecture/knowledge-map.md), and [docs/5-operations/session-quick-reference.md](docs/5-operations/session-quick-reference.md).
+- Documentation log (2025-12-12): Migrated and removed the temporary plan `docs/tmp/5-facade-contract-playbook-plan.md` after Feature 013 spec/plan/tasks encoded the work.
+- Hook guard (2025-12-12): `git config core.hooksPath` -> `githooks`.
+- Verification log (2025-12-12): `./gradlew --no-daemon spotlessApply check` (PASS – facade contract playbook published and linked).

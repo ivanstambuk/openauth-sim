@@ -12,6 +12,9 @@
 ## Overview
 Feature 004 unifies the former WebAuthn assertion (legacy Feature 024) and attestation (legacy Feature 026) streams so every core/application/CLI/REST/UI surface, telemetry signal, fixture catalogue, and document reference points to a single canonical source. The specification now spans deterministic assertion evaluation/replay, attestation generation/replay, trust-anchor handling, and the operator guidance that ties these flows together. As of 2025-11-13 this document is the sole normative authority for WebAuthn assertion and attestation behaviour; legacy Feature 024/026 copies must not be reintroduced.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - Deliver deterministic WebAuthn assertion evaluation and replay plus attestation generation and verification across every module (core, application, persistence, CLI, REST, and operator console UI).
 - Keep fixtures, telemetry, and documentation aligned so operators and automation observe consistent evidence (W3C vectors, curated presets, sanitized telemetry frames, OpenAPI snapshots).

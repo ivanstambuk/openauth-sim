@@ -5,6 +5,7 @@ _Project TL;DR: core cryptography lives in `core/`, interface modules (`cli/`, `
 For AI coding assistants and agents, start with:
 - [ReadMe.LLM](ReadMe.LLM) – LLM-oriented overview of protocols, Native Java entry points, and usage patterns.
 - [llms.txt](llms.txt) – manifest of high-signal specs under `docs/4-architecture/features` for context windows.
+- [docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md) – cross-facade contract conventions and enforcement gates.
 - This `AGENTS.md` – governance, workflows, and repository guardrails.
 
 ## Agent-Facing Repo Map

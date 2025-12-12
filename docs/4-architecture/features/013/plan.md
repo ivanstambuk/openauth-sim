@@ -288,3 +288,21 @@ commands executed and any outstanding TODOs in `_current-session.md` and this pl
 3. **I013-GQC-3 – Audit trail + temp plan cleanup (delivered 2025-12-12)**
    - Record the verification commands in [docs/_current-session.md](docs/_current-session.md) (FR-013-10).
    - Delete `docs/tmp/4-gradle-quality-conventions-plan.md` after the governing Feature 013 artefacts fully encode the work.
+
+## Active Increment – Facade contract playbook
+
+> Goal: codify cross-facade patterns (Native Java, CLI, REST, UI, MCP, standalone) in a single architecture playbook and
+> link the relevant feature specs to it so future changes converge on one set of conventions rather than repeating rules.
+
+1. **I013-FCP-1 – Draft the playbook document (delivered 2025-12-12)**
+   - Add `docs/4-architecture/facade-contract-playbook.md` describing the canonical seams and the enforcement mechanisms
+     (cross-facade contract tests + ArchUnit rules).
+   - Keep the playbook “rule-focused” (invariants + examples) without re-documenting protocol specifics already covered by
+     features 001–006, 009, 012–015 and the how-to guides.
+
+2. **I013-FCP-2 – Spec alignment + runbook hooks (delivered 2025-12-12)**
+   - Add minimal references from relevant feature specs (001–006, 009, 012–015) to the playbook.
+   - Update the session quick reference and knowledge map to point to the playbook for facade work.
+
+3. **I013-FCP-3 – Temp plan cleanup (delivered 2025-12-12)**
+   - Delete `docs/tmp/5-facade-contract-playbook-plan.md` after the governing docs encode the work and verification is green.

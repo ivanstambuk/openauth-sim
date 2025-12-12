@@ -20,6 +20,9 @@ EUDIW SIOPv2, with placeholder panels maintained until each protocol is live. Pr
 helpers, verbose trace toggles, trace tiers, Base32 helpers, preview tables, and modular JS controllers/harnesses described below
 represent the normative behaviour for every operator-console increment.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - G-009-01 – Keep the operator console shell (tabs, query params, seed workflows) deterministic, accessible, and documented across protocols.
 - G-009-02 – Surface contextual metadata (Protocol Info drawer) plus harmonised preset labels so operators rely on a single UX contract.

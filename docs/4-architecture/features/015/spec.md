@@ -14,6 +14,9 @@
 ## Overview
 Model Context Protocol (MCP) is currently documented as a REST proxy, but agents increasingly need helper flows, structured tool metadata, and session-aware automation that go beyond REST semantics. This feature elevates MCP to a first-class “Agent Facade” with its own contract: a curated tool catalogue, agent-only helper utilities, session APIs, and telemetry/security guarantees tailored for AI orchestrators. MCP remains backed by the existing core/application modules, yet it now has explicit behaviour and quality requirements independent of REST.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - Establish MCP as an official consumption facade with documented capabilities, naming conventions, and telemetry expectations.
 - Ship MCP-first helper flows (e.g., credential OTP previews, fixture discovery) that do not clutter REST/CLI/UIs but are available to agents.

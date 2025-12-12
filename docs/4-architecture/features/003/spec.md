@@ -17,6 +17,9 @@ previous Feature 001 (Core Credential Domain), Feature 003/004 (REST inline + 
 (Replay & Verification), Feature 016 (Operator UI Replay workspace), and Feature 018 (schema-v0 migration retirement),
 keeping OCRA behaviour, telemetry, and fixtures aligned across modules.
 
+Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralised in
+[docs/4-architecture/facade-contract-playbook.md](docs/4-architecture/facade-contract-playbook.md).
+
 ## Goals
 - G-003-01 – Provide a canonical OCRA credential domain and calculation stack that reproduces every RFC 6287 vector and
   extended S064/S512 session payload.
