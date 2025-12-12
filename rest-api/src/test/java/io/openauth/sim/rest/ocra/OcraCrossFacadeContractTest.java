@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
+import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
 import io.openauth.sim.application.contract.ocra.OcraCanonicalScenarios;
 import io.openauth.sim.application.ocra.OcraCredentialResolvers;
@@ -27,10 +28,8 @@ class OcraCrossFacadeContractTest {
             CanonicalFacadeResult expected = descriptor.expected();
 
             ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario = OcraCanonicalScenarios.scenarios(nativeEnv).stream()
-                    .filter(s -> s.scenarioId().equals(descriptor.scenarioId()))
-                    .findFirst()
-                    .orElseThrow();
+            CanonicalScenario nativeScenario =
+                    CanonicalScenarios.scenarioForDescriptor(nativeEnv, descriptor, OcraCanonicalScenarios::scenarios);
             OcraEvaluationApplicationService nativeEval = new OcraEvaluationApplicationService(
                     Clock.systemUTC(), OcraCredentialResolvers.forStore(nativeEnv.store()));
             OcraVerificationApplicationService nativeVerify = new OcraVerificationApplicationService(
@@ -48,10 +47,8 @@ class OcraCrossFacadeContractTest {
             assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
 
             ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario = OcraCanonicalScenarios.scenarios(restEnv).stream()
-                    .filter(s -> s.scenarioId().equals(descriptor.scenarioId()))
-                    .findFirst()
-                    .orElseThrow();
+            CanonicalScenario restScenario =
+                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, OcraCanonicalScenarios::scenarios);
             OcraEvaluationService restEval = new OcraEvaluationService(new OcraEvaluationApplicationService(
                     Clock.systemUTC(), OcraCredentialResolvers.forStore(restEnv.store())));
             OcraVerificationService restVerify = new OcraVerificationService(new OcraVerificationApplicationService(
@@ -59,65 +56,23 @@ class OcraCrossFacadeContractTest {
 
             CanonicalFacadeResult restResult =
                     switch (restScenario.kind()) {
-                        case EVALUATE_INLINE ->
-                            toCanonical(restEval.evaluate(new OcraEvaluationRequest(
-                                    null,
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .suite(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .sharedSecretHex(),
-                                    null,
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .challenge(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .sessionHex(),
-                                    null,
-                                    null,
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .pinHashHex(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .timestampHex(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command())
-                                            .counter(),
-                                    null,
-                                    false)));
-                        case EVALUATE_STORED ->
-                            toCanonical(restEval.evaluate(new OcraEvaluationRequest(
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command())
-                                            .credentialId(),
-                                    null,
-                                    null,
-                                    null,
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command())
-                                            .challenge(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command())
-                                            .sessionHex(),
-                                    null,
-                                    null,
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command())
-                                            .pinHashHex(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command())
-                                            .timestampHex(),
-                                    ((OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command())
-                                            .counter(),
-                                    null,
-                                    false)));
+                        case EVALUATE_INLINE -> {
+                            OcraEvaluationApplicationService.EvaluationCommand.Inline inline =
+                                    (OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command();
+                            yield toCanonical(restEval.evaluate(OcraContractRequests.evaluateInline(inline)));
+                        }
+                        case EVALUATE_STORED -> {
+                            OcraEvaluationApplicationService.EvaluationCommand.Stored stored =
+                                    (OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command();
+                            yield toCanonical(restEval.evaluate(OcraContractRequests.evaluateStored(stored)));
+                        }
                         case REPLAY_STORED, FAILURE_STORED -> {
                             OcraVerificationApplicationService.VerificationCommand.Stored stored =
                                     (OcraVerificationApplicationService.VerificationCommand.Stored)
                                             restScenario.command();
-                            OcraVerificationContext context = new OcraVerificationContext(
-                                    stored.challenge(),
-                                    stored.clientChallenge(),
-                                    stored.serverChallenge(),
-                                    stored.sessionHex(),
-                                    stored.timestampHex(),
-                                    stored.counter(),
-                                    stored.pinHashHex());
                             yield toCanonical(
                                     restVerify.verify(
-                                            new OcraVerificationRequest(
-                                                    stored.otp(), stored.credentialId(), null, context, false),
+                                            OcraContractRequests.replayStored(stored),
                                             new OcraVerificationAuditContext(null, null, null)),
                                     stored.otp());
                         }
@@ -125,20 +80,9 @@ class OcraCrossFacadeContractTest {
                             OcraVerificationApplicationService.VerificationCommand.Inline inline =
                                     (OcraVerificationApplicationService.VerificationCommand.Inline)
                                             restScenario.command();
-                            OcraVerificationContext context = new OcraVerificationContext(
-                                    inline.challenge(),
-                                    inline.clientChallenge(),
-                                    inline.serverChallenge(),
-                                    inline.sessionHex(),
-                                    inline.timestampHex(),
-                                    inline.counter(),
-                                    inline.pinHashHex());
-                            OcraVerificationInlineCredential inlineCredential = new OcraVerificationInlineCredential(
-                                    inline.suite(), inline.sharedSecretHex(), null);
                             yield toCanonical(
                                     restVerify.verify(
-                                            new OcraVerificationRequest(
-                                                    inline.otp(), null, inlineCredential, context, false),
+                                            OcraContractRequests.replayInline(inline),
                                             new OcraVerificationAuditContext(null, null, null)),
                                     inline.otp());
                         }

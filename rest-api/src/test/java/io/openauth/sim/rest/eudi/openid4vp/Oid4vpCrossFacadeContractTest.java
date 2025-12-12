@@ -20,16 +20,12 @@ import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureWalletPresetRe
 import io.openauth.sim.application.eudi.openid4vp.fixtures.Oid4vpTelemetryPublisher;
 import io.openauth.sim.cli.eudi.openid4vp.EudiwCli;
 import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures;
-import io.openauth.sim.core.json.SimpleJson;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
+import io.openauth.sim.rest.support.PicocliHarness;
+import io.openauth.sim.testing.JsonEnvelope;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import picocli.CommandLine;
 
 @Tag("crossFacadeContract")
 final class Oid4vpCrossFacadeContractTest {
@@ -72,12 +68,6 @@ final class Oid4vpCrossFacadeContractTest {
     }
 
     private static CanonicalFacadeResult executeCli(CanonicalScenario scenario) {
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        CommandLine cmd = new CommandLine(new EudiwCli());
-        cmd.setOut(new PrintWriter(stdout, true, StandardCharsets.UTF_8));
-        cmd.setErr(new PrintWriter(stderr, true, StandardCharsets.UTF_8));
-
         String[] args =
                 switch (scenario.kind()) {
                     case EVALUATE_INLINE -> {
@@ -143,19 +133,16 @@ final class Oid4vpCrossFacadeContractTest {
                     default -> throw new IllegalStateException("Unsupported OID4VP scenario kind " + scenario.kind());
                 };
 
-        cmd.execute(args);
-        Map<String, Object> envelope = castMap(SimpleJson.parse(stdout.toString(StandardCharsets.UTF_8)));
+        PicocliHarness.ExecutionResult result = PicocliHarness.execute(new EudiwCli(), args);
+        JsonEnvelope envelope = JsonEnvelope.parse(result.stdout());
         return toCanonicalCli(envelope);
     }
 
-    private static CanonicalFacadeResult toCanonicalCli(Map<String, Object> envelope) {
-        String status = String.valueOf(envelope.get("status"));
-        String reasonRaw = String.valueOf(envelope.get("reasonCode"));
-        String reasonCode = canonicalReasonCode(reasonRaw);
-        boolean success = "success".equals(status);
-        boolean telemetryPresent = envelope.get("telemetryId") != null;
-        Map<String, Object> data = castMap(envelope.get("data"));
-        boolean includeTrace = data != null && data.get("trace") != null;
+    private static CanonicalFacadeResult toCanonicalCli(JsonEnvelope envelope) {
+        String reasonCode = canonicalReasonCode(envelope.reasonCode());
+        boolean success = "success".equals(envelope.status());
+        boolean telemetryPresent = envelope.telemetryIdPresent();
+        boolean includeTrace = envelope.tracePresent();
         return new CanonicalFacadeResult(
                 success, reasonCode, null, null, null, null, null, includeTrace, telemetryPresent);
     }
@@ -254,13 +241,5 @@ final class Oid4vpCrossFacadeContractTest {
         public void close() {
             // no-op
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> castMap(Object value) {
-        if (value == null) {
-            return Map.of();
-        }
-        return (Map<String, Object>) value;
     }
 }

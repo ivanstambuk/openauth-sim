@@ -4,26 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
+import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
+import io.openauth.sim.application.contract.ScenarioStores;
 import io.openauth.sim.application.contract.hotp.HotpCanonicalScenarios;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
 import io.openauth.sim.application.hotp.HotpReplayApplicationService;
 import io.openauth.sim.cli.HotpCli;
-import io.openauth.sim.core.json.SimpleJson;
-import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.infra.persistence.CredentialStoreFactory;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
+import io.openauth.sim.rest.support.PicocliHarness;
+import io.openauth.sim.testing.JsonEnvelope;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import picocli.CommandLine;
 
 @Tag("crossFacadeContract")
 class HotpCrossFacadeContractTest {
@@ -40,10 +35,8 @@ class HotpCrossFacadeContractTest {
             CanonicalFacadeResult expected = descriptor.expected();
 
             ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario = HotpCanonicalScenarios.scenarios(nativeEnv).stream()
-                    .filter(s -> s.scenarioId().equals(descriptor.scenarioId()))
-                    .findFirst()
-                    .orElseThrow();
+            CanonicalScenario nativeScenario =
+                    CanonicalScenarios.scenarioForDescriptor(nativeEnv, descriptor, HotpCanonicalScenarios::scenarios);
             HotpEvaluationApplicationService nativeEval = new HotpEvaluationApplicationService(nativeEnv.store());
             HotpReplayApplicationService nativeReplay = new HotpReplayApplicationService(nativeEnv.store());
 
@@ -61,10 +54,8 @@ class HotpCrossFacadeContractTest {
             assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
 
             ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario = HotpCanonicalScenarios.scenarios(restEnv).stream()
-                    .filter(s -> s.scenarioId().equals(descriptor.scenarioId()))
-                    .findFirst()
-                    .orElseThrow();
+            CanonicalScenario restScenario =
+                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, HotpCanonicalScenarios::scenarios);
             HotpEvaluationService restEval =
                     new HotpEvaluationService(new HotpEvaluationApplicationService(restEnv.store()));
             HotpReplayService restReplay = new HotpReplayService(new HotpReplayApplicationService(restEnv.store()));
@@ -74,53 +65,24 @@ class HotpCrossFacadeContractTest {
                         case EVALUATE_INLINE -> {
                             HotpEvaluationApplicationService.EvaluationCommand.Inline inline =
                                     (HotpEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command();
-                            yield toCanonical(restEval.evaluateInline(new HotpInlineEvaluationRequest(
-                                    inline.sharedSecretHex(),
-                                    null,
-                                    inline.algorithm().name(),
-                                    inline.digits(),
-                                    null,
-                                    inline.counter(),
-                                    inline.metadata(),
-                                    false)));
+                            yield toCanonical(restEval.evaluateInline(HotpContractRequests.evaluateInline(inline)));
                         }
                         case EVALUATE_STORED -> {
                             HotpEvaluationApplicationService.EvaluationCommand.Stored stored =
                                     (HotpEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command();
-                            yield toCanonical(restEval.evaluateStored(
-                                    new HotpStoredEvaluationRequest(stored.credentialId(), null, false)));
+                            yield toCanonical(restEval.evaluateStored(HotpContractRequests.evaluateStored(stored)));
                         }
                         case REPLAY_STORED, FAILURE_STORED -> {
                             HotpReplayApplicationService.ReplayCommand.Stored stored =
                                     (HotpReplayApplicationService.ReplayCommand.Stored) restScenario.command();
                             yield toCanonical(
-                                    restReplay.replay(new HotpReplayRequest(
-                                            stored.credentialId(),
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            stored.otp(),
-                                            null,
-                                            false)),
-                                    stored.otp());
+                                    restReplay.replay(HotpContractRequests.replayStored(stored)), stored.otp());
                         }
                         case REPLAY_INLINE, FAILURE_INLINE -> {
                             HotpReplayApplicationService.ReplayCommand.Inline inline =
                                     (HotpReplayApplicationService.ReplayCommand.Inline) restScenario.command();
                             yield toCanonical(
-                                    restReplay.replay(new HotpReplayRequest(
-                                            null,
-                                            inline.sharedSecretHex(),
-                                            null,
-                                            inline.algorithm().name(),
-                                            inline.digits(),
-                                            inline.counter(),
-                                            inline.otp(),
-                                            null,
-                                            false)),
-                                    inline.otp());
+                                    restReplay.replay(HotpContractRequests.replayInline(inline)), inline.otp());
                         }
                     };
             assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
@@ -128,7 +90,7 @@ class HotpCrossFacadeContractTest {
             if (descriptor.kind() == CanonicalScenario.Kind.EVALUATE_INLINE
                     || descriptor.kind() == CanonicalScenario.Kind.EVALUATE_STORED) {
                 Path cliDb = tempDir.resolve(descriptor.scenarioId() + ".db");
-                seedCliStore(cliDb);
+                ScenarioStores.seedFileStore(cliDb, Instant.EPOCH, HotpCanonicalScenarios::scenarios);
                 CanonicalFacadeResult cliResult = executeCliEvaluate(cliDb, restScenario);
                 assertEquals(
                         expected.reasonCode(), cliResult.reasonCode(), descriptor.scenarioId() + " cli reasonCode");
@@ -205,16 +167,6 @@ class HotpCrossFacadeContractTest {
     }
 
     private CanonicalFacadeResult executeCliEvaluate(Path dbPath, CanonicalScenario scenario) {
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        PrintWriter out = new PrintWriter(stdout, true, StandardCharsets.UTF_8);
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        PrintWriter err = new PrintWriter(stderr, true, StandardCharsets.UTF_8);
-
-        HotpCli cli = new HotpCli();
-        CommandLine cmd = new CommandLine(cli);
-        cmd.setOut(out);
-        cmd.setErr(err);
-
         String[] args;
         if (scenario.kind() == CanonicalScenario.Kind.EVALUATE_INLINE) {
             HotpEvaluationApplicationService.EvaluationCommand.Inline inline =
@@ -241,48 +193,19 @@ class HotpCrossFacadeContractTest {
             };
         }
 
-        cmd.execute(args);
-        String json = stdout.toString(StandardCharsets.UTF_8);
-        Map<String, Object> payload = castMap(SimpleJson.parse(json));
-        return toCanonicalCli(payload);
+        PicocliHarness.ExecutionResult result = PicocliHarness.execute(new HotpCli(), args);
+        JsonEnvelope envelope = JsonEnvelope.parse(result.stdout());
+        return toCanonicalCli(envelope);
     }
 
-    private static CanonicalFacadeResult toCanonicalCli(Map<String, Object> envelope) {
-        String status = String.valueOf(envelope.get("status"));
-        String reasonCode = String.valueOf(envelope.get("reasonCode"));
-        boolean success = "success".equals(status);
-        boolean telemetryPresent = envelope.get("telemetryId") != null;
-        Map<String, Object> data = castMap(envelope.get("data"));
-        String otp = data != null ? (String) data.get("otp") : null;
-        Long prev = toLong(data != null ? data.get("previousCounter") : null);
-        Long next = toLong(data != null ? data.get("nextCounter") : null);
-        boolean includeTrace = data != null && data.get("trace") != null;
+    private static CanonicalFacadeResult toCanonicalCli(JsonEnvelope envelope) {
+        boolean success = "success".equals(envelope.status());
+        boolean telemetryPresent = envelope.telemetryIdPresent();
+        String otp = envelope.dataString("otp");
+        Long prev = envelope.dataLong("previousCounter");
+        Long next = envelope.dataLong("nextCounter");
+        boolean includeTrace = envelope.tracePresent();
         return new CanonicalFacadeResult(
-                success, reasonCode, otp, prev, next, null, null, includeTrace, telemetryPresent);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> castMap(Object value) {
-        if (value == null) {
-            return Map.of();
-        }
-        return (Map<String, Object>) value;
-    }
-
-    private static Long toLong(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        return Long.parseLong(String.valueOf(value));
-    }
-
-    private static void seedCliStore(Path dbPath) throws Exception {
-        try (CredentialStore store = CredentialStoreFactory.openFileStore(dbPath)) {
-            ScenarioEnvironment env = new ScenarioEnvironment(store, Clock.systemUTC());
-            HotpCanonicalScenarios.scenarios(env);
-        }
+                success, envelope.reasonCode(), otp, prev, next, null, null, includeTrace, telemetryPresent);
     }
 }

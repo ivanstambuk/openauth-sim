@@ -131,6 +131,12 @@ _Last updated:_ 2025-12-12
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-013-17 – Shared cross-facade contract harness utilities (FR-013-11).  
+  _Intent:_ Reduce boilerplate in cross-facade parity suites by centralising scenario lookup, file-store seeding, Picocli execution, JSON envelope parsing, and per-protocol REST request builders so new parity suites are “data + assertions” rather than plumbing.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity)

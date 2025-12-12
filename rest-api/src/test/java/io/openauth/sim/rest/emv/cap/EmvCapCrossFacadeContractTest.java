@@ -4,27 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
+import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
+import io.openauth.sim.application.contract.ScenarioStores;
 import io.openauth.sim.application.contract.emv.cap.EmvCapCanonicalScenarios;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService;
 import io.openauth.sim.cli.EmvCli;
-import io.openauth.sim.core.json.SimpleJson;
-import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.infra.persistence.CredentialStoreFactory;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
+import io.openauth.sim.rest.support.ObjectProviders;
+import io.openauth.sim.rest.support.PicocliHarness;
+import io.openauth.sim.testing.JsonEnvelope;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.beans.factory.ObjectProvider;
-import picocli.CommandLine;
 
 @Tag("crossFacadeContract")
 final class EmvCapCrossFacadeContractTest {
@@ -41,7 +36,8 @@ final class EmvCapCrossFacadeContractTest {
             CanonicalFacadeResult expected = descriptor.expected();
 
             ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario = scenario(nativeEnv, descriptor.scenarioId());
+            CanonicalScenario nativeScenario = CanonicalScenarios.scenarioForDescriptor(
+                    nativeEnv, descriptor, EmvCapCanonicalScenarios::scenarios);
             EmvCapEvaluationApplicationService nativeEval = new EmvCapEvaluationApplicationService();
             EmvCapReplayApplicationService nativeReplay =
                     new EmvCapReplayApplicationService(nativeEnv.store(), nativeEval);
@@ -63,9 +59,10 @@ final class EmvCapCrossFacadeContractTest {
             assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
 
             ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario = scenario(restEnv, descriptor.scenarioId());
-            EmvCapEvaluationService restEval =
-                    new EmvCapEvaluationService(new EmvCapEvaluationApplicationService(), provider(restEnv.store()));
+            CanonicalScenario restScenario =
+                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, EmvCapCanonicalScenarios::scenarios);
+            EmvCapEvaluationService restEval = new EmvCapEvaluationService(
+                    new EmvCapEvaluationApplicationService(), ObjectProviders.fixed(restEnv.store()));
             EmvCapReplayService restReplay = new EmvCapReplayService(
                     new EmvCapReplayApplicationService(restEnv.store(), new EmvCapEvaluationApplicationService()));
 
@@ -74,54 +71,13 @@ final class EmvCapCrossFacadeContractTest {
                         case EVALUATE_INLINE -> {
                             EmvCapEvaluationApplicationService.EvaluationRequest inline =
                                     (EmvCapEvaluationApplicationService.EvaluationRequest) restScenario.command();
-                            EmvCapEvaluationRequest request = new EmvCapEvaluationRequest(
-                                    null,
-                                    inline.mode().name(),
-                                    inline.masterKeyHex(),
-                                    inline.atcHex(),
-                                    inline.branchFactor(),
-                                    inline.height(),
-                                    inline.ivHex(),
-                                    inline.cdol1Hex(),
-                                    inline.issuerProprietaryBitmapHex(),
-                                    null,
-                                    new EmvCapEvaluationRequest.CustomerInputs(
-                                            inline.customerInputs().challenge(),
-                                            inline.customerInputs().reference(),
-                                            inline.customerInputs().amount()),
-                                    new EmvCapEvaluationRequest.TransactionData(
-                                            inline.transactionData()
-                                                    .terminalHexOverride()
-                                                    .orElse(null),
-                                            inline.transactionData()
-                                                    .iccHexOverride()
-                                                    .orElse(null)),
-                                    inline.iccDataTemplateHex(),
-                                    inline.issuerApplicationDataHex(),
-                                    false);
+                            EmvCapEvaluationRequest request = EmvCapContractRequests.evaluateInline(inline);
                             yield toCanonical(restEval.evaluate(request));
                         }
                         case REPLAY_STORED, FAILURE_STORED -> {
                             EmvCapReplayApplicationService.ReplayCommand.Stored stored =
                                     (EmvCapReplayApplicationService.ReplayCommand.Stored) restScenario.command();
-                            EmvCapReplayRequest request = new EmvCapReplayRequest(
-                                    stored.credentialId(),
-                                    stored.mode().name(),
-                                    stored.otp(),
-                                    stored.driftBackward(),
-                                    stored.driftForward(),
-                                    false,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    null);
+                            EmvCapReplayRequest request = EmvCapContractRequests.replayStored(stored);
                             yield toCanonical(restReplay.replay(request), stored.otp());
                         }
                         default ->
@@ -130,7 +86,7 @@ final class EmvCapCrossFacadeContractTest {
             assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
 
             Path dbPath = tempDir.resolve(descriptor.scenarioId() + ".db");
-            seedCliStore(dbPath);
+            ScenarioStores.seedFileStore(dbPath, Instant.EPOCH, EmvCapCanonicalScenarios::scenarios);
             CanonicalFacadeResult cliResult =
                     switch (restScenario.kind()) {
                         case EVALUATE_INLINE -> executeCliEvaluate(dbPath, restScenario);
@@ -140,13 +96,6 @@ final class EmvCapCrossFacadeContractTest {
                     };
             assertEquals(expected, cliResult, descriptor.scenarioId() + " cli");
         }
-    }
-
-    private static CanonicalScenario scenario(ScenarioEnvironment env, String id) {
-        return EmvCapCanonicalScenarios.scenarios(env).stream()
-                .filter(scenario -> scenario.scenarioId().equals(id))
-                .findFirst()
-                .orElseThrow();
     }
 
     private static CanonicalFacadeResult toCanonical(EmvCapEvaluationApplicationService.EvaluationResult result) {
@@ -214,16 +163,6 @@ final class EmvCapCrossFacadeContractTest {
     }
 
     private CanonicalFacadeResult executeCliEvaluate(Path dbPath, CanonicalScenario scenario) {
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        PrintWriter out = new PrintWriter(stdout, true, StandardCharsets.UTF_8);
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        PrintWriter err = new PrintWriter(stderr, true, StandardCharsets.UTF_8);
-
-        EmvCli cli = new EmvCli();
-        CommandLine cmd = new CommandLine(cli);
-        cmd.setOut(out);
-        cmd.setErr(err);
-
         EmvCapEvaluationApplicationService.EvaluationRequest inline =
                 (EmvCapEvaluationApplicationService.EvaluationRequest) scenario.command();
         java.util.List<String> args = new java.util.ArrayList<>(List.of(
@@ -264,22 +203,12 @@ final class EmvCapCrossFacadeContractTest {
             args.addAll(List.of("--amount", inline.customerInputs().amount()));
         }
 
-        cmd.execute(args.toArray(String[]::new));
-        Map<String, Object> envelope = castMap(SimpleJson.parse(stdout.toString(StandardCharsets.UTF_8)));
+        PicocliHarness.ExecutionResult result = PicocliHarness.execute(new EmvCli(), args.toArray(String[]::new));
+        JsonEnvelope envelope = JsonEnvelope.parse(result.stdout());
         return toCanonicalCli(envelope);
     }
 
     private CanonicalFacadeResult executeCliReplay(Path dbPath, CanonicalScenario scenario) {
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        PrintWriter out = new PrintWriter(stdout, true, StandardCharsets.UTF_8);
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        PrintWriter err = new PrintWriter(stderr, true, StandardCharsets.UTF_8);
-
-        EmvCli cli = new EmvCli();
-        CommandLine cmd = new CommandLine(cli);
-        cmd.setOut(out);
-        cmd.setErr(err);
-
         EmvCapReplayApplicationService.ReplayCommand.Stored stored =
                 (EmvCapReplayApplicationService.ReplayCommand.Stored) scenario.command();
         String[] args = new String[] {
@@ -298,8 +227,8 @@ final class EmvCapCrossFacadeContractTest {
             "--output-json"
         };
 
-        cmd.execute(args);
-        Map<String, Object> envelope = castMap(SimpleJson.parse(stdout.toString(StandardCharsets.UTF_8)));
+        PicocliHarness.ExecutionResult result = PicocliHarness.execute(new EmvCli(), args);
+        JsonEnvelope envelope = JsonEnvelope.parse(result.stdout());
         CanonicalFacadeResult base = toCanonicalCli(envelope);
         if (base.success() && base.otp() == null) {
             return new CanonicalFacadeResult(
@@ -316,63 +245,13 @@ final class EmvCapCrossFacadeContractTest {
         return base;
     }
 
-    private static CanonicalFacadeResult toCanonicalCli(Map<String, Object> envelope) {
-        String reasonCode = String.valueOf(envelope.get("reasonCode"));
+    private static CanonicalFacadeResult toCanonicalCli(JsonEnvelope envelope) {
+        String reasonCode = envelope.reasonCode();
         boolean success = "match".equals(reasonCode) || "generated".equals(reasonCode);
-        boolean telemetryPresent = envelope.get("telemetryId") != null;
-        Map<String, Object> data = castMap(envelope.get("data"));
-        String otp = data != null ? (String) data.get("otp") : null;
-        boolean includeTrace = data != null && data.get("trace") != null;
+        boolean telemetryPresent = envelope.telemetryIdPresent();
+        String otp = envelope.dataString("otp");
+        boolean includeTrace = envelope.tracePresent();
         return new CanonicalFacadeResult(
                 success, reasonCode, success ? otp : null, null, null, null, null, includeTrace, telemetryPresent);
-    }
-
-    private static void seedCliStore(Path dbPath) throws Exception {
-        try (CredentialStore store = CredentialStoreFactory.openFileStore(dbPath)) {
-            ScenarioEnvironment env = new ScenarioEnvironment(store, Clock.systemUTC());
-            EmvCapCanonicalScenarios.scenarios(env);
-        }
-    }
-
-    private static ObjectProvider<CredentialStore> provider(CredentialStore store) {
-        return new ObjectProvider<>() {
-            @Override
-            public CredentialStore getObject(Object... args) {
-                return store;
-            }
-
-            @Override
-            public CredentialStore getObject() {
-                return store;
-            }
-
-            @Override
-            public CredentialStore getIfAvailable() {
-                return store;
-            }
-
-            @Override
-            public CredentialStore getIfUnique() {
-                return store;
-            }
-
-            @Override
-            public java.util.stream.Stream<CredentialStore> stream() {
-                return store == null ? java.util.stream.Stream.empty() : java.util.stream.Stream.of(store);
-            }
-
-            @Override
-            public java.util.stream.Stream<CredentialStore> orderedStream() {
-                return stream();
-            }
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> castMap(Object value) {
-        if (value == null) {
-            return Map.of();
-        }
-        return (Map<String, Object>) value;
     }
 }
