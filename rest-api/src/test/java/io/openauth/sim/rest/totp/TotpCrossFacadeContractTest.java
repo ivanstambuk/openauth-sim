@@ -4,18 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
-import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
-import io.openauth.sim.application.contract.ScenarioStores;
 import io.openauth.sim.application.contract.totp.TotpCanonicalScenarios;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService;
 import io.openauth.sim.application.totp.TotpReplayApplicationService;
 import io.openauth.sim.cli.TotpCli;
+import io.openauth.sim.rest.support.CrossFacadeContractRunner;
 import io.openauth.sim.rest.support.PicocliHarness;
 import io.openauth.sim.testing.JsonEnvelope;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,86 +27,81 @@ class TotpCrossFacadeContractTest {
 
     @Test
     void totpCanonicalScenariosStayInParityAcrossFacades() throws Exception {
-        List<CanonicalScenario> descriptors =
-                TotpCanonicalScenarios.scenarios(ScenarioEnvironment.fixedAt(Instant.EPOCH));
+        CrossFacadeContractRunner.CliContext cliContext =
+                new CrossFacadeContractRunner.CliContext(tempDir, Instant.EPOCH, TotpCanonicalScenarios::scenarios);
+        CrossFacadeContractRunner.assertParity(
+                Instant.EPOCH,
+                TotpCanonicalScenarios::scenarios,
+                TotpCrossFacadeContractTest::executeNative,
+                TotpCrossFacadeContractTest::executeRest,
+                cliContext,
+                this::executeCli,
+                TotpCrossFacadeContractTest::assertCliParity);
+    }
 
-        for (CanonicalScenario descriptor : descriptors) {
-            CanonicalFacadeResult expected = descriptor.expected();
+    private static CanonicalFacadeResult executeNative(ScenarioEnvironment env, CanonicalScenario scenario) {
+        TotpEvaluationApplicationService eval = new TotpEvaluationApplicationService(env.store(), env.clock());
+        TotpReplayApplicationService replay = new TotpReplayApplicationService(eval);
+        Long epochSeconds = epochSeconds(scenario);
 
-            ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario =
-                    CanonicalScenarios.scenarioForDescriptor(nativeEnv, descriptor, TotpCanonicalScenarios::scenarios);
-            TotpEvaluationApplicationService nativeEval =
-                    new TotpEvaluationApplicationService(nativeEnv.store(), nativeEnv.clock());
-            TotpReplayApplicationService nativeReplay = new TotpReplayApplicationService(nativeEval);
-
-            Long epochSeconds = epochSeconds(nativeScenario);
-            CanonicalFacadeResult nativeResult =
-                    switch (nativeScenario.kind()) {
-                        case EVALUATE_INLINE, EVALUATE_STORED ->
-                            toCanonical(
-                                    nativeEval.evaluate((TotpEvaluationApplicationService.EvaluationCommand)
-                                            nativeScenario.command()),
-                                    epochSeconds);
-                        case REPLAY_INLINE, REPLAY_STORED, FAILURE_INLINE, FAILURE_STORED -> {
-                            TotpReplayApplicationService.ReplayCommand replayCommand =
-                                    (TotpReplayApplicationService.ReplayCommand) nativeScenario.command();
-                            yield toCanonical(nativeReplay.replay(replayCommand), epochSeconds, replayCommand.otp());
-                        }
-                    };
-            assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
-
-            ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario =
-                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, TotpCanonicalScenarios::scenarios);
-            TotpEvaluationApplicationService restApp =
-                    new TotpEvaluationApplicationService(restEnv.store(), restEnv.clock());
-            TotpEvaluationService restEval = new TotpEvaluationService(restApp);
-            TotpReplayService restReplay = new TotpReplayService(new TotpReplayApplicationService(restApp));
-
-            CanonicalFacadeResult restResult =
-                    switch (restScenario.kind()) {
-                        case EVALUATE_INLINE -> {
-                            TotpEvaluationApplicationService.EvaluationCommand.Inline inline =
-                                    (TotpEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command();
-                            yield toCanonical(
-                                    restEval.evaluateInline(TotpContractRequests.evaluateInline(inline)), epochSeconds);
-                        }
-                        case EVALUATE_STORED -> {
-                            TotpEvaluationApplicationService.EvaluationCommand.Stored stored =
-                                    (TotpEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command();
-                            yield toCanonical(
-                                    restEval.evaluateStored(TotpContractRequests.evaluateStored(stored)), epochSeconds);
-                        }
-                        case REPLAY_STORED, FAILURE_STORED -> {
-                            TotpReplayApplicationService.ReplayCommand.Stored stored =
-                                    (TotpReplayApplicationService.ReplayCommand.Stored) restScenario.command();
-                            yield toCanonical(
-                                    restReplay.replay(TotpContractRequests.replayStored(stored)),
-                                    epochSeconds,
-                                    stored.otp());
-                        }
-                        case REPLAY_INLINE, FAILURE_INLINE -> {
-                            TotpReplayApplicationService.ReplayCommand.Inline inline =
-                                    (TotpReplayApplicationService.ReplayCommand.Inline) restScenario.command();
-                            yield toCanonical(
-                                    restReplay.replay(TotpContractRequests.replayInline(inline)),
-                                    epochSeconds,
-                                    inline.otp());
-                        }
-                    };
-            assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
-
-            if (descriptor.kind() == CanonicalScenario.Kind.EVALUATE_INLINE
-                    || descriptor.kind() == CanonicalScenario.Kind.EVALUATE_STORED) {
-                Path cliDb = tempDir.resolve(descriptor.scenarioId() + ".db");
-                ScenarioStores.seedFileStore(cliDb, Instant.EPOCH, TotpCanonicalScenarios::scenarios);
-                CanonicalFacadeResult cliResult = executeCliEvaluate(cliDb, restScenario);
-                assertEquals(
-                        expected.reasonCode(), cliResult.reasonCode(), descriptor.scenarioId() + " cli reasonCode");
-                assertEquals(expected.otp(), cliResult.otp(), descriptor.scenarioId() + " cli otp");
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE, EVALUATE_STORED ->
+                toCanonical(
+                        eval.evaluate((TotpEvaluationApplicationService.EvaluationCommand) scenario.command()),
+                        epochSeconds);
+            case REPLAY_INLINE, REPLAY_STORED, FAILURE_INLINE, FAILURE_STORED -> {
+                TotpReplayApplicationService.ReplayCommand replayCommand =
+                        (TotpReplayApplicationService.ReplayCommand) scenario.command();
+                yield toCanonical(replay.replay(replayCommand), epochSeconds, replayCommand.otp());
             }
+        };
+    }
+
+    private static CanonicalFacadeResult executeRest(ScenarioEnvironment env, CanonicalScenario scenario) {
+        TotpEvaluationApplicationService app = new TotpEvaluationApplicationService(env.store(), env.clock());
+        TotpEvaluationService eval = new TotpEvaluationService(app);
+        TotpReplayService replay = new TotpReplayService(new TotpReplayApplicationService(app));
+        Long epochSeconds = epochSeconds(scenario);
+
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE -> {
+                TotpEvaluationApplicationService.EvaluationCommand.Inline inline =
+                        (TotpEvaluationApplicationService.EvaluationCommand.Inline) scenario.command();
+                yield toCanonical(eval.evaluateInline(TotpContractRequests.evaluateInline(inline)), epochSeconds);
+            }
+            case EVALUATE_STORED -> {
+                TotpEvaluationApplicationService.EvaluationCommand.Stored stored =
+                        (TotpEvaluationApplicationService.EvaluationCommand.Stored) scenario.command();
+                yield toCanonical(eval.evaluateStored(TotpContractRequests.evaluateStored(stored)), epochSeconds);
+            }
+            case REPLAY_STORED, FAILURE_STORED -> {
+                TotpReplayApplicationService.ReplayCommand.Stored stored =
+                        (TotpReplayApplicationService.ReplayCommand.Stored) scenario.command();
+                yield toCanonical(replay.replay(TotpContractRequests.replayStored(stored)), epochSeconds, stored.otp());
+            }
+            case REPLAY_INLINE, FAILURE_INLINE -> {
+                TotpReplayApplicationService.ReplayCommand.Inline inline =
+                        (TotpReplayApplicationService.ReplayCommand.Inline) scenario.command();
+                yield toCanonical(replay.replay(TotpContractRequests.replayInline(inline)), epochSeconds, inline.otp());
+            }
+        };
+    }
+
+    private Optional<CanonicalFacadeResult> executeCli(
+            CrossFacadeContractRunner.CliContext ctx, CanonicalScenario descriptor, CanonicalScenario scenario)
+            throws Exception {
+        if (scenario.kind() != CanonicalScenario.Kind.EVALUATE_INLINE
+                && scenario.kind() != CanonicalScenario.Kind.EVALUATE_STORED) {
+            return Optional.empty();
         }
+
+        Path dbPath = ctx.seededFileStore(descriptor.scenarioId());
+        return Optional.of(executeCliEvaluate(dbPath, scenario));
+    }
+
+    private static void assertCliParity(CanonicalFacadeResult expected, CanonicalFacadeResult actual, String message) {
+        assertEquals(expected.reasonCode(), actual.reasonCode(), message + " reasonCode");
+        assertEquals(expected.otp(), actual.otp(), message + " otp");
     }
 
     private static CanonicalFacadeResult toCanonical(

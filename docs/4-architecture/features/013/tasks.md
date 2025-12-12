@@ -137,9 +137,15 @@ _Last updated:_ 2025-12-12
   - `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"`  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-013-18 – Cross-facade adapter layer runner (FR-013-11).  
+  _Intent:_ Refactor parity tests to use a shared runner (`CrossFacadeContractRunner`) plus per-protocol facade adapters so the suites stay compact and avoid repeating environment bootstrapping logic; keep protocol adapters within their packages to access package-private REST request DTOs.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
-- 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity)
+- 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity; adapter layer runner refactor)
 - 2025-12-12 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"` (PASS – refreshed REST OpenAPI snapshots after schema governance updates)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:schemaContractTest` (PASS – tagged schema contract suite)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test` (PASS – schema/runtime validation and reasonCode parity checks)

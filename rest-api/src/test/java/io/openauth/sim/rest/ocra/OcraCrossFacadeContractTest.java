@@ -1,18 +1,15 @@
 package io.openauth.sim.rest.ocra;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
-import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
 import io.openauth.sim.application.contract.ocra.OcraCanonicalScenarios;
 import io.openauth.sim.application.ocra.OcraCredentialResolvers;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService;
 import io.openauth.sim.application.ocra.OcraVerificationApplicationService;
+import io.openauth.sim.rest.support.CrossFacadeContractRunner;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -21,74 +18,63 @@ class OcraCrossFacadeContractTest {
 
     @Test
     void ocraCanonicalScenariosStayInParityAcrossFacades() throws Exception {
-        List<CanonicalScenario> descriptors =
-                OcraCanonicalScenarios.scenarios(ScenarioEnvironment.fixedAt(Instant.EPOCH));
+        CrossFacadeContractRunner.assertParity(
+                Instant.EPOCH,
+                OcraCanonicalScenarios::scenarios,
+                OcraCrossFacadeContractTest::executeNative,
+                OcraCrossFacadeContractTest::executeRest);
+    }
 
-        for (CanonicalScenario descriptor : descriptors) {
-            CanonicalFacadeResult expected = descriptor.expected();
+    private static CanonicalFacadeResult executeNative(ScenarioEnvironment env, CanonicalScenario scenario) {
+        OcraEvaluationApplicationService eval =
+                new OcraEvaluationApplicationService(Clock.systemUTC(), OcraCredentialResolvers.forStore(env.store()));
+        OcraVerificationApplicationService verify = new OcraVerificationApplicationService(
+                OcraCredentialResolvers.forVerificationStore(env.store()), env.store());
 
-            ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario =
-                    CanonicalScenarios.scenarioForDescriptor(nativeEnv, descriptor, OcraCanonicalScenarios::scenarios);
-            OcraEvaluationApplicationService nativeEval = new OcraEvaluationApplicationService(
-                    Clock.systemUTC(), OcraCredentialResolvers.forStore(nativeEnv.store()));
-            OcraVerificationApplicationService nativeVerify = new OcraVerificationApplicationService(
-                    OcraCredentialResolvers.forVerificationStore(nativeEnv.store()), nativeEnv.store());
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE, EVALUATE_STORED ->
+                toCanonical(eval.evaluate((OcraEvaluationApplicationService.EvaluationCommand) scenario.command()));
+            case REPLAY_INLINE, REPLAY_STORED, FAILURE_INLINE, FAILURE_STORED ->
+                toCanonical(verify.verify((OcraVerificationApplicationService.VerificationCommand) scenario.command()));
+        };
+    }
 
-            CanonicalFacadeResult nativeResult =
-                    switch (nativeScenario.kind()) {
-                        case EVALUATE_INLINE, EVALUATE_STORED ->
-                            toCanonical(nativeEval.evaluate(
-                                    (OcraEvaluationApplicationService.EvaluationCommand) nativeScenario.command()));
-                        case REPLAY_INLINE, REPLAY_STORED, FAILURE_INLINE, FAILURE_STORED ->
-                            toCanonical(nativeVerify.verify(
-                                    (OcraVerificationApplicationService.VerificationCommand) nativeScenario.command()));
-                    };
-            assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
+    private static CanonicalFacadeResult executeRest(ScenarioEnvironment env, CanonicalScenario scenario) {
+        OcraEvaluationService eval = new OcraEvaluationService(
+                new OcraEvaluationApplicationService(Clock.systemUTC(), OcraCredentialResolvers.forStore(env.store())));
+        OcraVerificationService verify = new OcraVerificationService(new OcraVerificationApplicationService(
+                OcraCredentialResolvers.forVerificationStore(env.store()), env.store()));
 
-            ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario =
-                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, OcraCanonicalScenarios::scenarios);
-            OcraEvaluationService restEval = new OcraEvaluationService(new OcraEvaluationApplicationService(
-                    Clock.systemUTC(), OcraCredentialResolvers.forStore(restEnv.store())));
-            OcraVerificationService restVerify = new OcraVerificationService(new OcraVerificationApplicationService(
-                    OcraCredentialResolvers.forVerificationStore(restEnv.store()), restEnv.store()));
-
-            CanonicalFacadeResult restResult =
-                    switch (restScenario.kind()) {
-                        case EVALUATE_INLINE -> {
-                            OcraEvaluationApplicationService.EvaluationCommand.Inline inline =
-                                    (OcraEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command();
-                            yield toCanonical(restEval.evaluate(OcraContractRequests.evaluateInline(inline)));
-                        }
-                        case EVALUATE_STORED -> {
-                            OcraEvaluationApplicationService.EvaluationCommand.Stored stored =
-                                    (OcraEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command();
-                            yield toCanonical(restEval.evaluate(OcraContractRequests.evaluateStored(stored)));
-                        }
-                        case REPLAY_STORED, FAILURE_STORED -> {
-                            OcraVerificationApplicationService.VerificationCommand.Stored stored =
-                                    (OcraVerificationApplicationService.VerificationCommand.Stored)
-                                            restScenario.command();
-                            yield toCanonical(
-                                    restVerify.verify(
-                                            OcraContractRequests.replayStored(stored),
-                                            new OcraVerificationAuditContext(null, null, null)),
-                                    stored.otp());
-                        }
-                        case REPLAY_INLINE, FAILURE_INLINE -> {
-                            OcraVerificationApplicationService.VerificationCommand.Inline inline =
-                                    (OcraVerificationApplicationService.VerificationCommand.Inline)
-                                            restScenario.command();
-                            yield toCanonical(
-                                    restVerify.verify(
-                                            OcraContractRequests.replayInline(inline),
-                                            new OcraVerificationAuditContext(null, null, null)),
-                                    inline.otp());
-                        }
-                    };
-            assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
-        }
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE -> {
+                OcraEvaluationApplicationService.EvaluationCommand.Inline inline =
+                        (OcraEvaluationApplicationService.EvaluationCommand.Inline) scenario.command();
+                yield toCanonical(eval.evaluate(OcraContractRequests.evaluateInline(inline)));
+            }
+            case EVALUATE_STORED -> {
+                OcraEvaluationApplicationService.EvaluationCommand.Stored stored =
+                        (OcraEvaluationApplicationService.EvaluationCommand.Stored) scenario.command();
+                yield toCanonical(eval.evaluate(OcraContractRequests.evaluateStored(stored)));
+            }
+            case REPLAY_STORED, FAILURE_STORED -> {
+                OcraVerificationApplicationService.VerificationCommand.Stored stored =
+                        (OcraVerificationApplicationService.VerificationCommand.Stored) scenario.command();
+                yield toCanonical(
+                        verify.verify(
+                                OcraContractRequests.replayStored(stored),
+                                new OcraVerificationAuditContext(null, null, null)),
+                        stored.otp());
+            }
+            case REPLAY_INLINE, FAILURE_INLINE -> {
+                OcraVerificationApplicationService.VerificationCommand.Inline inline =
+                        (OcraVerificationApplicationService.VerificationCommand.Inline) scenario.command();
+                yield toCanonical(
+                        verify.verify(
+                                OcraContractRequests.replayInline(inline),
+                                new OcraVerificationAuditContext(null, null, null)),
+                        inline.otp());
+            }
+        };
     }
 
     private static CanonicalFacadeResult toCanonical(OcraEvaluationApplicationService.EvaluationResult result) {

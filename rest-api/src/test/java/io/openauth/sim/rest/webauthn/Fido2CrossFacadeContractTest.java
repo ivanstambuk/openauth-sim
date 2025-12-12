@@ -4,18 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
-import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
-import io.openauth.sim.application.contract.ScenarioStores;
 import io.openauth.sim.application.contract.fido2.Fido2CanonicalScenarios;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
 import io.openauth.sim.cli.Fido2Cli;
+import io.openauth.sim.rest.support.CrossFacadeContractRunner;
 import io.openauth.sim.rest.support.PicocliHarness;
 import io.openauth.sim.testing.JsonEnvelope;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,62 +27,66 @@ final class Fido2CrossFacadeContractTest {
 
     @Test
     void fido2CanonicalScenariosStayInParityAcrossFacades() throws Exception {
-        List<CanonicalScenario> descriptors =
-                Fido2CanonicalScenarios.scenarios(ScenarioEnvironment.fixedAt(Instant.EPOCH));
+        CrossFacadeContractRunner.CliContext cliContext =
+                new CrossFacadeContractRunner.CliContext(tempDir, Instant.EPOCH, Fido2CanonicalScenarios::scenarios);
+        CrossFacadeContractRunner.assertParity(
+                Instant.EPOCH,
+                Fido2CanonicalScenarios::scenarios,
+                Fido2CrossFacadeContractTest::executeNative,
+                Fido2CrossFacadeContractTest::executeRest,
+                cliContext,
+                this::executeCli,
+                Fido2CrossFacadeContractTest::assertCliParity);
+    }
 
-        for (CanonicalScenario descriptor : descriptors) {
-            CanonicalFacadeResult expected = descriptor.expected();
+    private static CanonicalFacadeResult executeNative(ScenarioEnvironment env, CanonicalScenario scenario) {
+        WebAuthnEvaluationApplicationService evaluation =
+                WebAuthnEvaluationApplicationService.usingDefaults(env.store());
+        WebAuthnReplayApplicationService replay = new WebAuthnReplayApplicationService(evaluation);
+        return toCanonical(replay.replay((WebAuthnReplayApplicationService.ReplayCommand) scenario.command()));
+    }
 
-            ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario =
-                    CanonicalScenarios.scenarioForDescriptor(nativeEnv, descriptor, Fido2CanonicalScenarios::scenarios);
-            WebAuthnEvaluationApplicationService evaluation =
-                    WebAuthnEvaluationApplicationService.usingDefaults(nativeEnv.store());
-            WebAuthnReplayApplicationService replay = new WebAuthnReplayApplicationService(evaluation);
+    private static CanonicalFacadeResult executeRest(ScenarioEnvironment env, CanonicalScenario scenario) {
+        WebAuthnReplayApplicationService replayApp =
+                new WebAuthnReplayApplicationService(WebAuthnEvaluationApplicationService.usingDefaults(env.store()));
+        WebAuthnReplayService replayService = new WebAuthnReplayService(replayApp);
 
-            CanonicalFacadeResult nativeResult = toCanonical(
-                    replay.replay((WebAuthnReplayApplicationService.ReplayCommand) nativeScenario.command()));
-            assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
-
-            ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario =
-                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, Fido2CanonicalScenarios::scenarios);
-            WebAuthnReplayApplicationService restReplayApp = new WebAuthnReplayApplicationService(
-                    WebAuthnEvaluationApplicationService.usingDefaults(restEnv.store()));
-            WebAuthnReplayService restReplayService = new WebAuthnReplayService(restReplayApp);
-
-            CanonicalFacadeResult restResult =
-                    switch (restScenario.kind()) {
-                        case REPLAY_STORED, FAILURE_STORED -> {
-                            WebAuthnReplayApplicationService.ReplayCommand.Stored stored =
-                                    (WebAuthnReplayApplicationService.ReplayCommand.Stored) restScenario.command();
-                            WebAuthnReplayRequest request = WebAuthnContractRequests.replayStored(stored);
-                            try {
-                                yield toCanonical(restReplayService.replay(request));
-                            } catch (WebAuthnReplayValidationException ex) {
-                                yield new CanonicalFacadeResult(
-                                        false, ex.reasonCode(), null, null, null, null, null, ex.trace() != null, true);
-                            }
-                        }
-                        case REPLAY_INLINE, FAILURE_INLINE -> {
-                            WebAuthnReplayApplicationService.ReplayCommand.Inline inline =
-                                    (WebAuthnReplayApplicationService.ReplayCommand.Inline) restScenario.command();
-                            WebAuthnReplayRequest request = WebAuthnContractRequests.replayInline(inline);
-                            yield toCanonical(restReplayService.replay(request));
-                        }
-                        default ->
-                            throw new IllegalStateException("Unsupported FIDO2 scenario kind " + restScenario.kind());
-                    };
-            assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
-
-            if (restScenario.kind() == CanonicalScenario.Kind.REPLAY_STORED
-                    || restScenario.kind() == CanonicalScenario.Kind.FAILURE_STORED) {
-                Path dbPath = tempDir.resolve(descriptor.scenarioId() + ".db");
-                ScenarioStores.seedFileStore(dbPath, Instant.EPOCH, Fido2CanonicalScenarios::scenarios);
-                CanonicalFacadeResult cliResult = executeCliReplay(dbPath, restScenario);
-                assertEquals(expected, cliResult, descriptor.scenarioId() + " cli");
+        return switch (scenario.kind()) {
+            case REPLAY_STORED, FAILURE_STORED -> {
+                WebAuthnReplayApplicationService.ReplayCommand.Stored stored =
+                        (WebAuthnReplayApplicationService.ReplayCommand.Stored) scenario.command();
+                WebAuthnReplayRequest request = WebAuthnContractRequests.replayStored(stored);
+                try {
+                    yield toCanonical(replayService.replay(request));
+                } catch (WebAuthnReplayValidationException ex) {
+                    yield new CanonicalFacadeResult(
+                            false, ex.reasonCode(), null, null, null, null, null, ex.trace() != null, true);
+                }
             }
+            case REPLAY_INLINE, FAILURE_INLINE -> {
+                WebAuthnReplayApplicationService.ReplayCommand.Inline inline =
+                        (WebAuthnReplayApplicationService.ReplayCommand.Inline) scenario.command();
+                WebAuthnReplayRequest request = WebAuthnContractRequests.replayInline(inline);
+                yield toCanonical(replayService.replay(request));
+            }
+            default -> throw new IllegalStateException("Unsupported FIDO2 scenario kind " + scenario.kind());
+        };
+    }
+
+    private Optional<CanonicalFacadeResult> executeCli(
+            CrossFacadeContractRunner.CliContext ctx, CanonicalScenario descriptor, CanonicalScenario scenario)
+            throws Exception {
+        if (scenario.kind() != CanonicalScenario.Kind.REPLAY_STORED
+                && scenario.kind() != CanonicalScenario.Kind.FAILURE_STORED) {
+            return Optional.empty();
         }
+
+        Path dbPath = ctx.seededFileStore(descriptor.scenarioId());
+        return Optional.of(executeCliReplay(dbPath, scenario));
+    }
+
+    private static void assertCliParity(CanonicalFacadeResult expected, CanonicalFacadeResult actual, String message) {
+        assertEquals(expected, actual, message);
     }
 
     private static CanonicalFacadeResult toCanonical(WebAuthnReplayApplicationService.ReplayResult result) {

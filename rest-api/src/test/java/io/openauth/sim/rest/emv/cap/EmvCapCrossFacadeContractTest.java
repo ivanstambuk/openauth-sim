@@ -4,19 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
-import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
-import io.openauth.sim.application.contract.ScenarioStores;
 import io.openauth.sim.application.contract.emv.cap.EmvCapCanonicalScenarios;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService;
 import io.openauth.sim.cli.EmvCli;
+import io.openauth.sim.rest.support.CrossFacadeContractRunner;
 import io.openauth.sim.rest.support.ObjectProviders;
 import io.openauth.sim.rest.support.PicocliHarness;
 import io.openauth.sim.testing.JsonEnvelope;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,73 +29,71 @@ final class EmvCapCrossFacadeContractTest {
 
     @Test
     void emvCapCanonicalScenariosStayInParityAcrossFacades() throws Exception {
-        List<CanonicalScenario> descriptors =
-                EmvCapCanonicalScenarios.scenarios(ScenarioEnvironment.fixedAt(Instant.EPOCH));
+        CrossFacadeContractRunner.CliContext cliContext =
+                new CrossFacadeContractRunner.CliContext(tempDir, Instant.EPOCH, EmvCapCanonicalScenarios::scenarios);
+        CrossFacadeContractRunner.assertParity(
+                Instant.EPOCH,
+                EmvCapCanonicalScenarios::scenarios,
+                EmvCapCrossFacadeContractTest::executeNative,
+                EmvCapCrossFacadeContractTest::executeRest,
+                cliContext,
+                this::executeCli,
+                EmvCapCrossFacadeContractTest::assertCliParity);
+    }
 
-        for (CanonicalScenario descriptor : descriptors) {
-            CanonicalFacadeResult expected = descriptor.expected();
+    private static CanonicalFacadeResult executeNative(ScenarioEnvironment env, CanonicalScenario scenario) {
+        EmvCapEvaluationApplicationService eval = new EmvCapEvaluationApplicationService();
+        EmvCapReplayApplicationService replay = new EmvCapReplayApplicationService(env.store(), eval);
 
-            ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario = CanonicalScenarios.scenarioForDescriptor(
-                    nativeEnv, descriptor, EmvCapCanonicalScenarios::scenarios);
-            EmvCapEvaluationApplicationService nativeEval = new EmvCapEvaluationApplicationService();
-            EmvCapReplayApplicationService nativeReplay =
-                    new EmvCapReplayApplicationService(nativeEnv.store(), nativeEval);
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE ->
+                toCanonical(eval.evaluate((EmvCapEvaluationApplicationService.EvaluationRequest) scenario.command()));
+            case REPLAY_STORED, FAILURE_STORED -> {
+                EmvCapReplayApplicationService.ReplayCommand.Stored stored =
+                        (EmvCapReplayApplicationService.ReplayCommand.Stored) scenario.command();
+                yield toCanonical(replay.replay(stored), stored.otp());
+            }
+            default -> throw new IllegalStateException("Unsupported EMV/CAP scenario kind " + scenario.kind());
+        };
+    }
 
-            CanonicalFacadeResult nativeResult =
-                    switch (nativeScenario.kind()) {
-                        case EVALUATE_INLINE ->
-                            toCanonical(nativeEval.evaluate(
-                                    (EmvCapEvaluationApplicationService.EvaluationRequest) nativeScenario.command()));
-                        case REPLAY_STORED, FAILURE_STORED -> {
-                            EmvCapReplayApplicationService.ReplayCommand.Stored stored =
-                                    (EmvCapReplayApplicationService.ReplayCommand.Stored) nativeScenario.command();
-                            yield toCanonical(nativeReplay.replay(stored), stored.otp());
-                        }
-                        default ->
-                            throw new IllegalStateException(
-                                    "Unsupported EMV/CAP scenario kind " + nativeScenario.kind());
-                    };
-            assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
+    private static CanonicalFacadeResult executeRest(ScenarioEnvironment env, CanonicalScenario scenario) {
+        EmvCapEvaluationApplicationService evalApp = new EmvCapEvaluationApplicationService();
+        EmvCapEvaluationService eval = new EmvCapEvaluationService(evalApp, ObjectProviders.fixed(env.store()));
+        EmvCapReplayService replay = new EmvCapReplayService(new EmvCapReplayApplicationService(env.store(), evalApp));
 
-            ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario =
-                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, EmvCapCanonicalScenarios::scenarios);
-            EmvCapEvaluationService restEval = new EmvCapEvaluationService(
-                    new EmvCapEvaluationApplicationService(), ObjectProviders.fixed(restEnv.store()));
-            EmvCapReplayService restReplay = new EmvCapReplayService(
-                    new EmvCapReplayApplicationService(restEnv.store(), new EmvCapEvaluationApplicationService()));
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE -> {
+                EmvCapEvaluationApplicationService.EvaluationRequest inline =
+                        (EmvCapEvaluationApplicationService.EvaluationRequest) scenario.command();
+                EmvCapEvaluationRequest request = EmvCapContractRequests.evaluateInline(inline);
+                yield toCanonical(eval.evaluate(request));
+            }
+            case REPLAY_STORED, FAILURE_STORED -> {
+                EmvCapReplayApplicationService.ReplayCommand.Stored stored =
+                        (EmvCapReplayApplicationService.ReplayCommand.Stored) scenario.command();
+                EmvCapReplayRequest request = EmvCapContractRequests.replayStored(stored);
+                yield toCanonical(replay.replay(request), stored.otp());
+            }
+            default -> throw new IllegalStateException("Unsupported EMV/CAP scenario kind " + scenario.kind());
+        };
+    }
 
-            CanonicalFacadeResult restResult =
-                    switch (restScenario.kind()) {
-                        case EVALUATE_INLINE -> {
-                            EmvCapEvaluationApplicationService.EvaluationRequest inline =
-                                    (EmvCapEvaluationApplicationService.EvaluationRequest) restScenario.command();
-                            EmvCapEvaluationRequest request = EmvCapContractRequests.evaluateInline(inline);
-                            yield toCanonical(restEval.evaluate(request));
-                        }
-                        case REPLAY_STORED, FAILURE_STORED -> {
-                            EmvCapReplayApplicationService.ReplayCommand.Stored stored =
-                                    (EmvCapReplayApplicationService.ReplayCommand.Stored) restScenario.command();
-                            EmvCapReplayRequest request = EmvCapContractRequests.replayStored(stored);
-                            yield toCanonical(restReplay.replay(request), stored.otp());
-                        }
-                        default ->
-                            throw new IllegalStateException("Unsupported EMV/CAP scenario kind " + restScenario.kind());
-                    };
-            assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
+    private Optional<CanonicalFacadeResult> executeCli(
+            CrossFacadeContractRunner.CliContext ctx, CanonicalScenario descriptor, CanonicalScenario scenario)
+            throws Exception {
+        Path dbPath = ctx.seededFileStore(descriptor.scenarioId());
+        CanonicalFacadeResult cliResult =
+                switch (scenario.kind()) {
+                    case EVALUATE_INLINE -> executeCliEvaluate(dbPath, scenario);
+                    case REPLAY_STORED, FAILURE_STORED -> executeCliReplay(dbPath, scenario);
+                    default -> throw new IllegalStateException("Unsupported EMV/CAP scenario kind " + scenario.kind());
+                };
+        return Optional.of(cliResult);
+    }
 
-            Path dbPath = tempDir.resolve(descriptor.scenarioId() + ".db");
-            ScenarioStores.seedFileStore(dbPath, Instant.EPOCH, EmvCapCanonicalScenarios::scenarios);
-            CanonicalFacadeResult cliResult =
-                    switch (restScenario.kind()) {
-                        case EVALUATE_INLINE -> executeCliEvaluate(dbPath, restScenario);
-                        case REPLAY_STORED, FAILURE_STORED -> executeCliReplay(dbPath, restScenario);
-                        default ->
-                            throw new IllegalStateException("Unsupported EMV/CAP scenario kind " + restScenario.kind());
-                    };
-            assertEquals(expected, cliResult, descriptor.scenarioId() + " cli");
-        }
+    private static void assertCliParity(CanonicalFacadeResult expected, CanonicalFacadeResult actual, String message) {
+        assertEquals(expected, actual, message);
     }
 
     private static CanonicalFacadeResult toCanonical(EmvCapEvaluationApplicationService.EvaluationResult result) {

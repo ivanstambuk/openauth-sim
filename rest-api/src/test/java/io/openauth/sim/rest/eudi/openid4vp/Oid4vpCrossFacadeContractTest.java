@@ -20,51 +20,56 @@ import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureWalletPresetRe
 import io.openauth.sim.application.eudi.openid4vp.fixtures.Oid4vpTelemetryPublisher;
 import io.openauth.sim.cli.eudi.openid4vp.EudiwCli;
 import io.openauth.sim.core.eudi.openid4vp.TrustedAuthorityFixtures;
+import io.openauth.sim.rest.support.CrossFacadeContractRunner;
 import io.openauth.sim.rest.support.PicocliHarness;
 import io.openauth.sim.testing.JsonEnvelope;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 @Tag("crossFacadeContract")
 final class Oid4vpCrossFacadeContractTest {
 
+    @TempDir
+    Path tempDir;
+
     @Test
-    void oid4vpCanonicalScenariosStayInParityAcrossFacades() {
-        List<CanonicalScenario> descriptors =
-                OpenId4VpCanonicalScenarios.scenarios(ScenarioEnvironment.fixedAt(Instant.EPOCH));
+    void oid4vpCanonicalScenariosStayInParityAcrossFacades() throws Exception {
+        CrossFacadeContractRunner.CliContext cliContext = new CrossFacadeContractRunner.CliContext(
+                tempDir, Instant.EPOCH, OpenId4VpCanonicalScenarios::scenarios);
+        CrossFacadeContractRunner.assertParity(
+                Instant.EPOCH,
+                OpenId4VpCanonicalScenarios::scenarios,
+                Oid4vpCrossFacadeContractTest::executeNative,
+                Oid4vpCrossFacadeContractTest::executeRest,
+                cliContext,
+                Oid4vpCrossFacadeContractTest::executeCli,
+                Oid4vpCrossFacadeContractTest::assertCliParity);
+    }
 
-        for (CanonicalScenario descriptor : descriptors) {
-            CanonicalFacadeResult expected = descriptor.expected();
-
-            CanonicalFacadeResult nativeResult = executeNative(descriptor);
-            assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
-
-            CanonicalFacadeResult restResult = executeRest(descriptor);
-            assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
-
-            CanonicalFacadeResult cliResult = executeCli(descriptor);
-            assertEquals(expected, cliResult, descriptor.scenarioId() + " cli");
+    private static CanonicalFacadeResult executeNative(ScenarioEnvironment env, CanonicalScenario scenario) {
+        try (Harness harness = Harness.create()) {
+            return harness.execute(scenario);
         }
     }
 
-    private static CanonicalFacadeResult executeNative(CanonicalScenario scenario) {
-        Harness harness = Harness.create();
-        try {
+    private static CanonicalFacadeResult executeRest(ScenarioEnvironment env, CanonicalScenario scenario) {
+        try (Harness harness = Harness.create()) {
             return harness.execute(scenario);
-        } finally {
-            harness.close();
         }
     }
 
-    private static CanonicalFacadeResult executeRest(CanonicalScenario scenario) {
-        Harness harness = Harness.create();
-        try {
-            return harness.execute(scenario);
-        } finally {
-            harness.close();
-        }
+    private static Optional<CanonicalFacadeResult> executeCli(
+            CrossFacadeContractRunner.CliContext ctx, CanonicalScenario descriptor, CanonicalScenario scenario) {
+        return Optional.of(executeCli(scenario));
+    }
+
+    private static void assertCliParity(CanonicalFacadeResult expected, CanonicalFacadeResult actual, String message) {
+        assertEquals(expected, actual, message);
     }
 
     private static CanonicalFacadeResult executeCli(CanonicalScenario scenario) {

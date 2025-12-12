@@ -4,18 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.openauth.sim.application.contract.CanonicalFacadeResult;
 import io.openauth.sim.application.contract.CanonicalScenario;
-import io.openauth.sim.application.contract.CanonicalScenarios;
 import io.openauth.sim.application.contract.ScenarioEnvironment;
-import io.openauth.sim.application.contract.ScenarioStores;
 import io.openauth.sim.application.contract.hotp.HotpCanonicalScenarios;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
 import io.openauth.sim.application.hotp.HotpReplayApplicationService;
 import io.openauth.sim.cli.HotpCli;
+import io.openauth.sim.rest.support.CrossFacadeContractRunner;
 import io.openauth.sim.rest.support.PicocliHarness;
 import io.openauth.sim.testing.JsonEnvelope;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,81 +27,78 @@ class HotpCrossFacadeContractTest {
 
     @Test
     void hotpCanonicalScenariosStayInParityAcrossFacades() throws Exception {
-        List<CanonicalScenario> descriptors =
-                HotpCanonicalScenarios.scenarios(ScenarioEnvironment.fixedAt(Instant.EPOCH));
+        CrossFacadeContractRunner.CliContext cliContext =
+                new CrossFacadeContractRunner.CliContext(tempDir, Instant.EPOCH, HotpCanonicalScenarios::scenarios);
+        CrossFacadeContractRunner.assertParity(
+                Instant.EPOCH,
+                HotpCanonicalScenarios::scenarios,
+                HotpCrossFacadeContractTest::executeNative,
+                HotpCrossFacadeContractTest::executeRest,
+                cliContext,
+                this::executeCli,
+                HotpCrossFacadeContractTest::assertCliParity);
+    }
 
-        for (CanonicalScenario descriptor : descriptors) {
-            CanonicalFacadeResult expected = descriptor.expected();
+    private static CanonicalFacadeResult executeNative(ScenarioEnvironment env, CanonicalScenario scenario) {
+        HotpEvaluationApplicationService eval = new HotpEvaluationApplicationService(env.store());
+        HotpReplayApplicationService replay = new HotpReplayApplicationService(env.store());
 
-            ScenarioEnvironment nativeEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario nativeScenario =
-                    CanonicalScenarios.scenarioForDescriptor(nativeEnv, descriptor, HotpCanonicalScenarios::scenarios);
-            HotpEvaluationApplicationService nativeEval = new HotpEvaluationApplicationService(nativeEnv.store());
-            HotpReplayApplicationService nativeReplay = new HotpReplayApplicationService(nativeEnv.store());
-
-            CanonicalFacadeResult nativeResult =
-                    switch (nativeScenario.kind()) {
-                        case EVALUATE_INLINE, EVALUATE_STORED ->
-                            toCanonical(nativeEval.evaluate(
-                                    (HotpEvaluationApplicationService.EvaluationCommand) nativeScenario.command()));
-                        case REPLAY_INLINE, REPLAY_STORED, FAILURE_INLINE, FAILURE_STORED -> {
-                            HotpReplayApplicationService.ReplayCommand replayCommand =
-                                    (HotpReplayApplicationService.ReplayCommand) nativeScenario.command();
-                            yield toCanonical(nativeReplay.replay(replayCommand), replayCommand.otp());
-                        }
-                    };
-            assertEquals(expected, nativeResult, descriptor.scenarioId() + " native");
-
-            ScenarioEnvironment restEnv = ScenarioEnvironment.fixedAt(Instant.EPOCH);
-            CanonicalScenario restScenario =
-                    CanonicalScenarios.scenarioForDescriptor(restEnv, descriptor, HotpCanonicalScenarios::scenarios);
-            HotpEvaluationService restEval =
-                    new HotpEvaluationService(new HotpEvaluationApplicationService(restEnv.store()));
-            HotpReplayService restReplay = new HotpReplayService(new HotpReplayApplicationService(restEnv.store()));
-
-            CanonicalFacadeResult restResult =
-                    switch (restScenario.kind()) {
-                        case EVALUATE_INLINE -> {
-                            HotpEvaluationApplicationService.EvaluationCommand.Inline inline =
-                                    (HotpEvaluationApplicationService.EvaluationCommand.Inline) restScenario.command();
-                            yield toCanonical(restEval.evaluateInline(HotpContractRequests.evaluateInline(inline)));
-                        }
-                        case EVALUATE_STORED -> {
-                            HotpEvaluationApplicationService.EvaluationCommand.Stored stored =
-                                    (HotpEvaluationApplicationService.EvaluationCommand.Stored) restScenario.command();
-                            yield toCanonical(restEval.evaluateStored(HotpContractRequests.evaluateStored(stored)));
-                        }
-                        case REPLAY_STORED, FAILURE_STORED -> {
-                            HotpReplayApplicationService.ReplayCommand.Stored stored =
-                                    (HotpReplayApplicationService.ReplayCommand.Stored) restScenario.command();
-                            yield toCanonical(
-                                    restReplay.replay(HotpContractRequests.replayStored(stored)), stored.otp());
-                        }
-                        case REPLAY_INLINE, FAILURE_INLINE -> {
-                            HotpReplayApplicationService.ReplayCommand.Inline inline =
-                                    (HotpReplayApplicationService.ReplayCommand.Inline) restScenario.command();
-                            yield toCanonical(
-                                    restReplay.replay(HotpContractRequests.replayInline(inline)), inline.otp());
-                        }
-                    };
-            assertEquals(expected, restResult, descriptor.scenarioId() + " rest");
-
-            if (descriptor.kind() == CanonicalScenario.Kind.EVALUATE_INLINE
-                    || descriptor.kind() == CanonicalScenario.Kind.EVALUATE_STORED) {
-                Path cliDb = tempDir.resolve(descriptor.scenarioId() + ".db");
-                ScenarioStores.seedFileStore(cliDb, Instant.EPOCH, HotpCanonicalScenarios::scenarios);
-                CanonicalFacadeResult cliResult = executeCliEvaluate(cliDb, restScenario);
-                assertEquals(
-                        expected.reasonCode(), cliResult.reasonCode(), descriptor.scenarioId() + " cli reasonCode");
-                assertEquals(expected.otp(), cliResult.otp(), descriptor.scenarioId() + " cli otp");
-                assertEquals(
-                        expected.previousCounter(),
-                        cliResult.previousCounter(),
-                        descriptor.scenarioId() + " cli prevCounter");
-                assertEquals(
-                        expected.nextCounter(), cliResult.nextCounter(), descriptor.scenarioId() + " cli nextCounter");
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE, EVALUATE_STORED ->
+                toCanonical(eval.evaluate((HotpEvaluationApplicationService.EvaluationCommand) scenario.command()));
+            case REPLAY_INLINE, REPLAY_STORED, FAILURE_INLINE, FAILURE_STORED -> {
+                HotpReplayApplicationService.ReplayCommand replayCommand =
+                        (HotpReplayApplicationService.ReplayCommand) scenario.command();
+                yield toCanonical(replay.replay(replayCommand), replayCommand.otp());
             }
+        };
+    }
+
+    private static CanonicalFacadeResult executeRest(ScenarioEnvironment env, CanonicalScenario scenario) {
+        HotpEvaluationService eval = new HotpEvaluationService(new HotpEvaluationApplicationService(env.store()));
+        HotpReplayService replay = new HotpReplayService(new HotpReplayApplicationService(env.store()));
+
+        return switch (scenario.kind()) {
+            case EVALUATE_INLINE -> {
+                HotpEvaluationApplicationService.EvaluationCommand.Inline inline =
+                        (HotpEvaluationApplicationService.EvaluationCommand.Inline) scenario.command();
+                yield toCanonical(eval.evaluateInline(HotpContractRequests.evaluateInline(inline)));
+            }
+            case EVALUATE_STORED -> {
+                HotpEvaluationApplicationService.EvaluationCommand.Stored stored =
+                        (HotpEvaluationApplicationService.EvaluationCommand.Stored) scenario.command();
+                yield toCanonical(eval.evaluateStored(HotpContractRequests.evaluateStored(stored)));
+            }
+            case REPLAY_STORED, FAILURE_STORED -> {
+                HotpReplayApplicationService.ReplayCommand.Stored stored =
+                        (HotpReplayApplicationService.ReplayCommand.Stored) scenario.command();
+                yield toCanonical(replay.replay(HotpContractRequests.replayStored(stored)), stored.otp());
+            }
+            case REPLAY_INLINE, FAILURE_INLINE -> {
+                HotpReplayApplicationService.ReplayCommand.Inline inline =
+                        (HotpReplayApplicationService.ReplayCommand.Inline) scenario.command();
+                yield toCanonical(replay.replay(HotpContractRequests.replayInline(inline)), inline.otp());
+            }
+        };
+    }
+
+    private Optional<CanonicalFacadeResult> executeCli(
+            CrossFacadeContractRunner.CliContext ctx, CanonicalScenario descriptor, CanonicalScenario scenario)
+            throws Exception {
+        if (scenario.kind() != CanonicalScenario.Kind.EVALUATE_INLINE
+                && scenario.kind() != CanonicalScenario.Kind.EVALUATE_STORED) {
+            return Optional.empty();
         }
+
+        Path dbPath = ctx.seededFileStore(descriptor.scenarioId());
+        return Optional.of(executeCliEvaluate(dbPath, scenario));
+    }
+
+    private static void assertCliParity(CanonicalFacadeResult expected, CanonicalFacadeResult actual, String message) {
+        assertEquals(expected.reasonCode(), actual.reasonCode(), message + " reasonCode");
+        assertEquals(expected.otp(), actual.otp(), message + " otp");
+        assertEquals(expected.previousCounter(), actual.previousCounter(), message + " prevCounter");
+        assertEquals(expected.nextCounter(), actual.nextCounter(), message + " nextCounter");
     }
 
     private static CanonicalFacadeResult toCanonical(HotpEvaluationApplicationService.EvaluationResult result) {
