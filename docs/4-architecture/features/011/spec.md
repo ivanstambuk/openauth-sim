@@ -17,6 +17,10 @@ Java Format 2.78.0 adoption are documented alongside the runbooks they protect. 
 Clarification Gate and Implementation Drift Gate for governance artefacts and is backed by ADR-0002 (formatter/managed
 hooks) and ADR-0003 (governance workflow and drift gates). Gitlint runs inside [githooks/commit-msg](githooks/commit-msg) with the repository
 [.gitlint](.gitlint) profile (Conventional Commits, 100-character titles, 120-character body lines) and CI mirrors the same rules.
+The Clarification Gate includes a “low-ambiguity fast path” exception for purely mechanical/logistical questions (for example
+timeouts, which Gradle task to run, or file paths) so agents can move quickly without polluting the open-questions log.
+Session kickoff status summaries (roadmap/feature progress/open questions) are required only on session reset or when the user
+explicitly asks for status/context; otherwise proceed directly with the active task.
 [githooks/pre-commit](githooks/pre-commit) warms the Gradle configuration cache via `./gradlew --no-daemon help --configuration-cache`,
 retries Spotless once on stale-cache failures by deleting `.gradle/configuration-cache/**`, logs the retry outcome, and then
 executes Spotless, targeted Gradle tasks, and gitleaks. Palantir Java Format 2.78.0 (120-character wrap, Java 17) remains

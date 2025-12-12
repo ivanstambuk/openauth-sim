@@ -21,11 +21,35 @@ _Last updated:_ 2025-12-12
   - `./githooks/commit-msg <temp-message-file>`  
   - `./gradlew --no-daemon spotlessApply check`  
 
+- [x] T-011-03 – Add “low-ambiguity fast path” exception for mechanical questions (FR-011-01).  
+  _Intent:_ Keep the open-questions workflow strict for high-/medium-impact ambiguity while allowing a fast path for purely mechanical/logistical questions (for example timeouts, which Gradle task to run, file paths), so agents can move quickly without polluting `open-questions.md`.  
+  _Verification commands:_  
+  - `git config core.hooksPath`  
+  - `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`  
+  - `./githooks/commit-msg <temp-message-file>`  
+  - `./gradlew --no-daemon spotlessApply check`  
+
+- [x] T-011-04 – Loosen session-start roadmap summary rule (FR-011-01).  
+  _Intent:_ Require roadmap/feature/open-question summaries only on session reset or when the user explicitly asks for status/context, so routine “keep going” interactions skip redundant recaps.  
+  _Verification commands:_  
+  - `git config core.hooksPath`  
+  - `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index git read-tree --empty; GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`  
+  - `./githooks/commit-msg <temp-message-file>`  
+  - `./gradlew --no-daemon spotlessApply check`  
+
 ## Verification Log
 - 2025-12-12 – `git config core.hooksPath` (hook guard check)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with semicolon fixture (expected rejection)
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, PASS)
+- 2025-12-12 – `git config core.hooksPath` (hook guard check; low-ambiguity fast path update)
+- 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected; low-ambiguity fast path update)
+- 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with valid Conventional Commit message (PASS; low-ambiguity fast path update)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS; low-ambiguity fast path update)
+- 2025-12-12 – `git config core.hooksPath` (hook guard check; session-kickoff summary rule update)
+- 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected; session-kickoff summary rule update)
+- 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with valid Conventional Commit message (PASS; session-kickoff summary rule update)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS; session-kickoff summary rule update)
 - 2025-11-13 – `git config core.hooksPath` (closure guard check)
 - 2025-11-13 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
 - 2025-11-13 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, 10 s, 96 tasks: 2 executed, 94 up-to-date)
