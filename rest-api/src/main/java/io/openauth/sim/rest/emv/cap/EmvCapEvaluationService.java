@@ -1,5 +1,7 @@
 package io.openauth.sim.rest.emv.cap;
 
+import io.openauth.sim.application.emv.cap.EmvCapCredentialDirectoryApplicationService;
+import io.openauth.sim.application.emv.cap.EmvCapCredentialDirectoryApplicationService.Hydration;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.CustomerInputs;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.EvaluationRequest;
@@ -8,12 +10,8 @@ import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.Te
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TelemetryStatus;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.TransactionData;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
-import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
-import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
-import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.rest.EvaluationWindowRequest;
 import io.openauth.sim.rest.OtpPreviewResponse;
 import java.util.LinkedHashMap;
@@ -35,8 +33,6 @@ final class EmvCapEvaluationService {
     private static final Logger TELEMETRY_LOGGER = Logger.getLogger("io.openauth.sim.rest.emv.cap.telemetry");
     private static final Pattern HEX_PATTERN = Pattern.compile("^[0-9A-F]+$");
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("^[0-9A-FX]+$");
-    private static final EmvCapCredentialPersistenceAdapter CREDENTIAL_ADAPTER =
-            new EmvCapCredentialPersistenceAdapter();
 
     private final EmvCapEvaluationApplicationService applicationService;
     private final ObjectProvider<CredentialStore> credentialStoreProvider;
@@ -64,37 +60,37 @@ final class EmvCapEvaluationService {
 
         boolean includeTrace = request.includeTrace() != null ? Boolean.TRUE.equals(request.includeTrace()) : true;
 
-        EmvCapCredentialDescriptor descriptor =
-                credentialId.map(this::loadDescriptor).orElse(null);
+        Hydration hydration = credentialId.map(this::loadHydration).orElse(null);
 
-        EmvCapMode mode = resolveMode(request.mode(), descriptor, credentialId);
+        EmvCapMode mode = resolveMode(request.mode(), hydration, credentialId);
 
-        String masterKey = resolveHex(
-                request.masterKey(), descriptor != null ? descriptor.masterKey().asHex() : null, "masterKey");
-        String atc = resolveHex(request.atc(), descriptor != null ? descriptor.defaultAtcHex() : null, "atc");
+        String masterKey =
+                resolveHex(request.masterKey(), hydration != null ? hydration.masterKey() : null, "masterKey");
+        String atc = resolveHex(request.atc(), hydration != null ? hydration.defaultAtc() : null, "atc");
         int branchFactor = resolvePositive(
-                request.branchFactor(), descriptor != null ? descriptor.branchFactor() : null, "branchFactor");
-        int height = resolvePositive(request.height(), descriptor != null ? descriptor.height() : null, "height");
+                request.branchFactor(),
+                hydration != null ? Integer.valueOf(hydration.branchFactor()) : null,
+                "branchFactor");
+        int height = resolvePositive(
+                request.height(), hydration != null ? Integer.valueOf(hydration.height()) : null, "height");
         EvaluationWindowRequest window = request.previewWindow();
         int previewBackward = window != null ? window.backwardOrDefault(0) : 0;
         int previewForward = window != null ? window.forwardOrDefault(0) : 0;
-        String iv = resolveHex(request.iv(), descriptor != null ? descriptor.ivHex() : null, "iv");
-        String cdol1 = resolveHex(request.cdol1(), descriptor != null ? descriptor.cdol1Hex() : null, "cdol1");
+        String iv = resolveHex(request.iv(), hydration != null ? hydration.iv() : null, "iv");
+        String cdol1 = resolveHex(request.cdol1(), hydration != null ? hydration.cdol1() : null, "cdol1");
         String issuerProprietaryBitmap = resolveHex(
                 request.issuerProprietaryBitmap(),
-                descriptor != null ? descriptor.issuerProprietaryBitmapHex() : null,
+                hydration != null ? hydration.issuerProprietaryBitmap() : null,
                 "issuerProprietaryBitmap");
         String iccTemplate = resolveTemplate(
-                request.iccDataTemplate(),
-                descriptor != null ? descriptor.iccDataTemplateHex() : null,
-                "iccDataTemplate");
+                request.iccDataTemplate(), hydration != null ? hydration.iccDataTemplate() : null, "iccDataTemplate");
         String issuerApplicationData = resolveHex(
                 request.issuerApplicationData(),
-                descriptor != null ? descriptor.issuerApplicationDataHex() : null,
+                hydration != null ? hydration.issuerApplicationData() : null,
                 "issuerApplicationData");
 
-        CustomerInputs customerInputs = resolveCustomerInputs(request.customerInputs(), descriptor);
-        TransactionData transactionData = resolveTransactionData(request.transactionData(), descriptor);
+        CustomerInputs customerInputs = resolveCustomerInputs(request.customerInputs(), hydration);
+        TransactionData transactionData = resolveTransactionData(request.transactionData(), hydration);
 
         EvaluationRequest evaluationRequest;
         try {
@@ -227,25 +223,24 @@ final class EmvCapEvaluationService {
         throw validation("missing_field", field + " is required", Map.of("field", field));
     }
 
-    private CustomerInputs resolveCustomerInputs(
-            EmvCapEvaluationRequest.CustomerInputs payload, EmvCapCredentialDescriptor descriptor) {
+    private CustomerInputs resolveCustomerInputs(EmvCapEvaluationRequest.CustomerInputs payload, Hydration hydration) {
         String challenge = payload != null && payload.challenge() != null
                 ? safeDecimal(payload.challenge())
-                : descriptor != null ? descriptor.defaultChallenge() : "";
+                : hydration != null ? hydration.defaults().challenge() : "";
         String reference = payload != null && payload.reference() != null
                 ? safeDecimal(payload.reference())
-                : descriptor != null ? descriptor.defaultReference() : "";
+                : hydration != null ? hydration.defaults().reference() : "";
         String amount = payload != null && payload.amount() != null
                 ? safeDecimal(payload.amount())
-                : descriptor != null ? descriptor.defaultAmount() : "";
+                : hydration != null ? hydration.defaults().amount() : "";
         return new CustomerInputs(challenge, reference, amount);
     }
 
     private TransactionData resolveTransactionData(
-            EmvCapEvaluationRequest.TransactionData payload, EmvCapCredentialDescriptor descriptor) {
-        Optional<String> terminal = descriptor != null ? descriptor.terminalDataHex() : Optional.empty();
+            EmvCapEvaluationRequest.TransactionData payload, Hydration hydration) {
+        Optional<String> terminal = hydration != null ? hydration.terminalData() : Optional.empty();
         Optional<String> icc =
-                descriptor != null ? descriptor.resolvedIccDataHex().or(descriptor::iccDataHex) : Optional.empty();
+                hydration != null ? hydration.resolvedIccData().or(hydration::iccData) : Optional.empty();
 
         if (payload != null) {
             if (payload.terminal() != null) {
@@ -269,25 +264,22 @@ final class EmvCapEvaluationService {
         return new TelemetryFrame(frame.event(), frame.status(), frame.sanitized(), fields);
     }
 
-    private EmvCapMode resolveMode(String value, EmvCapCredentialDescriptor descriptor, Optional<String> credentialId) {
+    private EmvCapMode resolveMode(String value, Hydration hydration, Optional<String> credentialId) {
         if (hasText(value)) {
             String normalized = value.trim().toUpperCase(Locale.ROOT);
             try {
                 EmvCapMode parsed = EmvCapMode.fromLabel(normalized);
-                if (descriptor != null && parsed != descriptor.mode()) {
+                if (hydration != null && parsed != storedMode(hydration)) {
+                    EmvCapMode stored = storedMode(hydration);
                     throw validation(
                             "mode_mismatch",
                             "Stored credential "
                                     + credentialId.orElse("unknown")
                                     + " is registered as "
-                                    + descriptor.mode()
+                                    + stored
                                     + " but request specified "
                                     + parsed,
-                            Map.of(
-                                    "field",
-                                    "mode",
-                                    "expected",
-                                    descriptor.mode().name()));
+                            Map.of("field", "mode", "expected", stored.name()));
                 }
                 return parsed;
             } catch (IllegalArgumentException ex) {
@@ -297,13 +289,13 @@ final class EmvCapEvaluationService {
                         Map.of("field", "mode", "allowedValues", "IDENTIFY, RESPOND, SIGN"));
             }
         }
-        if (descriptor != null) {
-            return descriptor.mode();
+        if (hydration != null) {
+            return storedMode(hydration);
         }
         throw validation("missing_field", "mode is required", Map.of("field", "mode"));
     }
 
-    private EmvCapCredentialDescriptor loadDescriptor(String credentialId) {
+    private Hydration loadHydration(String credentialId) {
         CredentialStore store = credentialStoreProvider.getIfAvailable();
         if (store == null) {
             throw validation(
@@ -311,12 +303,25 @@ final class EmvCapEvaluationService {
                     "Stored EMV/CAP credential support is not configured",
                     Map.of("field", "credentialId"));
         }
-        Credential credential = store.findByName(credentialId)
+        EmvCapCredentialDirectoryApplicationService directoryService =
+                new EmvCapCredentialDirectoryApplicationService(store);
+        return directoryService
+                .detail(credentialId)
                 .orElseThrow(() -> validation(
                         "credential_not_found",
                         "Unknown EMV/CAP credential " + credentialId,
                         Map.of("field", "credentialId", "credentialId", credentialId)));
-        return CREDENTIAL_ADAPTER.deserialize(VersionedCredentialRecordMapper.toRecord(credential));
+    }
+
+    private static EmvCapMode storedMode(Hydration hydration) {
+        if (hydration == null || !hasText(hydration.mode())) {
+            return EmvCapMode.IDENTIFY;
+        }
+        try {
+            return EmvCapMode.fromLabel(hydration.mode().trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return EmvCapMode.IDENTIFY;
+        }
     }
 
     private static boolean hasText(String value) {

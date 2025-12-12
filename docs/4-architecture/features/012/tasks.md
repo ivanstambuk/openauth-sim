@@ -1,13 +1,18 @@
 # Feature 012 Tasks – Core Cryptography & Persistence
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-13
+_Status:_ In progress  
+_Last updated:_ 2025-12-11
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
 
 ## Checklist
-- _No active tasks._ Capture the next persistence increment (≤90 min plan effort) with explicit FR/NFR/Scenario references before editing docs or helpers.
+- [ ] T-012-04 – Guard persistence seams: facades obtain stores via CredentialStoreFactory only (NFR-facade-seam).  
+  _Intent:_ Add ArchUnit/fixture checks ensuring facades do not construct `MapDbCredentialStore` or touch `io.openauth.sim.core.store` directly; align `infra-persistence` guidance and refactor any remaining call sites to use `CredentialStoreFactory`.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :rest-api:test :cli:test`  
+  - `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log
 - 2025-11-13 – `./gradlew --no-daemon :cli:test --tests "*MaintenanceCli*"` (maintenance CLI verification; BUILD SUCCESSFUL, config cache stored)

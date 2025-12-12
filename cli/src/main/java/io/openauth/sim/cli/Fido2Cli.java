@@ -23,14 +23,11 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.cli.support.JsonPrinter;
 import io.openauth.sim.cli.support.TelemetryJson;
 import io.openauth.sim.cli.support.VerboseTraceMapper;
-import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
 import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFixtures.WebAuthnAttestationVector;
 import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
-import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
 import io.openauth.sim.core.fido2.WebAuthnCredentialDescriptor;
-import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.fido2.WebAuthnFixtures;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures;
 import io.openauth.sim.core.fido2.WebAuthnJsonVectorFixtures.WebAuthnJsonVector;
@@ -96,9 +93,6 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     private List<WebAuthnAttestationVector> attestationVectorList;
     private Map<String, Sample> generatorSampleIndex;
 
-    private final WebAuthnAssertionVerifier verifier = new WebAuthnAssertionVerifier();
-    private final WebAuthnAttestationVerifier attestationVerifier = new WebAuthnAttestationVerifier();
-    private final WebAuthnCredentialPersistenceAdapter persistenceAdapter = new WebAuthnCredentialPersistenceAdapter();
     private final WebAuthnTrustAnchorResolver trustAnchorResolver = new WebAuthnTrustAnchorResolver();
 
     @CommandLine.Spec
@@ -433,11 +427,11 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     }
 
     private WebAuthnEvaluationApplicationService createEvaluationService(CredentialStore store) {
-        return new WebAuthnEvaluationApplicationService(store, verifier, persistenceAdapter);
+        return WebAuthnEvaluationApplicationService.usingDefaults(store);
     }
 
     private WebAuthnAssertionGenerationApplicationService createGeneratorService(CredentialStore store) {
-        return new WebAuthnAssertionGenerationApplicationService(store, persistenceAdapter);
+        return WebAuthnAssertionGenerationApplicationService.usingDefaults(store);
     }
 
     private WebAuthnAssertionGenerationApplicationService createInlineGeneratorService() {
@@ -449,12 +443,11 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
     }
 
     private WebAuthnAttestationGenerationApplicationService createAttestationGenerationService(CredentialStore store) {
-        return new WebAuthnAttestationGenerationApplicationService(
-                new WebAuthnAttestationGenerator(), ATTEST_TELEMETRY, store, persistenceAdapter);
+        return WebAuthnAttestationGenerationApplicationService.usingDefaults(store, ATTEST_TELEMETRY);
     }
 
     private WebAuthnAttestationReplayApplicationService createAttestationReplayService() {
-        return new WebAuthnAttestationReplayApplicationService(attestationVerifier, ATTEST_REPLAY_TELEMETRY);
+        return new WebAuthnAttestationReplayApplicationService();
     }
 
     private static TelemetryFrame mergeTelemetryFrame(TelemetryFrame frame, Map<String, Object> additionalFields) {
@@ -1908,8 +1901,8 @@ public final class Fido2Cli implements java.util.concurrent.Callable<Integer> {
             baseFields.put("credentialId", storedId);
 
             try (CredentialStore store = parent.openStore()) {
-                WebAuthnAttestationReplayApplicationService service = new WebAuthnAttestationReplayApplicationService(
-                        parent.attestationVerifier, ATTEST_REPLAY_TELEMETRY, store, parent.persistenceAdapter);
+                WebAuthnAttestationReplayApplicationService service =
+                        WebAuthnAttestationReplayApplicationService.usingDefaults(store, ATTEST_REPLAY_TELEMETRY);
 
                 WebAuthnAttestationReplayApplicationService.ReplayResult result;
                 try {

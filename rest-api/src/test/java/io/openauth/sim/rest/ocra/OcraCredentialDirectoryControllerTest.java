@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.ocra.OcraCredentialManagementApplicationService;
 import io.openauth.sim.application.ocra.OcraSeedApplicationService;
+import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -25,7 +27,7 @@ class OcraCredentialDirectoryControllerTest {
     @DisplayName("returns empty list when credential store unavailable")
     void listCredentialsWithoutStore() {
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(null), seedServiceFor(null));
+                new OcraCredentialDirectoryController(managementProvider(null), seedServiceFor(null));
 
         List<OcraCredentialSummary> summaries = controller.listCredentials();
 
@@ -43,19 +45,19 @@ class OcraCredentialDirectoryControllerTest {
                 Map.of(),
                 Instant.now(),
                 Instant.now());
-        Credential ocraB = credential("alpha", null);
+        Credential ocraB = credential("alpha", "OCRA-1:HOTP-SHA1-6:QA08");
 
         FixedCredentialStore store = new FixedCredentialStore(List.of(ocraA, generic, ocraB));
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         List<OcraCredentialSummary> summaries = controller.listCredentials();
 
         assertEquals(2, summaries.size());
         assertEquals("alpha", summaries.get(0).getId());
-        assertEquals("alpha", summaries.get(0).getLabel());
+        assertTrue(summaries.get(0).getLabel().startsWith("alpha (OCRA-1:HOTP-SHA1-6:QA08"));
         assertEquals("Beta", summaries.get(1).getId());
-        assertEquals("Beta (OCRA-1:HOTP-SHA1-6:QA08)", summaries.get(1).getLabel());
+        assertTrue(summaries.get(1).getLabel().startsWith("Beta (OCRA-1:HOTP-SHA1-6:QA08"));
     }
 
     @Test
@@ -68,7 +70,7 @@ class OcraCredentialDirectoryControllerTest {
 
         FixedCredentialStore store = new FixedCredentialStore(List.of(rfcVector));
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         List<OcraCredentialSummary> summaries = controller.listCredentials();
 
@@ -88,7 +90,7 @@ class OcraCredentialDirectoryControllerTest {
 
         FixedCredentialStore store = new FixedCredentialStore(List.of(credential));
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         ResponseEntity<OcraCredentialSampleResponse> response = controller.fetchSample("sample-qa08-s064");
 
@@ -112,7 +114,7 @@ class OcraCredentialDirectoryControllerTest {
 
         FixedCredentialStore store = new FixedCredentialStore(List.of(credential));
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         ResponseEntity<OcraCredentialSampleResponse> response = controller.fetchSample("operator-demo");
 
@@ -131,7 +133,7 @@ class OcraCredentialDirectoryControllerTest {
 
         FixedCredentialStore store = new FixedCredentialStore(List.of(credential));
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         ResponseEntity<OcraCredentialSampleResponse> response = controller.fetchSample("custom-id");
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -142,7 +144,7 @@ class OcraCredentialDirectoryControllerTest {
     void fetchSampleWithBlankIdentifier() {
         FixedCredentialStore store = new FixedCredentialStore(List.of());
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         ResponseEntity<OcraCredentialSampleResponse> response = controller.fetchSample("   ");
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -161,9 +163,36 @@ class OcraCredentialDirectoryControllerTest {
 
         FixedCredentialStore store = new FixedCredentialStore(List.of(generic));
         OcraCredentialDirectoryController controller =
-                new OcraCredentialDirectoryController(provider(store), seedServiceFor(store));
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
 
         ResponseEntity<OcraCredentialSampleResponse> response = controller.fetchSample("generic");
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("delete removes credential and returns ok")
+    void deleteRemovesCredential() {
+        MutableCredentialStore store = new MutableCredentialStore();
+        store.save(credential("del", "OCRA-1:HOTP-SHA1-6:QA08"));
+        OcraCredentialDirectoryController controller =
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
+
+        ResponseEntity<Map<String, String>> response = controller.delete("del");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(Map.of("credentialId", "del", "status", "deleted"), response.getBody());
+        assertTrue(store.findByName("del").isEmpty());
+    }
+
+    @Test
+    @DisplayName("delete returns 404 when credential missing")
+    void deleteReturnsNotFound() {
+        MutableCredentialStore store = new MutableCredentialStore();
+        OcraCredentialDirectoryController controller =
+                new OcraCredentialDirectoryController(managementProvider(store), seedServiceFor(store));
+
+        ResponseEntity<Map<String, String>> response = controller.delete("missing");
+
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
@@ -228,6 +257,105 @@ class OcraCredentialDirectoryControllerTest {
 
     private static OcraCredentialSeedService seedServiceFor(CredentialStore store) {
         return new OcraCredentialSeedService(provider(store), new OcraSeedApplicationService());
+    }
+
+    private static ObjectProvider<OcraCredentialManagementApplicationService> managementProvider(
+            CredentialStore store) {
+        if (store == null) {
+            return new ObjectProvider<>() {
+                @Override
+                public OcraCredentialManagementApplicationService getObject(Object... args) {
+                    return null;
+                }
+
+                @Override
+                public OcraCredentialManagementApplicationService getObject() {
+                    return null;
+                }
+
+                @Override
+                public OcraCredentialManagementApplicationService getIfAvailable() {
+                    return null;
+                }
+
+                @Override
+                public OcraCredentialManagementApplicationService getIfUnique() {
+                    return null;
+                }
+
+                @Override
+                public java.util.stream.Stream<OcraCredentialManagementApplicationService> stream() {
+                    return java.util.stream.Stream.empty();
+                }
+
+                @Override
+                public java.util.stream.Stream<OcraCredentialManagementApplicationService> orderedStream() {
+                    return java.util.stream.Stream.empty();
+                }
+            };
+        }
+        OcraCredentialManagementApplicationService service = new OcraCredentialManagementApplicationService(
+                store, new OcraCredentialFactory(), new OcraCredentialPersistenceAdapter());
+        return new ObjectProvider<>() {
+            @Override
+            public OcraCredentialManagementApplicationService getObject(Object... args) {
+                return service;
+            }
+
+            @Override
+            public OcraCredentialManagementApplicationService getObject() {
+                return service;
+            }
+
+            @Override
+            public OcraCredentialManagementApplicationService getIfAvailable() {
+                return service;
+            }
+
+            @Override
+            public OcraCredentialManagementApplicationService getIfUnique() {
+                return service;
+            }
+
+            @Override
+            public java.util.stream.Stream<OcraCredentialManagementApplicationService> stream() {
+                return java.util.stream.Stream.of(service);
+            }
+
+            @Override
+            public java.util.stream.Stream<OcraCredentialManagementApplicationService> orderedStream() {
+                return stream();
+            }
+        };
+    }
+
+    private static final class MutableCredentialStore implements CredentialStore {
+        private final java.util.Map<String, Credential> credentials = new java.util.LinkedHashMap<>();
+
+        @Override
+        public void save(Credential credential) {
+            credentials.put(credential.name(), credential);
+        }
+
+        @Override
+        public java.util.List<Credential> findAll() {
+            return java.util.List.copyOf(credentials.values());
+        }
+
+        @Override
+        public java.util.Optional<Credential> findByName(String name) {
+            return java.util.Optional.ofNullable(credentials.get(name));
+        }
+
+        @Override
+        public boolean delete(String name) {
+            return credentials.remove(name) != null;
+        }
+
+        @Override
+        public void close() {
+            credentials.clear();
+        }
     }
 
     private static final class FixedCredentialStore implements CredentialStore {

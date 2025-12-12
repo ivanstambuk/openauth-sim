@@ -46,6 +46,7 @@ Model Context Protocol (MCP) is currently documented as a REST proxy, but agents
 | NFR-015-02 | MCP server remains dependency-light (JDK-only unless owner approves), keeping install footprint ≤5 MB and cold start ≤2 s. | Operational simplicity | Build artifact size + smoke tests. | Gradle module `tools/mcp-server`. | Feature 013 constraints. |
 | NFR-015-03 | MCP tool catalogue must be versioned and backwards compatible within a minor release; breaking changes require new tool IDs or version negotiation. | Agent interoperability | Contract tests verifying `version` metadata + changelog; docs in README/AGENTS. | `build/mcp-feedback.json`, planning docs. | Owner directive. |
 | NFR-015-04 | Rate limiting and audit logging must capture per-tool invocation (tool name, caller token hash, reasonCode) for every request. | Governance / auditing | Log inspection + telemetry snapshot for new events. | Telemetry adapters, logging config. | Constitution + Feature 013. |
+| NFR-015-05 | Facade seam | MCP tools expose simulator capabilities by invoking REST/application services only; tools must not bind directly to `core` or construct `MapDbCredentialStore`. | ArchUnit facade-boundary tests and contract tests prevent direct `core`/persistence usage. | application, rest-api, infra-persistence, tools/mcp-server. | Spec. |
 
 ## UI / Interaction Mock-ups
 _Not applicable – no user-facing UI changes._

@@ -155,6 +155,15 @@ public final class HotpOperatorSampleData {
         return DEFINITIONS;
     }
 
+    public static java.util.Optional<SampleDefinition> findByCredentialId(String credentialId) {
+        if (credentialId == null || credentialId.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        return DEFINITIONS.stream()
+                .filter(definition -> definition.credentialId().equals(credentialId))
+                .findFirst();
+    }
+
     /** Returns inline preset definitions for the operator console. */
     public static List<InlinePreset> inlinePresets() {
         return INLINE_PRESETS;

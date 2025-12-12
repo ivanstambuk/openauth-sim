@@ -1,5 +1,7 @@
 package io.openauth.sim.cli;
 
+import io.openauth.sim.application.emv.cap.EmvCapCredentialDirectoryApplicationService;
+import io.openauth.sim.application.emv.cap.EmvCapCredentialDirectoryApplicationService.Hydration;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.CustomerInputs;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.EvaluationRequest;
@@ -19,12 +21,9 @@ import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.cli.support.JsonPrinter;
 import io.openauth.sim.cli.support.TelemetryJson;
-import io.openauth.sim.core.emv.cap.EmvCapCredentialDescriptor;
-import io.openauth.sim.core.emv.cap.EmvCapCredentialPersistenceAdapter;
 import io.openauth.sim.core.emv.cap.EmvCapMode;
 import io.openauth.sim.core.emv.cap.EmvCapTraceProvenanceSchema;
 import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.PrintWriter;
@@ -791,9 +790,6 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 description = "Derive an EMV/CAP OTP for a stored credential with optional overrides.")
         static final class EvaluateStoredCommand implements java.util.concurrent.Callable<Integer> {
 
-            private static final EmvCapCredentialPersistenceAdapter CREDENTIAL_ADAPTER =
-                    new EmvCapCredentialPersistenceAdapter();
-
             private final EmvCapEvaluationApplicationService service = new EmvCapEvaluationApplicationService();
 
             @CommandLine.ParentCommand
@@ -929,12 +925,11 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                     return CommandLine.ExitCode.USAGE;
                 }
 
-                EmvCapCredentialDescriptor descriptor;
+                Hydration hydration;
                 try (CredentialStore store = parent.openStore()) {
-                    descriptor = store.findByName(trimmedId)
-                            .map(VersionedCredentialRecordMapper::toRecord)
-                            .map(CREDENTIAL_ADAPTER::deserialize)
-                            .orElse(null);
+                    EmvCapCredentialDirectoryApplicationService directoryService =
+                            new EmvCapCredentialDirectoryApplicationService(store);
+                    hydration = directoryService.detail(trimmedId).orElse(null);
                 } catch (Exception ex) {
                     try {
                         EmvCapMode modeValue = resolveMode(null);
@@ -947,7 +942,7 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                     }
                 }
 
-                if (descriptor == null) {
+                if (hydration == null) {
                     try {
                         EmvCapMode modeValue = resolveMode(null);
                         Map<String, Object> fields = missingCredentialFields(trimmedId);
@@ -960,17 +955,17 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
 
                 EmvCapMode modeValue;
                 try {
-                    modeValue = resolveMode(descriptor);
+                    modeValue = resolveMode(hydration);
                 } catch (IllegalArgumentException ex) {
-                    Map<String, Object> fields = descriptorFields(descriptor, trimmedId);
-                    return failValidation(descriptor.mode(), fields, ex.getMessage());
+                    Map<String, Object> fields = descriptorFields(hydration, trimmedId);
+                    return failValidation(resolveStoredMode(hydration), fields, ex.getMessage());
                 }
 
                 EvaluationRequest request;
                 try {
-                    request = buildRequest(modeValue, descriptor);
+                    request = buildRequest(modeValue, hydration);
                 } catch (IllegalArgumentException ex) {
-                    Map<String, Object> fields = descriptorFields(descriptor, trimmedId);
+                    Map<String, Object> fields = descriptorFields(hydration, trimmedId);
                     fields.put("mode", modeValue.name());
                     fields.put("reason", sanitizeMessage(ex.getMessage()));
                     return failValidation(modeValue, fields, ex.getMessage());
@@ -1030,41 +1025,44 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 return CommandLine.ExitCode.SOFTWARE;
             }
 
-            private EvaluationRequest buildRequest(EmvCapMode modeValue, EmvCapCredentialDescriptor descriptor) {
-                String masterKey = hasText(masterKeyHex)
-                        ? requireText(masterKeyHex, "masterKey")
-                        : descriptor.masterKey().asHex();
-                String atc = hasText(atcHex) ? requireText(atcHex, "atc") : descriptor.defaultAtcHex();
-                int branch = branchFactor != null
-                        ? requirePositive(branchFactor, "branchFactor")
-                        : descriptor.branchFactor();
-                int heightValue = height != null ? requirePositive(height, "height") : descriptor.height();
-                String iv = hasText(ivHex) ? requireText(ivHex, "iv") : descriptor.ivHex();
-                String cdol1Value = hasText(cdol1Hex) ? requireText(cdol1Hex, "cdol1") : descriptor.cdol1Hex();
+            private EvaluationRequest buildRequest(EmvCapMode modeValue, Hydration hydration) {
+                String masterKey =
+                        hasText(masterKeyHex) ? requireText(masterKeyHex, "masterKey") : hydration.masterKey();
+                String atc = hasText(atcHex) ? requireText(atcHex, "atc") : hydration.defaultAtc();
+                int branch =
+                        branchFactor != null ? requirePositive(branchFactor, "branchFactor") : hydration.branchFactor();
+                int heightValue = height != null ? requirePositive(height, "height") : hydration.height();
+                String iv = hasText(ivHex) ? requireText(ivHex, "iv") : hydration.iv();
+                String cdol1Value = hasText(cdol1Hex) ? requireText(cdol1Hex, "cdol1") : hydration.cdol1();
                 String issuerBitmap = hasText(issuerProprietaryBitmapHex)
                         ? requireText(issuerProprietaryBitmapHex, "issuerProprietaryBitmap")
-                        : descriptor.issuerProprietaryBitmapHex();
+                        : hydration.issuerProprietaryBitmap();
                 String iccTemplateValue = hasText(iccTemplateHex)
                         ? requireText(iccTemplateHex, "iccTemplate")
-                        : descriptor.iccDataTemplateHex();
+                        : hydration.iccDataTemplate();
                 String issuerApplicationDataValue = hasText(issuerApplicationDataHex)
                         ? requireText(issuerApplicationDataHex, "issuerApplicationData")
-                        : descriptor.issuerApplicationDataHex();
+                        : hydration.issuerApplicationData();
 
-                String challengeValue = hasText(challenge) ? challenge.trim() : descriptor.defaultChallenge();
-                String referenceValue = hasText(reference) ? reference.trim() : descriptor.defaultReference();
-                String amountValue = hasText(amount) ? amount.trim() : descriptor.defaultAmount();
+                String challengeValue = hasText(challenge)
+                        ? challenge.trim()
+                        : hydration.defaults().challenge();
+                String referenceValue = hasText(reference)
+                        ? reference.trim()
+                        : hydration.defaults().reference();
+                String amountValue =
+                        hasText(amount) ? amount.trim() : hydration.defaults().amount();
 
                 CustomerInputs inputs = new CustomerInputs(challengeValue, referenceValue, amountValue);
 
                 Optional<String> terminal = optionalOf(terminalDataHex);
                 if (terminal.isEmpty()) {
-                    terminal = descriptor.terminalDataHex();
+                    terminal = hydration.terminalData();
                 }
 
                 Optional<String> icc = optionalOf(iccDataOverrideHex);
                 if (icc.isEmpty()) {
-                    icc = descriptor.resolvedIccDataHex().or(descriptor::iccDataHex);
+                    icc = hydration.resolvedIccData().or(hydration::iccData);
                 }
 
                 TransactionData transactionData = new TransactionData(terminal, icc);
@@ -1086,16 +1084,16 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                         issuerApplicationDataValue);
             }
 
-            private EmvCapMode resolveMode(EmvCapCredentialDescriptor descriptor) {
+            private EmvCapMode resolveMode(Hydration hydration) {
                 if (hasText(mode)) {
                     String normalized = mode.trim().toUpperCase(Locale.ROOT);
                     try {
                         EmvCapMode parsed = EmvCapMode.fromLabel(normalized);
-                        if (descriptor != null && parsed != descriptor.mode()) {
+                        if (hydration != null && parsed != resolveStoredMode(hydration)) {
                             throw new IllegalArgumentException("Stored credential "
-                                    + descriptor.name()
+                                    + hydration.credentialId()
                                     + " is registered as "
-                                    + descriptor.mode()
+                                    + hydration.mode()
                                     + " but command requested "
                                     + parsed);
                         }
@@ -1104,10 +1102,21 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                         throw new IllegalArgumentException("mode must be IDENTIFY, RESPOND, or SIGN");
                     }
                 }
-                if (descriptor != null) {
-                    return descriptor.mode();
+                if (hydration != null) {
+                    return resolveStoredMode(hydration);
                 }
                 return EmvCapMode.IDENTIFY;
+            }
+
+            private static EmvCapMode resolveStoredMode(Hydration hydration) {
+                if (hydration == null || !hasText(hydration.mode())) {
+                    return EmvCapMode.IDENTIFY;
+                }
+                try {
+                    return EmvCapMode.fromLabel(hydration.mode().trim().toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException ex) {
+                    return EmvCapMode.IDENTIFY;
+                }
             }
 
             private Map<String, Object> missingCredentialFields(String trimmedId) {
@@ -1117,14 +1126,13 @@ public final class EmvCli implements java.util.concurrent.Callable<Integer> {
                 return fields;
             }
 
-            private Map<String, Object> descriptorFields(EmvCapCredentialDescriptor descriptor, String trimmedId) {
+            private Map<String, Object> descriptorFields(Hydration hydration, String trimmedId) {
                 Map<String, Object> fields = missingCredentialFields(trimmedId);
-                fields.put("mode", descriptor.mode().name());
-                fields.put("atc", descriptor.defaultAtcHex());
-                fields.put("branchFactor", descriptor.branchFactor());
-                fields.put("height", descriptor.height());
-                fields.put(
-                        "ipbMaskLength", descriptor.issuerProprietaryBitmapHex().length() / 2);
+                fields.put("mode", hydration.mode());
+                fields.put("atc", hydration.defaultAtc());
+                fields.put("branchFactor", hydration.branchFactor());
+                fields.put("height", hydration.height());
+                fields.put("ipbMaskLength", hydration.issuerProprietaryBitmap().length() / 2);
                 fields.put("previewWindowBackward", Math.max(0, windowBackward));
                 fields.put("previewWindowForward", Math.max(0, windowForward));
                 return fields;

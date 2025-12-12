@@ -1,7 +1,7 @@
 # Feature 003 Tasks – OCRA Simulator & Replay
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-13
+_Status:_ In progress  
+_Last updated:_ 2025-12-11
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -43,6 +43,13 @@ _Last updated:_ 2025-11-13
 - [ ] T-003-17 – Add `--output-json` to all OCRA CLI commands (ADR-0014).  
   _Intent:_ Provide machine-consumable JSON output for OCRA evaluate/verify commands with tests and docs.  
   _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
+- [ ] T-003-18 – Enforce OCRA facade seams via application layer + CredentialStoreFactory (NFR-facade-seam).  
+  _Intent:_ Expand ArchUnit coverage and refactor any remaining OCRA facade touchpoints (CLI/REST/UI/standalone) so they delegate exclusively through `application` services and obtain persistence via `CredentialStoreFactory`, keeping operator samples and snapshots consistent.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :rest-api:test :cli:test`  
+  - `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log
 - 2025-09-30 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OcraEvaluateOpenApi*"`

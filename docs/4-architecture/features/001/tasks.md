@@ -1,7 +1,7 @@
 # Feature 001 Tasks – HOTP Simulator & Tooling
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-13
+_Status:_ In progress  
+_Last updated:_ 2025-12-11
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -62,6 +62,13 @@ _Last updated:_ 2025-11-13
 - [ ] T-001-23 – Add `--output-json` to all HOTP CLI commands (ADR-0014).  
   _Intent:_ Provide machine-consumable JSON output for HOTP evaluate/replay/import/list commands with tests and docs.  
   _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
+- [ ] T-001-24 – Enforce HOTP facade seams via application layer + CredentialStoreFactory (NFR-facade-seam).  
+  _Intent:_ Add architecture tests ensuring CLI/REST/UI/standalone avoid direct `io.openauth.sim.core..`/`MapDbCredentialStore`, refactor any remaining HOTP facade touchpoints to delegate through `application` services and `CredentialStoreFactory`, and keep OpenAPI/CLI schemas aligned.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :rest-api:test :cli:test`  
+  - `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log
 - 2025-10-05 – `./gradlew --no-daemon :core:test :application:test :cli:test :rest-api:test :ui:test spotlessApply check`

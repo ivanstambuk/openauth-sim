@@ -1,11 +1,10 @@
 package io.openauth.sim.rest.webauthn;
 
+import io.openauth.sim.application.fido2.WebAuthnAttestationStoredMetadataApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnAttestationStoredMetadataApplicationService.StoredAttestation;
 import io.openauth.sim.application.fido2.WebAuthnMetadataCatalogue;
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
-import io.openauth.sim.core.fido2.WebAuthnAttestationCredentialDescriptor;
-import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
-import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.core.fido2.WebAuthnAttestationFormat;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
@@ -21,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,51 +33,43 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/v1/webauthn/attestations")
 final class WebAuthnAttestationStoredController {
 
-    private static final String ATTR_ATTESTATION_OBJECT = "fido2.attestation.stored.attestationObject";
-    private static final String ATTR_CLIENT_DATA_JSON = "fido2.attestation.stored.clientDataJson";
-    private static final String ATTR_EXPECTED_CHALLENGE = "fido2.attestation.stored.expectedChallenge";
-
-    private final CredentialStore credentialStore;
-    private final WebAuthnCredentialPersistenceAdapter persistenceAdapter;
+    private final WebAuthnAttestationStoredMetadataApplicationService metadataService;
     private final WebAuthnTrustAnchorResolver trustAnchorResolver;
     private static final Logger LOGGER = LoggerFactory.getLogger(WebAuthnAttestationStoredController.class);
     private static final CertificateFactory CERTIFICATE_FACTORY = certificateFactory();
     private static final Map<String, String> METADATA_DESCRIPTIONS = metadataDescriptions();
 
     WebAuthnAttestationStoredController(
-            CredentialStore credentialStore,
-            WebAuthnCredentialPersistenceAdapter persistenceAdapter,
+            ObjectProvider<WebAuthnAttestationStoredMetadataApplicationService> metadataServiceProvider,
             WebAuthnTrustAnchorResolver trustAnchorResolver) {
-        this.credentialStore = Objects.requireNonNull(credentialStore, "credentialStore");
-        this.persistenceAdapter = Objects.requireNonNull(persistenceAdapter, "persistenceAdapter");
+        this.metadataService = metadataServiceProvider.getIfAvailable();
         this.trustAnchorResolver = Objects.requireNonNull(trustAnchorResolver, "trustAnchorResolver");
     }
 
     @GetMapping("/{credentialId}")
     ResponseEntity<StoredAttestationMetadataResponse> metadata(@PathVariable("credentialId") String credentialId) {
-        return credentialStore
-                .findByName(credentialId)
-                .map(credential -> VersionedCredentialRecordMapper.toRecord(credential))
-                .map(record -> ResponseEntity.ok(toResponse(record, persistenceAdapter.deserializeAttestation(record))))
+        if (metadataService == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Stored attestation not found");
+        }
+        return metadataService
+                .detail(credentialId)
+                .map(attestation -> ResponseEntity.ok(toResponse(attestation)))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Stored attestation not found"));
     }
 
-    private StoredAttestationMetadataResponse toResponse(
-            io.openauth.sim.core.store.serialization.VersionedCredentialRecord record,
-            WebAuthnAttestationCredentialDescriptor descriptor) {
-        Map<String, String> attributes = record.attributes();
+    private StoredAttestationMetadataResponse toResponse(StoredAttestation attestation) {
         return new StoredAttestationMetadataResponse(
-                descriptor.name(),
-                descriptor.attestationId(),
-                descriptor.format().label(),
-                descriptor.credentialDescriptor().relyingPartyId(),
-                descriptor.origin(),
-                descriptor.signingMode().name().toLowerCase(),
-                descriptor.certificateChainPem(),
-                summarizeTrustAnchors(descriptor),
-                attributes.getOrDefault(ATTR_EXPECTED_CHALLENGE, ""),
-                attributes.getOrDefault(ATTR_ATTESTATION_OBJECT, ""),
-                attributes.getOrDefault(ATTR_CLIENT_DATA_JSON, ""));
+                attestation.storedCredentialId(),
+                attestation.attestationId(),
+                attestation.format(),
+                attestation.relyingPartyId(),
+                attestation.origin(),
+                attestation.signingMode(),
+                attestation.certificateChainPem(),
+                summarizeTrustAnchors(attestation),
+                attestation.challenge(),
+                attestation.attestationObject(),
+                attestation.clientDataJson());
     }
 
     record StoredAttestationMetadataResponse(
@@ -95,11 +87,12 @@ final class WebAuthnAttestationStoredController {
         // DTO marker
     }
 
-    private List<String> summarizeTrustAnchors(WebAuthnAttestationCredentialDescriptor descriptor) {
+    private List<String> summarizeTrustAnchors(StoredAttestation attestation) {
         LinkedHashSet<String> summaries = new LinkedHashSet<>();
 
+        WebAuthnAttestationFormat format = WebAuthnAttestationFormat.fromLabel(attestation.format());
         WebAuthnTrustAnchorResolver.Resolution resolution =
-                trustAnchorResolver.resolve(descriptor.attestationId(), descriptor.format(), List.of(), List.of());
+                trustAnchorResolver.resolve(attestation.attestationId(), format, List.of(), List.of());
         for (String metadataId : resolution.metadataEntryIds()) {
             String summary = metadataDescription(metadataId)
                     .map(String::trim)
@@ -111,8 +104,8 @@ final class WebAuthnAttestationStoredController {
         }
 
         if (summaries.isEmpty()) {
-            appendCertificateSubjects(summaries, descriptor.certificateChainPem());
-            appendCertificateSubjects(summaries, descriptor.customRootCertificatesPem());
+            appendCertificateSubjects(summaries, attestation.certificateChainPem());
+            appendCertificateSubjects(summaries, attestation.customRootCertificatesPem());
         }
 
         return List.copyOf(summaries);

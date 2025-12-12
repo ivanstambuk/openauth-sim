@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.ocra;
 
+import io.openauth.sim.application.ocra.OcraCredentialManagementApplicationService;
 import io.openauth.sim.application.ocra.OcraCredentialResolvers;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService;
 import io.openauth.sim.application.ocra.OcraSeedApplicationService;
@@ -38,5 +39,15 @@ class OcraApplicationConfiguration {
     @Bean
     OcraSeedApplicationService ocraSeedApplicationService() {
         return new OcraSeedApplicationService();
+    }
+
+    @Bean
+    OcraCredentialManagementApplicationService ocraCredentialManagementApplicationService(
+            ObjectProvider<CredentialStore> storeProvider) {
+        CredentialStore store = storeProvider.getIfAvailable();
+        if (store == null) {
+            throw new IllegalStateException("CredentialStore bean is required for OCRA credential management");
+        }
+        return OcraCredentialManagementApplicationService.usingDefaults(store);
     }
 }

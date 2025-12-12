@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.totp;
 
+import io.openauth.sim.application.totp.TotpCredentialDirectoryApplicationService;
 import io.openauth.sim.application.totp.TotpCurrentOtpHelperService;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService;
 import io.openauth.sim.application.totp.TotpReplayApplicationService;
@@ -34,6 +35,12 @@ class TotpApplicationConfiguration {
     @Bean
     TotpSampleApplicationService totpSampleApplicationService(CredentialStore credentialStore) {
         return new TotpSampleApplicationService(credentialStore);
+    }
+
+    @Bean
+    TotpCredentialDirectoryApplicationService totpCredentialDirectoryApplicationService(
+            CredentialStore credentialStore) {
+        return new TotpCredentialDirectoryApplicationService(credentialStore);
     }
 
     @Bean

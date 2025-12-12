@@ -2,11 +2,10 @@ package io.openauth.sim.rest.totp;
 
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
+import io.openauth.sim.application.totp.TotpCredentialDirectoryApplicationService;
+import io.openauth.sim.application.totp.TotpCredentialDirectoryApplicationService.Summary;
 import io.openauth.sim.application.totp.TotpSampleApplicationService;
 import io.openauth.sim.application.totp.TotpSampleApplicationService.StoredSample;
-import io.openauth.sim.core.model.Credential;
-import io.openauth.sim.core.model.CredentialType;
-import io.openauth.sim.core.store.CredentialStore;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -44,30 +42,30 @@ final class TotpCredentialDirectoryController {
     private static final String ATTR_DRIFT_FORWARD = "totp.drift.forward";
     private static final String ATTR_LABEL = "totp.metadata.label";
 
-    private final CredentialStore credentialStore;
+    private final TotpCredentialDirectoryApplicationService directoryService;
     private final TotpSampleApplicationService sampleService;
 
     TotpCredentialDirectoryController(
-            ObjectProvider<CredentialStore> credentialStoreProvider, TotpSampleApplicationService sampleService) {
-        this.credentialStore = credentialStoreProvider.getIfAvailable();
+            ObjectProvider<TotpCredentialDirectoryApplicationService> directoryServiceProvider,
+            TotpSampleApplicationService sampleService) {
+        this.directoryService = directoryServiceProvider.getIfAvailable();
         this.sampleService = Objects.requireNonNull(sampleService, "sampleService");
     }
 
     @GetMapping("/credentials")
     List<TotpCredentialSummary> listCredentials() {
-        if (credentialStore == null) {
+        if (directoryService == null) {
             return List.of();
         }
-        return credentialStore.findAll().stream()
-                .filter(credential -> credential.type() == CredentialType.OATH_TOTP)
+        return directoryService.list().stream()
                 .map(TotpCredentialDirectoryController::toSummary)
                 .sorted(SUMMARY_COMPARATOR)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     @GetMapping("/credentials/{credentialId}/sample")
     ResponseEntity<TotpStoredSampleResponse> storedSample(@PathVariable("credentialId") String credentialId) {
-        if (credentialStore == null || !StringUtils.hasText(credentialId)) {
+        if (directoryService == null || !StringUtils.hasText(credentialId)) {
             return ResponseEntity.notFound().build();
         }
 
@@ -80,20 +78,18 @@ final class TotpCredentialDirectoryController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    private static TotpCredentialSummary toSummary(Credential credential) {
-        Map<String, String> attributes = credential.attributes();
-        String algorithm = attributes.getOrDefault(ATTR_ALGORITHM, "");
-        Integer digits = parseInteger(attributes.get(ATTR_DIGITS));
-        Long stepSeconds = parseLong(attributes.get(ATTR_STEP_SECONDS));
-        Integer driftBackward = parseInteger(attributes.get(ATTR_DRIFT_BACKWARD));
-        Integer driftForward = parseInteger(attributes.get(ATTR_DRIFT_FORWARD));
+    private static TotpCredentialSummary toSummary(Summary summary) {
+        Integer digits = parseInteger(summary.digits());
+        Long stepSeconds = parseLong(summary.stepSeconds());
+        Integer driftBackward = parseInteger(summary.driftBackward());
+        Integer driftForward = parseInteger(summary.driftForward());
 
-        String label = Optional.ofNullable(attributes.get(ATTR_LABEL))
+        String label = Optional.ofNullable(summary.label())
                 .filter(value -> !value.isBlank())
-                .orElseGet(() -> buildLabel(credential.name(), algorithm, digits, stepSeconds));
+                .orElseGet(() -> buildLabel(summary.credentialId(), summary.algorithm(), digits, stepSeconds));
 
         return new TotpCredentialSummary(
-                credential.name(), label, algorithm, digits, stepSeconds, driftBackward, driftForward);
+                summary.credentialId(), label, summary.algorithm(), digits, stepSeconds, driftBackward, driftForward);
     }
 
     private static String buildLabel(String id, String algorithm, Integer digits, Long stepSeconds) {

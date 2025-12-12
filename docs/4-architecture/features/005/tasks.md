@@ -1,7 +1,7 @@
 # Feature 005 Tasks – EMV/CAP Simulation Services
 
-_Status:_ In review  
-_Last updated:_ 2025-11-13
+_Status:_ In progress  
+_Last updated:_ 2025-12-11
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -584,6 +584,14 @@ Linked plan: [docs/4-architecture/features/005/plan.md](docs/4-architecture/feat
 - [ ] T-005-74a – Add `--output-json` to all EMV/CAP CLI commands (ADR-0014).  
   _Intent:_ Provide machine-consumable JSON output for evaluate/replay/seed commands with tests and docs.  
   _Verification:_ `./gradlew --no-daemon :cli:test :standalone:jar`
+
+- [x] T-005-75 – Enforce EMV/CAP facade seams via application layer + CredentialStoreFactory (NFR-facade-seam).  
+  _Intent:_ Extend ArchUnit to block EMV/CAP facades (CLI/REST/UI/standalone/tools) from `io.openauth.sim.core..`/`MapDbCredentialStore`, refactor remaining touchpoints to delegate through `application` services and `CredentialStoreFactory`, and refresh docs/OpenAPI snapshots if behaviour changes.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :rest-api:test :cli:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+  _Status update (2025-12-11):_ Completed EMV/CAP facade seam hardening: REST directory + evaluation paths delegate through `EmvCapCredentialDirectoryApplicationService`, CLI stored evaluation uses the same seam, and ArchUnit covers EMV REST/CLI plus MCP/MapDB rules. Commands run: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapCredentialDirectoryControllerTest"`, `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.EmvCliEvaluateStoredTest"`, `./gradlew --no-daemon :core-architecture-tests:test`, `./gradlew --no-daemon spotlessApply check`. No OpenAPI deltas required.
 
 ## Verification log
 - 2025-11-09 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`

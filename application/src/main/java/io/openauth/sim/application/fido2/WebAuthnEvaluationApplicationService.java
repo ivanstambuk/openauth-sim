@@ -90,6 +90,12 @@ public final class WebAuthnEvaluationApplicationService {
         this.signaturePolicy = Objects.requireNonNull(signaturePolicy, "signaturePolicy");
     }
 
+    /** Convenience factory for facades that should not construct core collaborators directly. */
+    public static WebAuthnEvaluationApplicationService usingDefaults(CredentialStore credentialStore) {
+        return new WebAuthnEvaluationApplicationService(
+                credentialStore, new WebAuthnAssertionVerifier(), new WebAuthnCredentialPersistenceAdapter());
+    }
+
     /**
      * Evaluates a WebAuthn assertion using the supplied command.
      *

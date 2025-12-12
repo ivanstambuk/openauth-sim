@@ -1,14 +1,12 @@
 package io.openauth.sim.rest.hotp;
 
+import io.openauth.sim.application.hotp.HotpCredentialDirectoryApplicationService;
+import io.openauth.sim.application.hotp.HotpCredentialDirectoryApplicationService.Summary;
 import io.openauth.sim.application.hotp.HotpSampleApplicationService;
-import io.openauth.sim.core.model.Credential;
-import io.openauth.sim.core.model.CredentialType;
-import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.ui.HotpOperatorSampleData;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,33 +24,28 @@ final class HotpCredentialDirectoryController {
     private static final Comparator<HotpCredentialSummary> SUMMARY_COMPARATOR =
             Comparator.comparing(HotpCredentialSummary::id, String.CASE_INSENSITIVE_ORDER);
 
-    private static final String ATTR_DIGITS = "hotp.digits";
-    private static final String ATTR_COUNTER = "hotp.counter";
-    private static final String ATTR_ALGORITHM = "hotp.algorithm";
-
-    private final CredentialStore credentialStore;
+    private final HotpCredentialDirectoryApplicationService directoryService;
     private final HotpCredentialSeedService seedService;
     private final HotpSampleApplicationService sampleService;
 
     HotpCredentialDirectoryController(
-            ObjectProvider<CredentialStore> credentialStoreProvider,
+            ObjectProvider<HotpCredentialDirectoryApplicationService> directoryServiceProvider,
             HotpCredentialSeedService seedService,
             HotpSampleApplicationService sampleService) {
-        this.credentialStore = credentialStoreProvider.getIfAvailable();
+        this.directoryService = directoryServiceProvider.getIfAvailable();
         this.seedService = Objects.requireNonNull(seedService, "seedService");
         this.sampleService = Objects.requireNonNull(sampleService, "sampleService");
     }
 
     @GetMapping("/credentials")
     List<HotpCredentialSummary> listCredentials() {
-        if (credentialStore == null) {
+        if (directoryService == null) {
             return List.of();
         }
-        return credentialStore.findAll().stream()
-                .filter(credential -> credential.type() == CredentialType.OATH_HOTP)
+        return directoryService.list().stream()
                 .map(HotpCredentialDirectoryController::toSummary)
                 .sorted(SUMMARY_COMPARATOR)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     @PostMapping(value = "/credentials/seed", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -84,13 +77,13 @@ final class HotpCredentialDirectoryController {
                 sample.metadata());
     }
 
-    private static HotpCredentialSummary toSummary(Credential credential) {
-        Map<String, String> attributes = credential.attributes();
-        Integer digits = parseInteger(attributes.get(ATTR_DIGITS));
-        Long counter = parseLong(attributes.get(ATTR_COUNTER));
-        String algorithm = attributes.get(ATTR_ALGORITHM);
-        String label = buildLabel(credential.name(), algorithm, digits, attributes);
-        return new HotpCredentialSummary(credential.name(), label, digits, counter);
+    private static HotpCredentialSummary toSummary(Summary summary) {
+        Integer digits = parseInteger(summary.digits());
+        Long counter = parseLong(summary.counter());
+        String label = HotpOperatorSampleData.findByCredentialId(summary.credentialId())
+                .map(HotpOperatorSampleData.SampleDefinition::optionLabel)
+                .orElseGet(() -> buildLabel(summary.label(), summary.credentialId(), summary.algorithm(), digits));
+        return new HotpCredentialSummary(summary.credentialId(), label, digits, counter);
     }
 
     private static Integer parseInteger(String value) {
@@ -115,7 +108,10 @@ final class HotpCredentialDirectoryController {
         }
     }
 
-    private static String buildLabel(String id, String algorithm, Integer digits, Map<String, String> attributes) {
+    private static String buildLabel(String preferredLabel, String id, String algorithm, Integer digits) {
+        if (preferredLabel != null && !preferredLabel.isBlank()) {
+            return preferredLabel.trim();
+        }
         if (id == null) {
             return null;
         }
@@ -126,9 +122,6 @@ final class HotpCredentialDirectoryController {
             return trimmedId;
         }
 
-        boolean isRfc4226 =
-                attributes != null && "ui-hotp-demo".equals(attributes.get("hotp.metadata.presetKey")) && hasDigits;
-
         StringBuilder builder = new StringBuilder(trimmedId).append(" (");
         if (hasAlgorithm) {
             builder.append(algorithm);
@@ -138,9 +131,6 @@ final class HotpCredentialDirectoryController {
         }
         if (hasDigits) {
             builder.append(digits).append(" digits");
-        }
-        if (isRfc4226) {
-            builder.append(", RFC 4226");
         }
         builder.append(')');
         return builder.toString();

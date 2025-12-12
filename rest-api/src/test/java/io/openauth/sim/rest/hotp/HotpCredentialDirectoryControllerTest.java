@@ -3,6 +3,7 @@ package io.openauth.sim.rest.hotp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.openauth.sim.application.hotp.HotpCredentialDirectoryApplicationService;
 import io.openauth.sim.application.hotp.HotpSampleApplicationService;
 import io.openauth.sim.application.hotp.HotpSeedApplicationService;
 import io.openauth.sim.core.model.Credential;
@@ -120,7 +121,34 @@ class HotpCredentialDirectoryControllerTest {
         CredentialStore store = provider.getIfAvailable();
         HotpSampleApplicationService sampleService =
                 new HotpSampleApplicationService(store != null ? store : new FixedCredentialStore(List.of()));
-        return new HotpCredentialDirectoryController(provider, seedService, sampleService);
+        HotpCredentialDirectoryApplicationService directoryService = new HotpCredentialDirectoryApplicationService(
+                store != null ? store : new FixedCredentialStore(List.of()));
+        return new HotpCredentialDirectoryController(singleProvider(directoryService), seedService, sampleService);
+    }
+
+    private static ObjectProvider<HotpCredentialDirectoryApplicationService> singleProvider(
+            HotpCredentialDirectoryApplicationService service) {
+        return new ObjectProvider<>() {
+            @Override
+            public HotpCredentialDirectoryApplicationService getObject(Object... args) {
+                return service;
+            }
+
+            @Override
+            public HotpCredentialDirectoryApplicationService getIfAvailable() {
+                return service;
+            }
+
+            @Override
+            public HotpCredentialDirectoryApplicationService getIfUnique() {
+                return service;
+            }
+
+            @Override
+            public HotpCredentialDirectoryApplicationService getObject() {
+                return service;
+            }
+        };
     }
 
     private Credential credential(String name, Map<String, String> attributes) {

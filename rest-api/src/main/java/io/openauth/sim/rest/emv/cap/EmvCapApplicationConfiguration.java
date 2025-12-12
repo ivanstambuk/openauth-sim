@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.emv.cap;
 
+import io.openauth.sim.application.emv.cap.EmvCapCredentialDirectoryApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapReplayApplicationService;
 import io.openauth.sim.application.emv.cap.EmvCapSeedApplicationService;
@@ -18,6 +19,12 @@ class EmvCapApplicationConfiguration {
     @Bean
     EmvCapSeedApplicationService emvCapSeedApplicationService() {
         return new EmvCapSeedApplicationService();
+    }
+
+    @Bean
+    EmvCapCredentialDirectoryApplicationService emvCapCredentialDirectoryApplicationService(
+            CredentialStore credentialStore) {
+        return new EmvCapCredentialDirectoryApplicationService(credentialStore);
     }
 
     @Bean

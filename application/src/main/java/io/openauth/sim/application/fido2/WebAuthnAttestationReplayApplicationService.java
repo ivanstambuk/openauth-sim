@@ -57,6 +57,16 @@ public final class WebAuthnAttestationReplayApplicationService {
         this(new WebAuthnAttestationVerifier(), new Fido2TelemetryAdapter("fido2.attestReplay"), null, null);
     }
 
+    /** Convenience factory for stored-replay facades that should not instantiate core collaborators. */
+    public static WebAuthnAttestationReplayApplicationService usingDefaults(
+            CredentialStore credentialStore, Fido2TelemetryAdapter telemetryAdapter) {
+        return new WebAuthnAttestationReplayApplicationService(
+                new WebAuthnAttestationVerifier(),
+                telemetryAdapter,
+                credentialStore,
+                new WebAuthnCredentialPersistenceAdapter());
+    }
+
     public ReplayResult replay(ReplayCommand command) {
         Objects.requireNonNull(command, "command");
 

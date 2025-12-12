@@ -42,6 +42,7 @@ core → application → CLI/REST → operator console; issuance remains out of 
 | NFR-001-01 | Security | Secrets encrypted at rest when MapDB encryption enabled; telemetry redacts OTP/secret fields. | Unit/integration tests confirm redaction + encryption guardrails. | MapDB, TelemetryContracts. | Spec. |
 | NFR-001-02 | Compatibility | Schema-v1 metadata remains backward compatible; no migrations triggered. | Regression tests run with legacy stores. | Core/application persistence. | Spec. |
 | NFR-001-03 | Quality | `./gradlew spotlessApply check` + quality gate stay green; ArchUnit/PMD/SpotBugs cover new modules. | CI build history. | Gradle tooling. | Spec. |
+| NFR-001-04 | Facade seam | All HOTP facades (CLI/REST/UI/MCP/standalone/Native Java) delegate only through `application.hotp` services and obtain persistence via `CredentialStoreFactory`; facades must not depend directly on `core` internals or construct `MapDbCredentialStore` themselves. | ArchUnit facade-boundary tests and contract tests block direct `core`/persistence usage. | application, infra-persistence, facades. | Spec. |
 
 ## UI / Interaction Mock-ups
 ```

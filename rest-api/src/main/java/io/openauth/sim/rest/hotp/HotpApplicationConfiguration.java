@@ -1,5 +1,6 @@
 package io.openauth.sim.rest.hotp;
 
+import io.openauth.sim.application.hotp.HotpCredentialDirectoryApplicationService;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
 import io.openauth.sim.application.hotp.HotpReplayApplicationService;
 import io.openauth.sim.application.hotp.HotpSampleApplicationService;
@@ -46,5 +47,17 @@ class HotpApplicationConfiguration {
     @Bean
     HotpSeedApplicationService hotpSeedApplicationService() {
         return new HotpSeedApplicationService();
+    }
+
+    @Bean
+    HotpCredentialDirectoryApplicationService hotpCredentialDirectoryApplicationService(
+            ObjectProvider<CredentialStore> storeProvider) {
+        CredentialStore store =
+                Optional.ofNullable(storeProvider.getIfAvailable()).orElse(null);
+        if (store == null) {
+            throw new IllegalStateException(
+                    "CredentialStore bean is required for HOTP directory operations to operate");
+        }
+        return new HotpCredentialDirectoryApplicationService(store);
     }
 }

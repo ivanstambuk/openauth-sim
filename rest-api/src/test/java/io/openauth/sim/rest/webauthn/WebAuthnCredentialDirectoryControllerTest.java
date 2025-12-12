@@ -2,6 +2,7 @@ package io.openauth.sim.rest.webauthn;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.openauth.sim.application.fido2.WebAuthnCredentialDirectoryApplicationService;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
@@ -34,7 +35,9 @@ final class WebAuthnCredentialDirectoryControllerTest {
         List<Credential> storedCredentials = List.of(
                 rs256, blankAlgorithm, es512, es384, es256Bravo, unknownAlgorithm, es256Alpha, otherType, ps256, eddsa);
         FixedCredentialStore store = new FixedCredentialStore(storedCredentials);
-        WebAuthnCredentialDirectoryController controller = controller(provider(store));
+        WebAuthnCredentialDirectoryApplicationService service =
+                new WebAuthnCredentialDirectoryApplicationService(store);
+        WebAuthnCredentialDirectoryController controller = controller(provider(service));
 
         List<WebAuthnCredentialDirectoryController.WebAuthnCredentialSummary> summaries = controller.listCredentials();
 
@@ -55,7 +58,8 @@ final class WebAuthnCredentialDirectoryControllerTest {
                 .containsExactly("ES256", "ES256", "ES384", "ES512", "RS256", "PS256", "EdDSA", " ", "unknown");
     }
 
-    private WebAuthnCredentialDirectoryController controller(ObjectProvider<CredentialStore> provider) {
+    private WebAuthnCredentialDirectoryController controller(
+            ObjectProvider<WebAuthnCredentialDirectoryApplicationService> provider) {
         return new WebAuthnCredentialDirectoryController(provider);
     }
 
@@ -78,38 +82,39 @@ final class WebAuthnCredentialDirectoryControllerTest {
                 Instant.parse("2025-01-01T00:00:00Z"));
     }
 
-    private ObjectProvider<CredentialStore> provider(CredentialStore store) {
+    private ObjectProvider<WebAuthnCredentialDirectoryApplicationService> provider(
+            WebAuthnCredentialDirectoryApplicationService service) {
         return new ObjectProvider<>() {
             @Override
-            public CredentialStore getObject(Object... args) {
-                return store;
+            public WebAuthnCredentialDirectoryApplicationService getObject(Object... args) {
+                return service;
             }
 
             @Override
-            public CredentialStore getObject() {
-                return store;
+            public WebAuthnCredentialDirectoryApplicationService getObject() {
+                return service;
             }
 
             @Override
-            public CredentialStore getIfAvailable() {
-                return store;
+            public WebAuthnCredentialDirectoryApplicationService getIfAvailable() {
+                return service;
             }
 
             @Override
-            public CredentialStore getIfUnique() {
-                return store;
+            public WebAuthnCredentialDirectoryApplicationService getIfUnique() {
+                return service;
             }
 
             @Override
-            public java.util.stream.Stream<CredentialStore> stream() {
-                if (store == null) {
+            public java.util.stream.Stream<WebAuthnCredentialDirectoryApplicationService> stream() {
+                if (service == null) {
                     return java.util.stream.Stream.empty();
                 }
-                return java.util.stream.Stream.of(store);
+                return java.util.stream.Stream.of(service);
             }
 
             @Override
-            public java.util.stream.Stream<CredentialStore> orderedStream() {
+            public java.util.stream.Stream<WebAuthnCredentialDirectoryApplicationService> orderedStream() {
                 return stream();
             }
         };

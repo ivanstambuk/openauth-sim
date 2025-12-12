@@ -81,6 +81,12 @@ public final class WebAuthnAssertionGenerationApplicationService {
         this(null, null);
     }
 
+    /** Convenience factory for stored-generation facades that should not instantiate core adapters. */
+    public static WebAuthnAssertionGenerationApplicationService usingDefaults(CredentialStore credentialStore) {
+        return new WebAuthnAssertionGenerationApplicationService(
+                credentialStore, new WebAuthnCredentialPersistenceAdapter());
+    }
+
     public GenerationResult generate(GenerationCommand command) {
         return generate(command, false);
     }

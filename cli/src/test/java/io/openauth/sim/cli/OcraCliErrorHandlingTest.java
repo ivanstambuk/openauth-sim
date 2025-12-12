@@ -3,7 +3,6 @@ package io.openauth.sim.cli;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.CredentialType;
@@ -18,7 +17,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -207,21 +205,6 @@ final class OcraCliErrorHandlingTest {
     }
 
     @Test
-    @DisplayName("resolveDescriptor skips non-OCRA credentials")
-    void resolveDescriptorFiltersNonOcraCredentials() throws Exception {
-        harness.reset();
-        OcraCli.ListCommand command = new OcraCli.ListCommand();
-        command.parent = harness.parent();
-
-        try (MapDbCredentialStore store = MapDbCredentialStore.inMemory().open()) {
-            store.save(Credential.create("basic", CredentialType.GENERIC, SecretMaterial.fromHex("00"), Map.of()));
-
-            Optional<OcraCredentialDescriptor> descriptor = command.resolveDescriptor(store, "basic");
-            assertTrue(descriptor.isEmpty());
-        }
-    }
-
-    @Test
     @DisplayName("list command treats OCRA deserialisation issues as validation errors")
     void listCommandHandlesInvalidRecord() throws Exception {
         Path directory = Files.createTempDirectory("ocra-cli-list-invalid");
@@ -265,7 +248,7 @@ final class OcraCliErrorHandlingTest {
             assertEquals(CommandLine.ExitCode.OK, importExit, harness.stderr());
 
             OcraCli.ListCommand listCommand = listCommand();
-            var previous = listCommand.swapPersistenceAdapter(null);
+            var previous = listCommand.swapManagementFactory(store -> null);
 
             try {
                 harness.reset();
@@ -278,7 +261,7 @@ final class OcraCliErrorHandlingTest {
                 assertTrue(stderr.contains("reasonCode=unexpected_error"));
                 assertTrue(stderr.contains("sanitized=false"));
             } finally {
-                listCommand.swapPersistenceAdapter(previous);
+                listCommand.swapManagementFactory(previous);
             }
         } finally {
             deleteRecursively(directory);

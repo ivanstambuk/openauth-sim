@@ -180,6 +180,12 @@ _Last updated:_ 2025-11-13
 - 2025-11-08 – `./gradlew --no-daemon spotlessApply check` (900 s timeout due to EMV console JS tests)
 
 ## Notes / TODOs
+- [ ] T-006-30 – Enforce EUDIW facade seams via application layer + CredentialStoreFactory (NFR-facade-seam).  
+  _Intent:_ Add ArchUnit coverage and refactor any remaining EUDIW facades (CLI/REST/UI/tools) to avoid direct `io.openauth.sim.core..`/`MapDbCredentialStore`, delegating through `application` services and shared persistence factory; update docs/snapshots if behaviour shifts.  
+  _Verification:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :rest-api:test :cli:test`  
+  - `./gradlew --no-daemon spotlessApply check`
 - [ ] T-006-24 – Same-device/DC-API exploration once prioritised.
 - [ ] T-006-25 – OpenID4VCI issuance simulator alignment for end-to-end wallet journeys.
 - [ ] T-006-26 – Trusted Authorities expansion (live TL updates, OpenID Federation resolution enhancements).

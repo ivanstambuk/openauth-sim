@@ -1,7 +1,7 @@
 # Feature 004 Tasks – FIDO2/WebAuthn Assertions & Attestations
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-13
+_Status:_ In progress  
+_Last updated:_ 2025-12-11
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -82,6 +82,13 @@ _Last updated:_ 2025-11-13
   - `./gradlew --no-daemon :application:test --tests "*WebAuthn*ServiceTest"`  
   - `./gradlew --no-daemon :cli:test --tests "*Fido2Cli*"`  
   - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.Fido2*EndpointTest"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [ ] T-004-12 – Enforce FIDO2/WebAuthn facade seams via application layer + CredentialStoreFactory (NFR-facade-seam).  
+  _Intent:_ Add/extend ArchUnit rules preventing CLI/REST/UI/standalone from depending on `io.openauth.sim.core..`/`MapDbCredentialStore` and refactor remaining facades to delegate solely through `application` services; refresh OpenAPI snapshots and how-to docs if behaviour shifts.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :rest-api:test :cli:test`  
   - `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log

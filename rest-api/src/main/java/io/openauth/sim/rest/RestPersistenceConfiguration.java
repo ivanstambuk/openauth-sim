@@ -1,7 +1,6 @@
 package io.openauth.sim.rest;
 
 import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.MapDbCredentialStore;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -19,7 +18,7 @@ class RestPersistenceConfiguration {
     @Bean(destroyMethod = "close")
     @ConditionalOnMissingBean(CredentialStore.class)
     @ConditionalOnProperty(name = "openauth.sim.persistence.enable-store", havingValue = "true", matchIfMissing = true)
-    MapDbCredentialStore credentialStore(@Value("${openauth.sim.persistence.database-path:}") String databasePath)
+    CredentialStore credentialStore(@Value("${openauth.sim.persistence.database-path:}") String databasePath)
             throws IOException {
         Path resolvedPath = resolveDatabasePath(databasePath);
         return CredentialStoreFactory.openFileStore(resolvedPath);

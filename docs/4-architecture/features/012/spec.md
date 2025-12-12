@@ -57,6 +57,7 @@ source for persistence guidance.
 | NFR-012-03 | Deterministic defaults: `credentials.db` remains the only implicit filename; overrides logged once per boot. | Operator predictability | Tests compare resolved path; docs mention manual migrations. | `CredentialStoreFactory`, CLI/REST config. | Spec |
 | NFR-012-04 | IDE hygiene: persistence-related modules stay warning-free and SpotBugs annotations compile everywhere without extra dependencies. | Developer experience | IDE inspection snapshots + regression gate results recorded in plan/tasks. | application, core, cli, rest-api, ui modules. | Spec |
 | NFR-012-05 | Documentation traceability: roadmap/knowledge-map/architecture-graph entries reference Feature 012; `_current-session.md` logs verification commands. | Governance | Doc review + session snapshot before closing tasks. | docs hierarchy. | Spec |
+| NFR-012-06 | Facade seam enforcement: Facade modules (CLI/REST/UI/MCP/standalone/Native Java) must obtain persistence exclusively via `CredentialStoreFactory` and delegate through application services rather than touching `core` persistence internals or constructing `MapDbCredentialStore` directly. | ArchUnit facade-boundary tests and contract tests prevent direct `core`/persistence usage. | application, infra-persistence, facades. | Spec. |
 
 ## UI / Interaction Mock-ups
 

@@ -1,7 +1,7 @@
 # Feature 015 Tasks – MCP Agent Facade
 
-_Status:_ Draft  
-_Last updated:_ 2025-11-18_
+_Status:_ In progress  
+_Last updated:_ 2025-12-11_
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-015-01`), non-goal IDs (`NFR-015-01`), and scenario IDs (`S-015-01`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -61,6 +61,13 @@ _Last updated:_ 2025-11-18_
   _Verification commands:_  
   - `./gradlew --no-daemon :core:test --tests "*EmvCapEngine*"`  
   - `./gradlew --no-daemon :tools-mcp-server:test --tests "*EmvCap*"`
+
+- [ ] T-015-09 – Enforce MCP facade seams (NFR-facade-seam).  
+  _Intent:_ Add MCP-focused ArchUnit rules (tools module) to ensure MCP proxy/tools depend on REST/application seams only (no direct `io.openauth.sim.core..`/`MapDbCredentialStore`), refactor any violations, and refresh tool catalogue metadata if endpoints shift.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon :tools-mcp-server:test :rest-api:test`  
+  - `./gradlew --no-daemon spotlessApply check`
 
 ## Verification Log (Optional)
 - 2025-11-18 (T-015-02 – helper flows): `./gradlew --no-daemon :application:test --tests "*Helper*"`, `./gradlew --no-daemon :rest-api:test --tests "*Helper*"`, `./gradlew --no-daemon :tools-mcp-server:test --tests "*Helper*"`, `./gradlew --no-daemon generateJsonLd check`, `./gradlew --no-daemon spotlessApply check` (all PASS – confirms TOTP helper service + REST endpoint remain green, MCP helper telemetry is covered by tests, and repository-wide gates stayed green after wiring `mcp.totp.helper.lookup`/`mcp.fixtures.list`).

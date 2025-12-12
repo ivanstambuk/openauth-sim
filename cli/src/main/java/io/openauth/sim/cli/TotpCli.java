@@ -4,6 +4,7 @@ import io.openauth.sim.application.preview.OtpPreview;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
 import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.application.telemetry.TotpTelemetryAdapter;
+import io.openauth.sim.application.totp.TotpCredentialDirectoryApplicationService;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationCommand;
 import io.openauth.sim.application.totp.TotpEvaluationApplicationService.EvaluationResult;
@@ -14,11 +15,8 @@ import io.openauth.sim.cli.support.JsonPrinter;
 import io.openauth.sim.cli.support.TelemetryJson;
 import io.openauth.sim.cli.support.VerboseTraceMapper;
 import io.openauth.sim.core.encoding.Base32SecretCodec;
-import io.openauth.sim.core.model.Credential;
-import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.otp.totp.TotpDriftWindow;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
-import io.openauth.sim.core.otp.totp.TotpPersistenceDefaults;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
@@ -26,7 +24,6 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,7 +31,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 import picocli.CommandLine;
 
 /** CLI facade for validating TOTP credentials. */
@@ -175,10 +171,9 @@ public final class TotpCli implements Callable<Integer> {
         @Override
         public Integer call() {
             try (CredentialStore store = openStore()) {
-                List<Credential> credentials = store.findAll().stream()
-                        .filter(credential -> credential.type() == CredentialType.OATH_TOTP)
-                        .sorted(Comparator.comparing(Credential::name))
-                        .collect(Collectors.toList());
+                TotpCredentialDirectoryApplicationService directoryService =
+                        new TotpCredentialDirectoryApplicationService(store);
+                List<TotpCredentialDirectoryApplicationService.Summary> credentials = directoryService.list();
 
                 if (outputJson) {
                     Map<String, Object> data = new LinkedHashMap<>();
@@ -186,49 +181,36 @@ public final class TotpCli implements Callable<Integer> {
                     data.put(
                             "credentials",
                             credentials.stream()
-                                    .map(credential -> {
-                                        Map<String, String> attributes =
-                                                TotpPersistenceDefaults.ensureDefaults(credential.attributes());
-                                        return Map.of(
-                                                "credentialId",
-                                                credential.name(),
-                                                "algorithm",
-                                                attributes.get(TotpPersistenceDefaults.ALGORITHM_ATTRIBUTE),
-                                                "digits",
-                                                attributes.get(TotpPersistenceDefaults.DIGITS_ATTRIBUTE),
-                                                "stepSeconds",
-                                                attributes.get(TotpPersistenceDefaults.STEP_SECONDS_ATTRIBUTE),
-                                                "driftBackwardSteps",
-                                                attributes.get(TotpPersistenceDefaults.DRIFT_BACKWARD_ATTRIBUTE),
-                                                "driftForwardSteps",
-                                                attributes.get(TotpPersistenceDefaults.DRIFT_FORWARD_ATTRIBUTE));
-                                    })
+                                    .map(summary -> Map.of(
+                                            "credentialId",
+                                            summary.credentialId(),
+                                            "algorithm",
+                                            summary.algorithm(),
+                                            "digits",
+                                            summary.digits(),
+                                            "stepSeconds",
+                                            summary.stepSeconds(),
+                                            "driftBackwardSteps",
+                                            summary.driftBackward(),
+                                            "driftForwardSteps",
+                                            summary.driftForward()))
                                     .toList());
-                    Map<String, Object> telemetryFields = new LinkedHashMap<>();
-                    telemetryFields.put("count", credentials.size());
+                    Map<String, Object> telemetryFields = Map.of("count", credentials.size());
                     TelemetryFrame frame = EVALUATION_TELEMETRY.status(
                             "success", nextTelemetryId(), "success", true, null, telemetryFields);
                     JsonPrinter.print(out(), TelemetryJson.response(event("list"), frame, data), true);
                 } else {
                     out().println("event=" + event("list") + " status=success count=" + credentials.size());
 
-                    for (Credential credential : credentials) {
-                        Map<String, String> attributes =
-                                TotpPersistenceDefaults.ensureDefaults(credential.attributes());
-                        String line = "credentialId="
-                                + credential.name()
-                                + " algorithm="
-                                + attributes.get(TotpPersistenceDefaults.ALGORITHM_ATTRIBUTE)
-                                + " digits="
-                                + attributes.get(TotpPersistenceDefaults.DIGITS_ATTRIBUTE)
-                                + " stepSeconds="
-                                + attributes.get(TotpPersistenceDefaults.STEP_SECONDS_ATTRIBUTE)
-                                + " driftBackwardSteps="
-                                + attributes.get(TotpPersistenceDefaults.DRIFT_BACKWARD_ATTRIBUTE)
-                                + " driftForwardSteps="
-                                + attributes.get(TotpPersistenceDefaults.DRIFT_FORWARD_ATTRIBUTE);
-                        out().println(line);
-                    }
+                    credentials.forEach(summary -> out().println(String.format(
+                            Locale.ROOT,
+                            "credentialId=%s algorithm=%s digits=%s stepSeconds=%s driftBackwardSteps=%s driftForwardSteps=%s",
+                            summary.credentialId(),
+                            summary.algorithm(),
+                            summary.digits(),
+                            summary.stepSeconds(),
+                            summary.driftBackward(),
+                            summary.driftForward())));
                 }
 
                 return CommandLine.ExitCode.OK;

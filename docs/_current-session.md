@@ -2,12 +2,20 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-12-10
+- Date: 2025-12-11
 - Primary branch: `main`
 - Other active branches: none
 
 ## Governance & Tooling
 
+- Governance log (2025-12-11, facade seam ArchUnit expansion): Broadened `FacadeDelegationArchitectureTest` to assert CLI/REST HOTP/TOTP/OCRA facades depend on application layer and added a UI MapDB avoidance rule; introduced `OcraCredentialManagementApplicationService.usingDefaults` to keep REST off core factories and reworked CLI OCRA management wiring. Command: `./gradlew --no-daemon :core-architecture-tests:test` (PASS).
+- Governance log (2025-12-11, HOTP directory labels + OpenAPI refresh): HOTP directory summaries now surface seeded option labels via `HotpOperatorSampleData`; added metadata-aware label fallback and regenerated REST OpenAPI snapshots (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`). 
+- Verification log (2025-12-11, full gate): `./gradlew --no-daemon spotlessApply check` (PASS – Selenium UI suites green after HOTP seeding label fix).
+- Analysis log (2025-12-11, facade seam Phase 2 scans):  
+  - `rg --count "io\\.openauth\\.sim\\.core" cli rest-api ui tools standalone` → production hits limited to CLI main classes (Hotp/Totp/Ocra/Emv/Fido2/Eudiw) and REST services/configurations; remainder are tests/fixtures.  
+  - `rg --count "MapDbCredentialStore" cli rest-api ui tools standalone` → only Maintenance CLI (prod) and OCRA/TOTP REST tests; no REST/CLI production facades depend on MapDB directly.  
+  - `rg --count "CredentialStoreFactory" cli rest-api ui tools standalone` → expected usage concentrated in CLI/REST configurations and Maintenance CLI; note production reliance is via factory seams.
+- Governance log (2025-12-11, facade seam ArchUnit rollout): Extended `FacadeDelegationArchitectureTest` to cover EMV/CAP, FIDO2/WebAuthn, EUDIW REST facades and EMV/FIDO/EUDIW CLI facades for application-layer delegation. Commands: `./gradlew --no-daemon :core-architecture-tests:test` (PASS) and `./gradlew --no-daemon spotlessApply check` (PASS, full repo).
 - Governance log (2025-12-10, REST reasonCode parity): Added REST OpenAPI reasonCode enums via @Schema annotations across HOTP/TOTP/EMV/OCRA/WebAuthn responses and introduced `RestOpenApiReasonCodeParityTest` to enforce telemetry parity; regenerated snapshots with `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"` and reran `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.RestOpenApiReasonCodeParityTest"` plus `./gradlew --no-daemon spotlessApply check` (all PASS).
 - Governance log (2025-12-10, CLI schema loader centralisation): Added shared `CliSchemaLoader` in `core` test fixtures and wired both CLI tests (`CliJsonSchemas`) and application parity guard (`CliSchemaParityTest`) to use it; updated `application` test deps to include `testFixtures(projects.core)`. Commands: `./gradlew --no-daemon :application:test --tests "io.openauth.sim.application.telemetry.CliSchemaParityTest"` (PASS) and `./gradlew --no-daemon spotlessApply check` (PASS).
 
@@ -182,6 +190,94 @@
 - Feature 015 (MCP Agent Facade): Plan last updated 2025-11-18 (status Draft). Increment I2 helper flows landed; I3 session/capabilities APIs and I4 auditing/quality gate remain open with documentation/telemetry and JSON-LD refresh pending.
 - Feature 006 (EUDIW OpenID4VP): Plan dated 2025-11-13 (status In progress). Increments through I8 completed (fixtures, wallet, encryption, Trusted Authorities ingestion); Implementation Drift Gate outstanding alongside coverage/spotbugs/jacoco reruns and documentation/telemetry refresh noted in the plan.
 - Cross-feature CLI JSON output parity: ADR-0014 added; HOTP/TOTP/OCRA CLI commands/tests and specs 001–005/015 are mid-update with new `JsonPrinter`/`TelemetryJson`/`VerboseTraceMapper` helpers and standalone wiring pending full gate and docs sync.
+
+## 2025-12-11 – Codex CLI architectural scan
+- Context: Ran a read-only architectural and quality scan of the repository (no code changes) to identify the top five ways to improve overall software-engineering quality before new feature work.
+- Inputs reviewed: project constitution, AGENTS.md, session runbook/quick-reference, roadmap, knowledge map, open-questions log (currently empty), architecture graph, gradle build (root + selected modules), and representative tests across `application`, `rest-api`, `cli`, `ui`, and `core-architecture-tests`.
+- High-level observations: architecture is already strongly spec-driven with good separation (core/application/infra-persistence/cli/rest-api/ui/tools/standalone) and rich quality gates (Spotless, Jacoco aggregated coverage, PIT, reflectionScan, architecture tests, JS tests, EMV fixture sync). Active workstreams centre on Feature 006 (EUDIW OpenID4VP), Feature 015 (MCP Agent Facade), and cross-facade CLI JSON output parity.
+- Next suggested actions: prioritise a small number of cross-cutting improvements (e.g., harden facade boundaries and dependency rules, tighten mutation/coverage targets where practical, standardise telemetry and JSON schema evolution across facades, and consider a thin “facade contract tests” layer that exercises the same scenarios via Native Java, CLI, REST, UI, and MCP).
+
+## 2025-12-11 – Codex CLI implementation-plan authoring
+- Context: Authored five temporary implementation plan drafts (application-as-seam, cross-facade contract tests, JSON/telemetry governance, Gradle quality conventions, facade contract playbook) stored under `docs/tmp` for execution guidance; migrate or retire them once their content is folded into specs/plans/tasks.
+- Notes for future agents: each draft includes a step tracker, spec/plan/task touchpoints, and assumes small, test-first increments with `./gradlew --no-daemon spotlessApply check` and `qualityGate` runs at key milestones.
+
+## 2025-12-11 – Facade seam alignment (docs-only)
+- Updated specs 001–006, 009, 012, 014, and 015 with NFRs that require facades to delegate via `application` services and obtain persistence via `CredentialStoreFactory`, prohibiting direct `core` or `MapDbCredentialStore` usage.
+- No code or test changes; no build commands run.
+
+## 2025-12-11 – Facade seam execution plan decision
+- Decision: Stage the facade-seam program in protocol/facade slices (Option A). Open question closed.
+- Rationale: Lower risk and keeps increments ≤90 minutes with green builds between slices.
+
+## 2025-12-11 – Facade seam dependency scan (baseline before refactors)
+- Commands:  
+  - `rg "io\\.openauth\\.sim\\.core" -n cli rest-api ui tools standalone`  
+  - `rg "MapDbCredentialStore" -n`
+- Findings (production hotspots):
+  - CLI commands (`HotpCli`, `TotpCli`, `OcraCli`, `EmvCli`, `MaintenanceCli`) import core domain/persistence types directly; Maintenance CLI builds `MapDbCredentialStore` builders without the factory.
+  - REST application configs/services/controllers import core domain/persistence types (e.g., `RestPersistenceConfiguration`, `Hotp/Totp/Ocra/Emv/WebAuthn` services/controllers, `InlineSecretInput`) and some use `MapDbCredentialStore` directly.
+  - Application layer has `OcraCredentialResolvers` referencing `MapDbCredentialStore` directly.
+  - Tests heavily use core and MapDB builders (expected) but will need review once production seams are tightened.
+- Next steps (staged slices): start refactoring CLI/REST per protocol to use `application` services and `CredentialStoreFactory`, add/extend architecture tests to enforce the seam, and remove direct MapDB usages in production code paths.
+
+## 2025-12-11 – Facade seam slice 1 (persistence bean + OCRA resolver)
+- Changes:
+  - `rest-api` persistence bean now exposes `CredentialStore` (no direct `MapDbCredentialStore` reference) while still resolving the same database path via `CredentialStoreFactory`.
+  - Removed the `MapDbCredentialStore` overload from `OcraCredentialResolvers`; verification now accepts the `CredentialStore` interface only.
+- Commands:
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.RestPersistenceConfigurationTest"`
+- Status: PASS (config cache stored). Next slices: tighten ArchUnit rules and refactor remaining facade paths to drop direct core/MapDB usage.
+
+## 2025-12-11 – Facade seam slice 2 (ArchUnit enforcement for MapDB + REST OCRA)
+- Changes:
+  - Reworked `FacadeDelegationArchitectureTest` to fail when CLI (excluding Maintenance) or REST facades depend on `MapDbCredentialStore`; added a rule asserting REST OCRA services rely on application-layer seams and avoid core OCRA factories/calculators.
+  - Compilation/test fix: removed duplicate `@Test` annotation.
+- Commands:
+  - `./gradlew --no-daemon :core-architecture-tests:test`
+- Status: PASS (config cache reused). Remaining slices: refactor CLI/REST HOTP/TOTP/OCRA codepaths off direct core/persistence types as needed and expand ArchUnit coverage per protocol.
+
+## 2025-12-11 – Facade seam slice 3 (HOTP/TOTP directory via application layer)
+- Changes:
+  - Added application directory services: `HotpCredentialDirectoryApplicationService`, `TotpCredentialDirectoryApplicationService`, and `OcraCredentialManagementApplicationService` scaffolding for upcoming OCRA lifecycle refactor.
+  - REST HOTP/TOTP credential directory controllers now consume the new application services; beans wired in `HotpApplicationConfiguration` and `TotpApplicationConfiguration`.
+  - CLI HOTP/TOTP `list` commands now call the application directory services instead of touching `CredentialStore`/core descriptors directly.
+  - Updated HOTP directory controller test to inject the new service.
+- Commands:
+  - `./gradlew --no-daemon :cli:compileJava :rest-api:compileJava`
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.HotpCliTest" --tests "io.openauth.sim.cli.TotpCliTest"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.hotp.HotpCredentialDirectoryControllerTest"`
+- Status: PASS. Next slices: extend the OCRA lifecycle refactor to use `OcraCredentialManagementApplicationService` and finish facade/core decoupling across remaining endpoints.
+
+## 2025-12-11 – Facade seam slice 4 (OCRA lifecycle via application layer)
+- Changes:
+  - Added `OcraCredentialManagementApplicationService` and wired it into REST via `OcraApplicationConfiguration`.
+  - REST OCRA credential directory now uses the management service for listing and samples (no direct `CredentialStore`/core descriptors); sample lookup reuses `OcraOperatorSampleData`.
+  - Added descriptor-aware sample resolution helper to `OcraOperatorSampleData`.
+  - CLI unchanged for OCRA evaluate/verify; lifecycle refactor landed for REST directory.
+- Commands:
+  - `./gradlew --no-daemon :rest-api:compileJava`
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliTest" --tests "io.openauth.sim.cli.OcraCliCommandTest"`
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.hotp.HotpCredentialDirectoryControllerTest"`
+- Status: PASS. Remaining: migrate OCRA CLI import/list/delete to the management service (currently still uses core descriptors), then consider extending directory services for delete in REST/CLI if desired.
+
+## 2025-12-11 – Facade seam slice 5 (OCRA CLI lifecycle via application layer)
+- Changes:
+  - OCRA CLI `import`, `list`, and `delete` now use `OcraCredentialManagementApplicationService`; removed direct `CredentialStore` → core descriptor mapping in CLI.
+  - Restored a test helper to resolve descriptors through the management service for existing tests.
+- Commands:
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliTest" --tests "io.openauth.sim.cli.OcraCliCommandTest" --tests "io.openauth.sim.cli.OcraCliErrorHandlingTest"`
+  - `./gradlew --no-daemon :rest-api:compileJava`
+- Status: PASS. Next: consider adding delete support to REST OCRA directory (if desired) and running full `spotlessApply check` once remaining facade refactors are complete.
+
+## 2025-12-11 – Facade seam slice 6 (REST OCRA delete + tests)
+- Changes:
+  - REST OCRA credential directory now supports DELETE `/api/v1/ocra/credentials/{id}` via `OcraCredentialManagementApplicationService`.
+  - Updated directory test harness with a management-service provider and new delete coverage; added descriptor-aware sample resolution helper in `OcraOperatorSampleData`.
+  - Tests adjusted to align with application-layer summaries.
+- Commands:
+  - `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ocra.OcraCredentialDirectoryControllerTest"`
+  - `./gradlew --no-daemon :cli:test --tests "io.openauth.sim.cli.OcraCliTest" --tests "io.openauth.sim.cli.OcraCliCommandTest" --tests "io.openauth.sim.cli.OcraCliErrorHandlingTest"`
+- Status: PASS. Next: run full `spotlessApply check` when ready to stage; consider REST delete parity for other protocols if needed.
 
 ## Decisions & Notes
 
@@ -386,3 +482,18 @@ codex-commit-review.sh: failed (exit 141); using manual Conventional Commit mess
 - Governance log (2025-11-18, user request "Commit & push all changes"): git config core.hooksPath -> githooks (session reset guard before staging and verification).
 
 - Governance log (2025-11-18, user request "Commit & push all changes"): pre-commit targeted :rest-api:test FAILED (EmvCapOperatorUiSeleniumTest, Fido2OperatorUiSeleniumTest, WebAuthnCredentialSanitisationTest; committing with --no-verify at operator request).
+
+## Hook guard 2025-12-11T00:00:00Z
+
+`git config core.hooksPath`:
+githooks
+
+### Workstream – Facade seam hardening (2025-12-11)
+
+- Implementation log (2025-12-11): Added `EmvCapCredentialDirectoryApplicationService` and wired `EmvCapApplicationConfiguration` + `EmvCapCredentialDirectoryController` to delegate through it; normalized EMV directory/detial JSON fields (`id`, `*HexLength`, uppercase `sha256:*`) while keeping secrets omitted from listings.
+- Implementation log (2025-12-11): Expanded `FacadeDelegationArchitectureTest` to cover REST EMV directory/seed services alongside existing CLI EMV/FIDO2/EUDIW and REST FIDO/EUDIW seam checks; MapDB avoidance rules for CLI/REST/UI remain enforced.
+- Implementation log (2025-12-11): Removed residual facade-layer persistence adapters by refactoring EMV stored evaluation + REST evaluation to use `EmvCapCredentialDirectoryApplicationService`, updating OCRA CLI to use `OcraCredentialManagementApplicationService.usingDefaults`, and adding FIDO2 application `usingDefaults` + directory/attestation metadata services so CLI/REST no longer instantiate core verifiers/adapters directly.
+- Documentation log (2025-12-11): Migrated remaining plan steps into feature tasks/specs and removed the temporary `docs/tmp/1-application-facade-seams-plan.md` after implementation.
+- Verification log (2025-12-11): `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.emv.cap.EmvCapCredentialDirectoryControllerTest"` (PASS).
+- Verification log (2025-12-11): `./gradlew --no-daemon :core-architecture-tests:test` (PASS).
+- Verification log (2025-12-11): `./gradlew --no-daemon spotlessApply check` (PASS – full gate after EMV facade refactor + ArchUnit expansion).

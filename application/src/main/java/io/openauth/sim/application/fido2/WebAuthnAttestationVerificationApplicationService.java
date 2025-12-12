@@ -63,6 +63,13 @@ public final class WebAuthnAttestationVerificationApplicationService {
         this.signaturePolicy = Objects.requireNonNull(signaturePolicy, "signaturePolicy");
     }
 
+    /** Convenience factory for facades that should not instantiate core verifiers directly. */
+    public static WebAuthnAttestationVerificationApplicationService usingDefaults(
+            Fido2TelemetryAdapter telemetryAdapter) {
+        return new WebAuthnAttestationVerificationApplicationService(
+                new WebAuthnAttestationVerifier(), telemetryAdapter);
+    }
+
     public VerificationResult verify(VerificationCommand command) {
         return verify(command, false);
     }

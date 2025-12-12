@@ -1,7 +1,7 @@
 # Feature 014 Tasks – Native Java API Facade
 
-_Status:_ Complete  
-_Last updated:_ 2025-11-15
+_Status:_ In progress  
+_Last updated:_ 2025-12-11
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 
@@ -23,6 +23,13 @@ _Last updated:_ 2025-11-15
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`  
   _Notes:_ 2025-11-15 – Updated the Feature 014 spec and plan to standardise on `:core:javadoc` and `:application:javadoc` for documentation, define a future aggregation task (for example, `:application:nativeJavaApiJavadoc`) owned by Feature 010 that exports a small Native Java API reference into ``docs/3-reference/native-java-api`/`, and clarified that `*-from-java` guides act as runbooks linking back to that reference rather than duplicating full API docs.
+
+- [x] T-014-04 – Codify facade→application seam rules across all protocols (NFR-facade-seam, ADR-0007 alignment).  
+  _Intent:_ Elevate the facade seam guardrail to the Native Java feature by adding cross-protocol ArchUnit rules (CLI/REST/UI/standalone/tools) that require delegation through `application` entry points and `CredentialStoreFactory`, document the rule in the Feature 014 spec/plan, and ensure protocol features reference it.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+  _Status update (2025-12-11):_ Completed cross-protocol seam codification: FacadeDelegationArchitectureTest covers CLI + REST seams for HOTP/TOTP/OCRA/EMV/FIDO2/EUDIW, MCP tools are guarded (allow-empty due to module classpath), and MapDB avoidance rules apply to CLI/REST/UI. Full `spotlessApply check` + architecture suite passed; NFR-014-05 records the rule and protocol specs reference it.
 
 ## Verification Log
 - 2025-11-15 – `./gradlew --no-daemon :application:nativeJavaApiJavadoc` and `./gradlew --no-daemon spotlessApply check` (Feature 014 Native Java + Javadoc drift gate: verified seams, guides, usage tests, and Javadoc CI wiring as captured in the plan’s Implementation Drift Gate section).

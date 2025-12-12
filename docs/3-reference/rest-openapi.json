@@ -521,44 +521,6 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Verification payload failed validation",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                },
-                "examples" : {
-                  "Missing context" : {
-                    "summary" : "Validation failure",
-                    "description" : "Missing context",
-                    "value" : {
-                      "error" : "invalid_input",
-                      "message" : "sessionHex is required",
-                      "details" : {
-                        "telemetryId" : "rest-ocra-verify-<uuid>",
-                        "status" : "invalid",
-                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
-                        "field" : "sessionHex",
-                        "reasonCode" : "session_required",
-                        "sanitized" : "true"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Credential not found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
-                }
-              }
-            }
-          },
           "200" : {
             "description" : "Verification completed",
             "content" : {
@@ -597,6 +559,44 @@
                 }
               }
             }
+          },
+          "422" : {
+            "description" : "Verification payload failed validation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                },
+                "examples" : {
+                  "Missing context" : {
+                    "summary" : "Validation failure",
+                    "description" : "Missing context",
+                    "value" : {
+                      "error" : "invalid_input",
+                      "message" : "sessionHex is required",
+                      "details" : {
+                        "telemetryId" : "rest-ocra-verify-<uuid>",
+                        "status" : "invalid",
+                        "suite" : "OCRA-1:HOTP-SHA256-8:QA08-S064",
+                        "field" : "sessionHex",
+                        "reasonCode" : "session_required",
+                        "sanitized" : "true"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Credential not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraVerificationErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -618,16 +618,6 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation successful",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
-                }
-              }
-            }
-          },
           "400" : {
             "description" : "Invalid request payload",
             "content" : {
@@ -662,6 +652,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OcraEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation successful",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OcraEvaluationResponse"
                 }
               }
             }
@@ -704,22 +704,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Replay completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpReplayResponse"
-                }
-              }
-            }
-          },
           "422" : {
             "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpReplayErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Replay completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpReplayResponse"
                 }
               }
             }
@@ -754,22 +754,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -804,22 +804,22 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "Evaluation completed",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
-                }
-              }
-            }
-          },
           "500" : {
             "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HotpEvaluationErrorResponse"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Evaluation completed",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HotpEvaluationResponse"
                 }
               }
             }
@@ -1011,8 +1011,8 @@
           "required" : true
         },
         "responses" : {
-          "422" : {
-            "description" : "Validation error",
+          "500" : {
+            "description" : "Unexpected error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1031,8 +1031,8 @@
               }
             }
           },
-          "500" : {
-            "description" : "Unexpected error",
+          "422" : {
+            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1061,6 +1061,16 @@
           "required" : true
         },
         "responses" : {
+          "422" : {
+            "description" : "Validation error",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
+                }
+              }
+            }
+          },
           "200" : {
             "description" : "Evaluation completed",
             "content" : {
@@ -1073,16 +1083,6 @@
           },
           "500" : {
             "description" : "Unexpected error",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/EmvCapEvaluationErrorResponse"
-                }
-              }
-            }
-          },
-          "422" : {
-            "description" : "Validation error",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1366,6 +1366,35 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/EmvCapCredentialHydration"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ocra/credentials/{credentialId}" : {
+      "delete" : {
+        "tags" : [ "ocra-credential-directory-controller" ],
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "credentialId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
                 }
               }
             }
@@ -2691,23 +2720,6 @@
           }
         }
       },
-      "OcraVerificationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          }
-        }
-      },
       "OcraVerificationMetadata" : {
         "type" : "object",
         "properties" : {
@@ -2758,6 +2770,23 @@
           }
         }
       },
+      "OcraVerificationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
       "OcraEvaluationRequest" : {
         "type" : "object",
         "properties" : {
@@ -2803,6 +2832,26 @@
           }
         }
       },
+      "OcraEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
+          }
+        }
+      },
       "OcraEvaluationResponse" : {
         "type" : "object",
         "properties" : {
@@ -2819,26 +2868,6 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/OtpPreviewResponse"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "OcraEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "error" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
             }
           },
           "trace" : {
@@ -2880,6 +2909,31 @@
           },
           "verbose" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "HotpReplayErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "match", "otp_mismatch", "credential_not_found", "invalid_hotp_metadata", "validation_error", "unexpected_error" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/VerboseTracePayload"
           }
         }
       },
@@ -2934,7 +2988,21 @@
           }
         }
       },
-      "HotpReplayErrorResponse" : {
+      "HotpStoredEvaluationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "credentialId" : {
+            "type" : "string"
+          },
+          "window" : {
+            "$ref" : "#/components/schemas/EvaluationWindowRequest"
+          },
+          "verbose" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "HotpEvaluationErrorResponse" : {
         "type" : "object",
         "properties" : {
           "status" : {
@@ -2943,7 +3011,7 @@
           "reasonCode" : {
             "type" : "string",
             "description" : "Machine-readable outcome code",
-            "enum" : [ "match", "otp_mismatch", "credential_not_found", "invalid_hotp_metadata", "validation_error", "unexpected_error" ]
+            "enum" : [ "generated", "credential_not_found", "validation_error", "counter_overflow", "unexpected_error" ]
           },
           "message" : {
             "type" : "string"
@@ -2956,20 +3024,6 @@
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpStoredEvaluationRequest" : {
-        "type" : "object",
-        "properties" : {
-          "credentialId" : {
-            "type" : "string"
-          },
-          "window" : {
-            "$ref" : "#/components/schemas/EvaluationWindowRequest"
-          },
-          "verbose" : {
-            "type" : "boolean"
           }
         }
       },
@@ -3033,31 +3087,6 @@
           },
           "metadata" : {
             "$ref" : "#/components/schemas/HotpEvaluationMetadata"
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/VerboseTracePayload"
-          }
-        }
-      },
-      "HotpEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string",
-            "description" : "Machine-readable outcome code",
-            "enum" : [ "generated", "credential_not_found", "validation_error", "counter_overflow", "unexpected_error" ]
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
           },
           "trace" : {
             "$ref" : "#/components/schemas/VerboseTracePayload"
@@ -3967,6 +3996,31 @@
           }
         }
       },
+      "EmvCapEvaluationErrorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "type" : "string",
+            "description" : "Machine-readable outcome code",
+            "enum" : [ "generated", "invalid_input", "unexpected_error" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "trace" : {
+            "$ref" : "#/components/schemas/EmvCapTracePayload"
+          }
+        }
+      },
       "EmvCapEvaluationResponse" : {
         "type" : "object",
         "properties" : {
@@ -4013,31 +4067,6 @@
           },
           "sanitized" : {
             "type" : "boolean"
-          }
-        }
-      },
-      "EmvCapEvaluationErrorResponse" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "type" : "string"
-          },
-          "reasonCode" : {
-            "type" : "string",
-            "description" : "Machine-readable outcome code",
-            "enum" : [ "generated", "invalid_input", "unexpected_error" ]
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "details" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
-          },
-          "trace" : {
-            "$ref" : "#/components/schemas/EmvCapTracePayload"
           }
         }
       },

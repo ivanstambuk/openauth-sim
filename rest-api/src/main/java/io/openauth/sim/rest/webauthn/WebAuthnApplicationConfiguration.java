@@ -4,16 +4,14 @@ import io.openauth.sim.application.fido2.WebAuthnAssertionGenerationApplicationS
 import io.openauth.sim.application.fido2.WebAuthnAttestationGenerationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationSeedService;
+import io.openauth.sim.application.fido2.WebAuthnAttestationStoredMetadataApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnAttestationVerificationApplicationService;
+import io.openauth.sim.application.fido2.WebAuthnCredentialDirectoryApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnEvaluationApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnReplayApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnSeedApplicationService;
 import io.openauth.sim.application.fido2.WebAuthnTrustAnchorResolver;
 import io.openauth.sim.application.telemetry.TelemetryContracts;
-import io.openauth.sim.core.fido2.WebAuthnAssertionVerifier;
-import io.openauth.sim.core.fido2.WebAuthnAttestationGenerator;
-import io.openauth.sim.core.fido2.WebAuthnAttestationVerifier;
-import io.openauth.sim.core.fido2.WebAuthnCredentialPersistenceAdapter;
 import io.openauth.sim.core.store.CredentialStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,15 +21,13 @@ class WebAuthnApplicationConfiguration {
 
     @Bean
     WebAuthnEvaluationApplicationService webAuthnEvaluationApplicationService(CredentialStore credentialStore) {
-        return new WebAuthnEvaluationApplicationService(
-                credentialStore, new WebAuthnAssertionVerifier(), new WebAuthnCredentialPersistenceAdapter());
+        return WebAuthnEvaluationApplicationService.usingDefaults(credentialStore);
     }
 
     @Bean
     WebAuthnAssertionGenerationApplicationService webAuthnAssertionGenerationApplicationService(
             CredentialStore credentialStore) {
-        return new WebAuthnAssertionGenerationApplicationService(
-                credentialStore, new WebAuthnCredentialPersistenceAdapter());
+        return WebAuthnAssertionGenerationApplicationService.usingDefaults(credentialStore);
     }
 
     @Bean
@@ -48,27 +44,20 @@ class WebAuthnApplicationConfiguration {
     @Bean
     WebAuthnAttestationGenerationApplicationService webAuthnAttestationGenerationApplicationService(
             CredentialStore credentialStore) {
-        return new WebAuthnAttestationGenerationApplicationService(
-                new WebAuthnAttestationGenerator(),
-                TelemetryContracts.fido2AttestAdapter(),
-                credentialStore,
-                new WebAuthnCredentialPersistenceAdapter());
+        return WebAuthnAttestationGenerationApplicationService.usingDefaults(
+                credentialStore, TelemetryContracts.fido2AttestAdapter());
     }
 
     @Bean
     WebAuthnAttestationVerificationApplicationService webAuthnAttestationVerificationApplicationService() {
-        return new WebAuthnAttestationVerificationApplicationService(
-                new WebAuthnAttestationVerifier(), TelemetryContracts.fido2AttestAdapter());
+        return WebAuthnAttestationVerificationApplicationService.usingDefaults(TelemetryContracts.fido2AttestAdapter());
     }
 
     @Bean
     WebAuthnAttestationReplayApplicationService webAuthnAttestationReplayApplicationService(
             CredentialStore credentialStore) {
-        return new WebAuthnAttestationReplayApplicationService(
-                new WebAuthnAttestationVerifier(),
-                TelemetryContracts.fido2AttestReplayAdapter(),
-                credentialStore,
-                new WebAuthnCredentialPersistenceAdapter());
+        return WebAuthnAttestationReplayApplicationService.usingDefaults(
+                credentialStore, TelemetryContracts.fido2AttestReplayAdapter());
     }
 
     @Bean
@@ -82,7 +71,14 @@ class WebAuthnApplicationConfiguration {
     }
 
     @Bean
-    WebAuthnCredentialPersistenceAdapter webAuthnCredentialPersistenceAdapter() {
-        return new WebAuthnCredentialPersistenceAdapter();
+    WebAuthnCredentialDirectoryApplicationService webAuthnCredentialDirectoryApplicationService(
+            CredentialStore credentialStore) {
+        return new WebAuthnCredentialDirectoryApplicationService(credentialStore);
+    }
+
+    @Bean
+    WebAuthnAttestationStoredMetadataApplicationService webAuthnAttestationStoredMetadataApplicationService(
+            CredentialStore credentialStore) {
+        return WebAuthnAttestationStoredMetadataApplicationService.usingDefaults(credentialStore);
     }
 }

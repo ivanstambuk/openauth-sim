@@ -72,6 +72,16 @@ public final class WebAuthnAttestationGenerationApplicationService {
         this(generator, telemetryAdapter, null, null);
     }
 
+    /** Convenience factory for facades that need stored attestation generation without core instantiation. */
+    public static WebAuthnAttestationGenerationApplicationService usingDefaults(
+            CredentialStore credentialStore, Fido2TelemetryAdapter telemetryAdapter) {
+        return new WebAuthnAttestationGenerationApplicationService(
+                new WebAuthnAttestationGenerator(),
+                telemetryAdapter,
+                credentialStore,
+                new WebAuthnCredentialPersistenceAdapter());
+    }
+
     public GenerationResult generate(GenerationCommand command) {
         return generate(command, false);
     }

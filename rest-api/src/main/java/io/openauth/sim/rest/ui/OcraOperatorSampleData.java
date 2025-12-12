@@ -183,6 +183,25 @@ public final class OcraOperatorSampleData {
         return Optional.empty();
     }
 
+    public static Optional<SampleDefinition> findByDescriptor(
+            io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor descriptor) {
+        if (descriptor == null) {
+            return Optional.empty();
+        }
+        String presetKey = descriptor.metadata().get("presetKey");
+        if (presetKey != null && !presetKey.isBlank()) {
+            Optional<SampleDefinition> byPreset = findByPresetKey(presetKey);
+            if (byPreset.isPresent()) {
+                return byPreset;
+            }
+        }
+        Optional<SampleDefinition> byName = findByCredentialName(descriptor.name());
+        if (byName.isPresent()) {
+            return byName;
+        }
+        return findBySuite(descriptor.suite().value());
+    }
+
     private static SampleDefinition oneWaySample(
             String key,
             String label,

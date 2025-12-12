@@ -1,5 +1,7 @@
 package io.openauth.sim.cli;
 
+import io.openauth.sim.application.ocra.OcraCredentialManagementApplicationService;
+import io.openauth.sim.application.ocra.OcraCredentialManagementApplicationService.Summary;
 import io.openauth.sim.application.ocra.OcraCredentialResolvers;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService;
 import io.openauth.sim.application.ocra.OcraEvaluationApplicationService.EvaluationCommand;
@@ -20,16 +22,9 @@ import io.openauth.sim.application.telemetry.TelemetryFrame;
 import io.openauth.sim.cli.support.JsonPrinter;
 import io.openauth.sim.cli.support.TelemetryJson;
 import io.openauth.sim.cli.support.VerboseTraceMapper;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialDescriptor;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory.OcraCredentialRequest;
-import io.openauth.sim.core.credentials.ocra.OcraCredentialPersistenceAdapter;
 import io.openauth.sim.core.encoding.Base32SecretCodec;
-import io.openauth.sim.core.model.Credential;
-import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
-import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.IOException;
@@ -37,8 +32,6 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -248,8 +241,8 @@ public final class OcraCli implements Callable<Integer> {
         @CommandLine.ParentCommand
         OcraCli parent;
 
-        private final OcraCredentialFactory credentialFactory = new OcraCredentialFactory();
-        private OcraCredentialPersistenceAdapter persistenceAdapter = new OcraCredentialPersistenceAdapter();
+        private java.util.function.Function<CredentialStore, OcraCredentialManagementApplicationService>
+                managementFactory = OcraCredentialManagementApplicationService::usingDefaults;
 
         @CommandLine.Option(
                 names = "--output-json",
@@ -267,20 +260,6 @@ public final class OcraCli implements Callable<Integer> {
 
         protected Path databasePath() {
             return parent.databasePath();
-        }
-
-        protected OcraCredentialFactory credentialFactory() {
-            return credentialFactory;
-        }
-
-        protected OcraCredentialPersistenceAdapter persistenceAdapter() {
-            return persistenceAdapter;
-        }
-
-        OcraCredentialPersistenceAdapter swapPersistenceAdapter(OcraCredentialPersistenceAdapter adapter) {
-            OcraCredentialPersistenceAdapter previous = persistenceAdapter;
-            persistenceAdapter = adapter;
-            return previous;
         }
 
         protected int failValidation(String event, String reasonCode, String message) {
@@ -313,24 +292,16 @@ public final class OcraCli implements Callable<Integer> {
             return CredentialStoreFactory.openFileStore(database);
         }
 
-        protected Optional<OcraCredentialDescriptor> resolveDescriptor(CredentialStore store, String id) {
-            return store.findByName(id)
-                    .filter(credential -> credential.type() == CredentialType.OATH_OCRA)
-                    .map(VersionedCredentialRecordMapper::toRecord)
-                    .map(persistenceAdapter()::deserialize);
+        protected OcraCredentialManagementApplicationService management(CredentialStore store) {
+            return managementFactory.apply(store);
         }
 
-        protected OcraCredentialDescriptor createDescriptor(
-                String name,
-                String suite,
-                String sharedSecretHex,
-                Long counter,
-                String pinHashHex,
-                Duration allowedDrift,
-                Map<String, String> metadata) {
-            OcraCredentialRequest request = new OcraCredentialRequest(
-                    name, suite, sharedSecretHex, SecretEncoding.HEX, counter, pinHashHex, allowedDrift, metadata);
-            return credentialFactory().createDescriptor(request);
+        java.util.function.Function<CredentialStore, OcraCredentialManagementApplicationService> swapManagementFactory(
+                java.util.function.Function<CredentialStore, OcraCredentialManagementApplicationService> factory) {
+            java.util.function.Function<CredentialStore, OcraCredentialManagementApplicationService> previous =
+                    managementFactory;
+            managementFactory = factory;
+            return previous;
         }
     }
 
@@ -381,27 +352,24 @@ public final class OcraCli implements Callable<Integer> {
             String event = event("import");
 
             Duration allowedDrift = allowedDriftSeconds == null ? null : Duration.ofSeconds(allowedDriftSeconds);
-            OcraCredentialDescriptor descriptor;
-            try {
-                descriptor = createDescriptor(
-                        credentialId.trim(),
-                        suite.trim(),
-                        sharedSecretHex.replace(" ", "").trim(),
-                        counter,
-                        hasText(pinHashHex) ? pinHashHex.trim() : null,
-                        allowedDrift,
-                        Map.of("source", "cli"));
-            } catch (IllegalArgumentException ex) {
-                return failValidation(event, "validation_error", ex.getMessage());
-            }
 
             try (CredentialStore store = openStore()) {
-                store.save(VersionedCredentialRecordMapper.toCredential(
-                        persistenceAdapter().serialize(descriptor)));
+                OcraCredentialManagementApplicationService service = management(store);
+                io.openauth.sim.application.ocra.OcraCredentialManagementApplicationService.ImportCommand command =
+                        new io.openauth.sim.application.ocra.OcraCredentialManagementApplicationService.ImportCommand(
+                                credentialId.trim(),
+                                suite.trim(),
+                                sharedSecretHex.replace(" ", "").trim(),
+                                SecretEncoding.HEX,
+                                Optional.ofNullable(counter),
+                                hasText(pinHashHex) ? Optional.of(pinHashHex.trim()) : Optional.empty(),
+                                Optional.ofNullable(allowedDrift),
+                                Map.of("source", "cli"));
+                OcraCredentialManagementApplicationService.ImportResult result = service.importCredential(command);
 
                 Map<String, String> fields = new LinkedHashMap<>();
-                fields.put("credentialId", descriptor.name());
-                fields.put("suite", descriptor.suite().value());
+                fields.put("credentialId", result.credentialId());
+                fields.put("suite", suite.trim());
                 if (outputJson) {
                     TelemetryFrame frame = buildFrame(adapterFor(event), "success", "created", true, fields);
                     JsonPrinter.print(out(), TelemetryJson.response(event, frame, new LinkedHashMap<>(fields)), true);
@@ -429,15 +397,8 @@ public final class OcraCli implements Callable<Integer> {
         public Integer call() {
             String event = event("list");
             try (CredentialStore store = openStore()) {
-                List<OcraCredentialDescriptor> descriptors = new ArrayList<>();
-                for (Credential credential : store.findAll()) {
-                    if (credential.type() != CredentialType.OATH_OCRA) {
-                        continue;
-                    }
-                    descriptors.add(
-                            persistenceAdapter().deserialize(VersionedCredentialRecordMapper.toRecord(credential)));
-                }
-                descriptors.sort(Comparator.comparing(OcraCredentialDescriptor::name));
+                OcraCredentialManagementApplicationService service = management(store);
+                List<Summary> descriptors = service.list();
 
                 if (outputJson) {
                     Map<String, Object> payload = new LinkedHashMap<>();
@@ -447,17 +408,11 @@ public final class OcraCli implements Callable<Integer> {
                             descriptors.stream()
                                     .map(descriptor -> {
                                         Map<String, Object> entry = new LinkedHashMap<>();
-                                        entry.put("credentialId", descriptor.name());
-                                        entry.put("suite", descriptor.suite().value());
-                                        entry.put(
-                                                "hasCounter",
-                                                descriptor.counter().isPresent());
-                                        entry.put("hasPin", descriptor.pinHash().isPresent());
-                                        entry.put(
-                                                "hasDrift",
-                                                descriptor
-                                                        .allowedTimestampDrift()
-                                                        .isPresent());
+                                        entry.put("credentialId", descriptor.credentialId());
+                                        entry.put("suite", descriptor.suite());
+                                        entry.put("hasCounter", descriptor.hasCounter());
+                                        entry.put("hasPin", descriptor.hasPin());
+                                        entry.put("hasDrift", descriptor.hasDrift());
                                         if (verbose && !descriptor.metadata().isEmpty()) {
                                             entry.put("metadata", descriptor.metadata());
                                         }
@@ -472,17 +427,19 @@ public final class OcraCli implements Callable<Integer> {
                     summary.put("count", Integer.toString(descriptors.size()));
                     emitSummary(event, "success", "success", summary);
 
-                    for (OcraCredentialDescriptor descriptor : descriptors) {
+                    for (Summary descriptor : descriptors) {
                         String line = String.format(
                                 Locale.ROOT,
                                 "credentialId=%s suite=%s hasCounter=%s hasPin=%s hasDrift=%s",
-                                descriptor.name(),
-                                descriptor.suite().value(),
-                                descriptor.counter().isPresent(),
-                                descriptor.pinHash().isPresent(),
-                                descriptor.allowedTimestampDrift().isPresent());
+                                descriptor.credentialId(),
+                                descriptor.suite(),
+                                descriptor.hasCounter(),
+                                descriptor.hasPin(),
+                                descriptor.hasDrift());
                         out().println(line);
-                        if (verbose && !descriptor.metadata().isEmpty()) {
+                        if (verbose
+                                && descriptor.metadata() != null
+                                && !descriptor.metadata().isEmpty()) {
                             descriptor.metadata().forEach((key, value) -> out().println(String.format(
                                     Locale.ROOT, "  metadata.%s=%s", key, value.replace('\n', ' '))));
                         }
@@ -511,7 +468,8 @@ public final class OcraCli implements Callable<Integer> {
         public Integer call() {
             String event = event("delete");
             try (CredentialStore store = openStore()) {
-                boolean removed = store.delete(credentialId.trim());
+                OcraCredentialManagementApplicationService service = management(store);
+                boolean removed = service.delete(credentialId.trim());
                 if (!removed) {
                     return failValidation(event, "credential_not_found", "credentialId " + credentialId + " not found");
                 }

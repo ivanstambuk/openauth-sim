@@ -1,5 +1,6 @@
 package io.openauth.sim.cli;
 
+import io.openauth.sim.application.hotp.HotpCredentialDirectoryApplicationService;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationCommand;
 import io.openauth.sim.application.hotp.HotpEvaluationApplicationService.EvaluationResult;
@@ -14,15 +15,12 @@ import io.openauth.sim.cli.support.EphemeralCredentialStore;
 import io.openauth.sim.cli.support.JsonPrinter;
 import io.openauth.sim.cli.support.TelemetryJson;
 import io.openauth.sim.cli.support.VerboseTraceMapper;
-import io.openauth.sim.core.model.Credential;
-import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.support.ProjectPaths;
 import io.openauth.sim.infra.persistence.CredentialStoreFactory;
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -267,10 +265,9 @@ public final class HotpCli implements Callable<Integer> {
         @Override
         public Integer call() {
             try (CredentialStore store = openStore()) {
-                List<Credential> credentials = store.findAll().stream()
-                        .filter(credential -> credential.type() == CredentialType.OATH_HOTP)
-                        .sorted(Comparator.comparing(Credential::name))
-                        .toList();
+                HotpCredentialDirectoryApplicationService directoryService =
+                        new HotpCredentialDirectoryApplicationService(store);
+                List<HotpCredentialDirectoryApplicationService.Summary> credentials = directoryService.list();
 
                 if (outputJson) {
                     Map<String, Object> data = new LinkedHashMap<>();
@@ -278,18 +275,17 @@ public final class HotpCli implements Callable<Integer> {
                     data.put(
                             "credentials",
                             credentials.stream()
-                                    .map(credential -> Map.of(
+                                    .map(summary -> Map.of(
                                             "credentialId",
-                                            credential.name(),
+                                            summary.credentialId(),
                                             "algorithm",
-                                            credential.attributes().get("hotp.algorithm"),
+                                            summary.algorithm(),
                                             "digits",
-                                            credential.attributes().get("hotp.digits"),
+                                            summary.digits(),
                                             "counter",
-                                            credential.attributes().get("hotp.counter")))
+                                            summary.counter()))
                                     .toList());
-                    Map<String, Object> telemetryFields = new LinkedHashMap<>();
-                    telemetryFields.put("count", credentials.size());
+                    Map<String, Object> telemetryFields = Map.of("count", credentials.size());
                     TelemetryFrame frame = ISSUANCE_TELEMETRY.status(
                             "success", nextTelemetryId(), "success", true, null, telemetryFields);
                     JsonPrinter.print(out(), TelemetryJson.response(event("list"), frame, data), true);
@@ -300,18 +296,13 @@ public final class HotpCli implements Callable<Integer> {
                                     event("list"),
                                     credentials.size());
 
-                    for (Credential credential : credentials) {
-                        String algorithm = credential.attributes().get("hotp.algorithm");
-                        String digits = credential.attributes().get("hotp.digits");
-                        String counter = credential.attributes().get("hotp.counter");
-                        out().printf(
-                                        Locale.ROOT,
-                                        "credentialId=%s algorithm=%s digits=%s counter=%s%n",
-                                        credential.name(),
-                                        algorithm,
-                                        digits,
-                                        counter);
-                    }
+                    credentials.forEach(summary -> out().printf(
+                                    Locale.ROOT,
+                                    "credentialId=%s algorithm=%s digits=%s counter=%s%n",
+                                    summary.credentialId(),
+                                    summary.algorithm(),
+                                    summary.digits(),
+                                    summary.counter()));
                 }
                 return CommandLine.ExitCode.OK;
             } catch (IllegalArgumentException ex) {
