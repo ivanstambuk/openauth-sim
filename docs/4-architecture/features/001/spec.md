@@ -43,6 +43,7 @@ core → application → CLI/REST → operator console; issuance remains out of 
 | NFR-001-02 | Compatibility | Schema-v1 metadata remains backward compatible; no migrations triggered. | Regression tests run with legacy stores. | Core/application persistence. | Spec. |
 | NFR-001-03 | Quality | `./gradlew spotlessApply check` + quality gate stay green; ArchUnit/PMD/SpotBugs cover new modules. | CI build history. | Gradle tooling. | Spec. |
 | NFR-001-04 | Facade seam | All HOTP facades (CLI/REST/UI/MCP/standalone/Native Java) delegate only through `application.hotp` services and obtain persistence via `CredentialStoreFactory`; facades must not depend directly on `core` internals or construct `MapDbCredentialStore` themselves. | ArchUnit facade-boundary tests and contract tests block direct `core`/persistence usage. | application, infra-persistence, facades. | Spec. |
+| NFR-001-05 | Cross-facade parity | Canonical HOTP scenarios must yield identical semantic outcomes and JSON payload parity across implemented facades (Native Java, CLI, REST, UI, standalone). Enforced by Feature 013 cross-facade contract tests (FR-013-11). MCP parity is deferred until Feature 015 closes its drift gate. | Cross-facade contract suites green; discrepancies resolved via spec updates before facade changes. | application, cli, rest-api, ui, standalone. | Spec. |
 
 ## UI / Interaction Mock-ups
 ```

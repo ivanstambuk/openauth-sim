@@ -15,3 +15,4 @@ When communicating options to the user—whether resolving an open question or p
 <!-- Add new rows below with Status set to Open only. Remove the row once resolved. -->
 
 | Date | Context | Question | Status | Resolution target |
+|------|---------|----------|--------|------------------|

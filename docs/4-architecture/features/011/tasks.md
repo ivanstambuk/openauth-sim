@@ -1,7 +1,7 @@
 # Feature 011 Tasks – Governance & Workflow Automation
 
 _Status:_ Complete  
-_Last updated:_ 2025-11-16
+_Last updated:_ 2025-12-12
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -13,7 +13,19 @@ _Last updated:_ 2025-11-16
   - `git config core.hooksPath`  
   - `./gradlew --no-daemon spotlessApply check`  
 
+- [x] T-011-02 – Enforce semicolon-free commit messages and multi-`-m` handoff protocol (FR-011-02, FR-011-09).  
+  _Intent:_ Reject commit messages containing semicolons via managed hooks, require assistants to compose multi-line commit bodies using repeated `-m` flags, and update governance docs/runbooks to state the fenced-code-block Git handoff rule.  
+  _Verification commands:_  
+  - `git config core.hooksPath`  
+  - `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`  
+  - `./githooks/commit-msg <temp-message-file>`  
+  - `./gradlew --no-daemon spotlessApply check`  
+
 ## Verification Log
+- 2025-12-12 – `git config core.hooksPath` (hook guard check)
+- 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
+- 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with semicolon fixture (expected rejection)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, PASS)
 - 2025-11-13 – `git config core.hooksPath` (closure guard check)
 - 2025-11-13 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
 - 2025-11-13 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, 10 s, 96 tasks: 2 executed, 94 up-to-date)

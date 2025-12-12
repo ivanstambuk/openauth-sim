@@ -18,7 +18,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 
 ## Commit Protocol Reminder
 - When the user says “commit” or “commit and push,” assistants prepare the commit while the user runs the commands. Stage (or explicitly list) the relevant files, verify `./gradlew --no-daemon spotlessApply check` has passed, and gather the staged diff for review.
-- Run [./tools/codex-commit-review.sh](./tools/codex-commit-review.sh) (or equivalent) to obtain a gitlint-compliant Conventional Commit message. When code and docs change together, include a `Spec impact:` line that explicitly lists the impacted artefacts (spec/plan/tasks/ADR paths). Do **not** use yes/no flags. Then output copy/paste-ready `git commit …` and `git push …` commands (with any required timeouts noted). The operator executes those commands locally unless they explicitly delegate execution.
+- Run [./tools/codex-commit-review.sh](./tools/codex-commit-review.sh) (or equivalent) to obtain a gitlint-compliant Conventional Commit message. When code and docs change together, include a `Spec impact:` line that explicitly lists the impacted artefacts (spec/plan/tasks/ADR paths). Commit messages must not contain semicolons; if a body needs multiple lines, compose it using multiple `-m` flags. Do **not** use yes/no flags. Then output copy/paste-ready fenced-code-block `git commit …` and `git push …` commands (with any required timeouts noted). The operator executes those commands locally unless they explicitly delegate execution.
 
 ## Handoff Prompt Template
 ```

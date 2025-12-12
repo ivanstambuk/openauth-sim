@@ -45,6 +45,20 @@ ensure_open_questions_guardrail() {
   fi
 }
 
+enforce_no_semicolons_if_message_available() {
+  local msg_file
+  msg_file=$(git rev-parse --git-path COMMIT_EDITMSG 2>/dev/null || echo "")
+  [[ -n $msg_file && -f $msg_file ]] || return 0
+
+  local semicolon_lines
+  semicolon_lines=$(grep -n ';' "$msg_file" || true)
+  if [[ -n $semicolon_lines ]]; then
+    log "Semicolons are forbidden in commit messages."
+    printf '%s\n' "$semicolon_lines" >&2
+    die "Rewrite the commit message using multiple -m flags (no ';')."
+  fi
+}
+
 
 is_file_staged() {
   local target=$1
@@ -153,6 +167,7 @@ collect_staged_files() {
   fi
 
   ensure_open_questions_guardrail
+  enforce_no_semicolons_if_message_available
 }
 
 validate_environment() {

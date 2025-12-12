@@ -3,7 +3,7 @@
 _Linked specification:_ [docs/4-architecture/features/013/spec.md](docs/4-architecture/features/013/spec.md)  
 _Linked tasks:_ [docs/4-architecture/features/013/tasks.md](docs/4-architecture/features/013/tasks.md)  
 _Status:_ In review  
-_Last updated:_ 2025-11-15  
+_Last updated:_ 2025-12-12  
 _Owners:_ Ivan (project owner)  
 _Roadmap entry:_ #13 – Toolchain & Quality Platform
 
@@ -182,6 +182,7 @@ Per Q013-01 (resolved 2025-11-16), Feature 013 will pursue **Option A – RE
 | S-013-05 | Gradle wrapper/plugin upgrade steps captured with warning-mode + configuration-cache commands. | P3-I1 |
 | S-013-06 | Legacy entry-point removal documented; telemetry/router references updated. | P3-I1 |
 | S-013-07 | Roadmap/knowledge map/session log ([docs/_current-session.md](docs/_current-session.md))/session logs reflect toolchain ownership. | P3-I4 |
+| S-013-08 | Cross-facade contract tests enforce parity across implemented facades. | I013-CF-* |
 
 ## Analysis Gate
 After P3-I4 completes (cross-doc sync + logging), run [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md), capturing the
@@ -199,6 +200,7 @@ commands executed and any outstanding TODOs in `_current-session.md` and this pl
 - Capture Gradle wrapper/plugin upgrade cadence for future releases.
 - Consider automation to ensure `legacyEmit`/router shims never reappear (simple `rg` guard in quality pipeline).
 - Add a lightweight fixture-sync helper for EMV/CAP trace provenance: Gradle tasks in `rest-api` to verify and sync `trace-provenance-example.json` between `docs/` and ``rest-api/docs`/` (see Feature 005 T-005-19..T-005-23, T-005-67 for context).
+- Implement cross-facade contract tests initiative (see Active Increment below) and record qualityGate runtime deltas per NFR-013-01.
 
 ## Active Increment – EMV/CAP provenance fixture sync
 
@@ -215,4 +217,35 @@ commands executed and any outstanding TODOs in `_current-session.md` and this pl
      - `./gradlew --no-daemon spotlessApply check` (PASS – workspace-wide quality gate after build-logic updates)  
    - Feature linkage: keeps the dual-fixture requirement documented in Feature 005 (T-005-19..T-005-23, T-005-67) enforceable via tooling instead of manual copy steps.
 
-$chunk
+## Active Increment – Cross-facade contract tests
+
+> Goal: define canonical scenarios per protocol and enforce parity across Native Java (`application`), CLI, REST, operator UI, and standalone facades. MCP parity is explicitly deferred until Feature 015 closes its drift gate.
+
+1. **I013-CF-1 – Scenario matrix + normalised contract (delivered 2025-12-12)**
+   - Catalogue canonical scenarios per protocol by mapping FR/Scenario IDs in Features 001–006 to an explicit matrix (success/validation/failure branches).
+   - Define a test-only normalised result record (`CanonicalFacadeResult`) capturing: `success`, `reasonCode`, core payload fields (OTP/counter/epochSeconds/etc), `includeTrace` presence, and `telemetryId`.
+   - Define a deterministic `ScenarioEnvironment` (fixed `Clock`, seeded in-memory `CredentialStore`, preset IDs) to guarantee stable parity runs across facades.
+
+2. **I013-CF-2 – Shared scenarios + harness scaffolding (delivered 2025-12-12)**
+   - Host shared scenario definitions and harness utilities in `application` test fixtures (`java-test-fixtures`), reusing existing `core` fixtures.
+   - Add factories that load scenarios from `docs/test-vectors/**` and `data/` without duplicating vectors.
+   - Add unit tests ensuring scenario definitions match core fixture expectations.
+
+3. **I013-CF-3 – HOTP/TOTP/OCRA parity suites (delivered 2025-12-12)**
+   - Implement facade harnesses:
+     - Native Java: direct `*EvaluationApplicationService` calls.
+     - REST: in-process Spring Boot tests (`RANDOM_PORT`) + normalisation.
+     - CLI: in-process Picocli execution with `--output-json` parsing.
+     - Standalone: validate CLI/REST parity via the same harnesses (no separate seam unless new behaviour appears).
+   - Add parameterised cross-facade contract tests for HOTP/TOTP/OCRA (evaluate + replay + one failure branch each).
+   - Resolve any parity gaps via spec updates first, then facade convergence.
+
+4. **I013-CF-4 – FIDO2/EMV/CAP/EUDIW + UI parity (delivered 2025-12-12)**
+   - Extend harnesses and scenarios to FIDO2/WebAuthn, EMV/CAP, and EUDIW OpenID4VP.
+   - Add minimal UI parity checks (1–2 canonical scenarios per protocol) reusing existing Selenium flows; tag tests to keep default build fast.
+
+5. **I013-CF-5 – Quality gate wiring + docs (delivered 2025-12-12)**
+   - Wire contract tests into `check` and `qualityGate` via JUnit tags (e.g., `@Tag("crossFacadeContract")`) and document commands in this plan/tasks and Feature 013 spec.
+   - Added `:rest-api:crossFacadeContractTest` to run tagged suites directly.
+   - Record runtime deltas in `_current-session.md` per NFR-013-01.
+   - Remove `docs/tmp/2-cross-facade-contract-tests-plan.md` once this increment set ships and all content is preserved in specs/plan/tasks.

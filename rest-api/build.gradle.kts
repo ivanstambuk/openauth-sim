@@ -97,6 +97,7 @@ dependencies {
         libsCatalog.findLibrary("selenium-htmlunit-driver").get()
     val spotbugsAnnotations =
         libsCatalog.findLibrary("spotbugs-annotations").get()
+    val picocli = libsCatalog.findLibrary("picocli").get()
 
     implementation(enforcedPlatform(springBootBom))
     implementation(projects.core)
@@ -110,6 +111,9 @@ dependencies {
     testImplementation(enforcedPlatform(springBootBom))
     testImplementation(springBootStarterTest)
     testImplementation(seleniumHtmlUnitDriver)
+    testImplementation(testFixtures(projects.application))
+    testImplementation(projects.cli)
+    testImplementation(picocli)
     testImplementation(spotbugsAnnotations) {
         because("HtmlUnit classes are compiled with @SuppressFBWarnings and need the annotation on the classpath")
     }
@@ -154,6 +158,18 @@ tasks.register<SyncEmvTraceProvenanceFixture>("syncEmvTraceProvenanceFixture") {
 
 tasks.withType<Test>().configureEach {
     dependsOn("verifyEmvTraceProvenanceFixture")
+}
+
+val standardTest = tasks.named<Test>("test")
+tasks.register<Test>("crossFacadeContractTest") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs cross-facade contract parity suites (tagged crossFacadeContract)."
+    testClassesDirs = standardTest.get().testClassesDirs
+    classpath = standardTest.get().classpath
+    useJUnitPlatform {
+        includeTags("crossFacadeContract")
+    }
+    shouldRunAfter(standardTest)
 }
 
 tasks.named("check") {

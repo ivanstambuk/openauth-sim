@@ -1,7 +1,7 @@
 # Feature 013 Tasks – Toolchain & Quality Platform
 
 _Status:_ In review  
-_Last updated:_ 2025-11-16
+_Last updated:_ 2025-12-12
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -78,7 +78,39 @@ _Last updated:_ 2025-11-16
   - `./gradlew --no-daemon qualityGate` (2025-11-16)  
   _Notes:_ `_current-session.md` captures the legacy 2025-11-11 command outputs and the 2025-11-16 module sweeps used to finalize the drift gate.
 
+- [x] T-013-08 – Cross-facade scenario matrix + normalised contract (FR-013-11, S-013-08).  
+  _Intent:_ Extract canonical scenarios per protocol from Features 001–006, define the shared scenario matrix (success/validation/failure), and introduce the test-only `CanonicalFacadeResult`/`ScenarioEnvironment` contracts.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test --tests "*CanonicalScenario*"` (once scaffolding lands)  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-09 – Shared scenarios + harness scaffolding (FR-013-11).  
+  _Intent:_ Add `java-test-fixtures` to `application` and host canonical scenario factories plus facade harness utilities (Native Java/REST/CLI/standalone) with deterministic store/clock seeding.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test :cli:test :rest-api:test`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-10 – HOTP/TOTP/OCRA cross-facade parity suites (FR-013-11).  
+  _Intent:_ Implement parameterised contract tests that run the canonical scenarios through Native Java, REST, and CLI and assert parity for evaluate/replay + one failure branch each; resolve any discrepancies via spec updates first.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test :cli:test :rest-api:test --tests "*CrossFacade*"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-11 – Extend parity to FIDO2/EMV/CAP/EUDIW + UI smoke parity (FR-013-11).  
+  _Intent:_ Extend harnesses/scenarios to FIDO2/WebAuthn, EMV/CAP, and EUDIW OpenID4VP, and add tagged Selenium/JS smoke parity checks (1–2 scenarios per protocol) reusing existing flows.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :application:test :cli:test :rest-api:test :ui:test --tests "*CrossFacade*"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-12 – Wire parity suites into `qualityGate` + remove temp sketch (FR-013-11).  
+  _Intent:_ Add JUnit tags/Gradle wiring so cross-facade contract tests run under `check`/`qualityGate`, document commands/runtime deltas in plan/spec, and delete `docs/tmp/2-cross-facade-contract-tests-plan.md` once fully migrated.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon qualityGate`  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
+- 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
+- 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity)
 - 2025-11-16 – `./gradlew --no-daemon spotlessApply check` (PASS – Option A MCP design captured in plan/tasks; no code shipped)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture` (PASS – typed task verifies fixture parity before every REST test/check run)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture` (PASS – mirrors canonical docs fixture into `rest-api/docs` and logs copy locations)

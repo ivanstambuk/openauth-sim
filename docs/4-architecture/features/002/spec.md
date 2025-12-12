@@ -43,6 +43,7 @@ slice spanning core → application → CLI/REST → operator console; issuance/
 | NFR-002-02 | Compatibility | schema-v1 remains backward compatible; no migrations. | Legacy stores load successfully. | Persistence module. | Spec. |
 | NFR-002-03 | Quality | `./gradlew qualityGate` + `spotlessApply` stay green. | CI pipeline. | Gradle tooling. | Spec. |
 | NFR-002-04 | Facade seam | All TOTP facades (CLI/REST/UI/MCP/standalone/Native Java) delegate only through `application.totp` services and acquire persistence via `CredentialStoreFactory`; facades must not reference `core` internals or instantiate `MapDbCredentialStore` directly. | ArchUnit facade-boundary tests and contract tests prevent direct `core`/persistence usage. | application, infra-persistence, facades. | Spec. |
+| NFR-002-05 | Cross-facade parity | Canonical TOTP scenarios must yield identical semantic outcomes and JSON payload parity across implemented facades (Native Java, CLI, REST, UI, standalone). Enforced by Feature 013 cross-facade contract tests (FR-013-11). MCP parity is deferred until Feature 015 closes its drift gate. | Cross-facade contract suites green; discrepancies resolved via spec updates before facade changes. | application, cli, rest-api, ui, standalone. | Spec. |
 
 ## UI / Interaction Mock-ups
 ```

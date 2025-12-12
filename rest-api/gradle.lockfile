@@ -52,6 +52,7 @@ commons-io:commons-io:2.10.0=testCompileClasspath,testPmdAuxClasspath,testRuntim
 commons-net:commons-net:3.9.0=testCompileClasspath,testPmdAuxClasspath,testRuntimeClasspath
 dev.failsafe:failsafe:3.3.2=testCompileClasspath,testPmdAuxClasspath,testRuntimeClasspath
 info.picocli:picocli:4.7.6=checkstyle
+info.picocli:picocli:4.7.7=testCompileClasspath,testPmdAuxClasspath,testRuntimeClasspath
 io.github.eisop:dataflow-errorprone:3.41.0-eisop1=annotationProcessor,testAnnotationProcessor
 io.github.java-diff-utils:java-diff-utils:4.12=annotationProcessor,testAnnotationProcessor
 io.micrometer:micrometer-commons:1.13.4=compileClasspath,mainPmdAuxClasspath,runtimeClasspath,testCompileClasspath,testPmdAuxClasspath,testRuntimeClasspath

@@ -8,10 +8,23 @@ require_command() {
   command -v "$binary" >/dev/null 2>&1 || die "$guidance"
 }
 
+enforce_no_semicolons() {
+  local file=$1
+  local semicolon_lines
+  semicolon_lines=$(grep -n ';' "$file" || true)
+  if [[ -n $semicolon_lines ]]; then
+    log "Semicolons are forbidden in commit messages."
+    printf '%s\n' "$semicolon_lines" >&2
+    die "Rewrite the commit message using multiple -m flags (no ';')."
+  fi
+}
+
 main() {
   local commit_msg_file=${1:-}
   [[ -n $commit_msg_file ]] || die "Git did not supply a commit message file path."
   [[ -f $commit_msg_file ]] || die "Commit message file '$commit_msg_file' not found."
+
+  enforce_no_semicolons "$commit_msg_file"
 
   require_command gitlint "Install gitlint: https://github.com/jorisroovers/gitlint#installation"
   log "Running gitlint"

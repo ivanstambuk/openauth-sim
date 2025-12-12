@@ -2,12 +2,13 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-12-11
+- Date: 2025-12-12
 - Primary branch: `main`
 - Other active branches: none
 
 ## Governance & Tooling
 
+- Governance log (2025-12-12, commit-message semicolon ban + Git handoff protocol): Updated managed hooks to reject semicolons in commit messages (commit-msg with best-effort pre-commit scan), and refreshed Feature 011 spec/plan/tasks plus AGENTS/runbooks to mandate multi-`-m` commit bodies and fenced-code-block Git commands when handing off commits. Commands: `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./githooks/commit-msg <temp-message-file>`, and `./gradlew --no-daemon spotlessApply check` (PASS).
 - Governance log (2025-12-11, facade seam ArchUnit expansion): Broadened `FacadeDelegationArchitectureTest` to assert CLI/REST HOTP/TOTP/OCRA facades depend on application layer and added a UI MapDB avoidance rule; introduced `OcraCredentialManagementApplicationService.usingDefaults` to keep REST off core factories and reworked CLI OCRA management wiring. Command: `./gradlew --no-daemon :core-architecture-tests:test` (PASS).
 - Governance log (2025-12-11, HOTP directory labels + OpenAPI refresh): HOTP directory summaries now surface seeded option labels via `HotpOperatorSampleData`; added metadata-aware label fallback and regenerated REST OpenAPI snapshots (`OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.OpenApiSnapshotTest"`). 
 - Verification log (2025-12-11, full gate): `./gradlew --no-daemon spotlessApply check` (PASS – Selenium UI suites green after HOTP seeding label fix).

@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-15 |
+| Last updated | 2025-12-12 |
 | Owners | Ivan (project owner) |
 | Linked plan | [docs/4-architecture/features/013/plan.md](docs/4-architecture/features/013/plan.md) |
 | Linked tasks | [docs/4-architecture/features/013/tasks.md](docs/4-architecture/features/013/tasks.md) |
@@ -12,9 +12,9 @@
 ## Overview
 Feature 013 unifies every toolchain and quality-automation improvement: CLI exit harnesses, Maintenance CLI coverage
 buffers, reflection policy enforcement, Java 17 language upgrades, architecture harmonization, SpotBugs dead-state
-detectors, PMD rule hardening, Gradle wrapper + plugin upgrades, and the removal of legacy CLI/JS entry points. No new
-code ships in this documentation-only iteration; instead, Feature 013 becomes the authoritative documentation for the
-quality gates, verification commands, and governance rules that keep the simulator’s tooling coherent.
+detectors, PMD rule hardening, Gradle wrapper + plugin upgrades, and the removal of legacy CLI/JS entry points. The
+feature now also owns the cross-facade contract parity suites that enforce consistent behaviour across implemented
+facades, alongside the documentation that describes the quality gates and verification commands.
 
 ## Goals
 - G-013-01 – Keep CLI tooling healthy (exit-harness rewrite, Maintenance CLI coverage buffer, corrupted-db tests) with
@@ -45,6 +45,7 @@ quality gates, verification commands, and governance rules that keep the simulat
 | FR-013-08 | Gradle wrapper upgraded to 9.1.0 with plugin bumps (e.g., PIT 1.19.0-rc.2); warning-mode sweeps before/after upgrade documented; configuration cache validated. | [gradle/wrapper/gradle-wrapper.properties](gradle/wrapper/gradle-wrapper.properties) pin 9.1; `./gradlew --warning-mode=all clean check` passes; `./gradlew --configuration-cache help` stored in logs. | Wrapper diff + commands recorded in `_current-session.md`. | Build fails or warnings unresolved. | None. | Spec.
 | FR-013-09 | Legacy CLI/JS entry points (legacy telemetry fallbacks, router shims, old presets) removed; docs/tests reference canonical adapters/routes only. | CLI/REST/UI telemetry uses `TelemetryContracts`; router state keys canonical; docs highlight change. | `rg "legacyEmit"` returns none; Selenium/REST tests confirm canonical routing. | Old entry points linger, causing drift. | Telemetry unaffected (only canonical). | Spec.
 | FR-013-10 | Roadmap, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), and `_current-session.md` capture every toolchain change plus the commands executed (`qualityGate`, `spotbugsMain`, `pmdMain pmdTest`, `gradlew wrapper`, CLI tests). | Logs updated per increment; tasks reference command list. | Manual review before closing tasks. | Auditors cannot trace toolchain updates. | None. | Spec.
+| FR-013-11 | Cross-facade contract tests MUST execute canonical scenarios through every implemented facade (Native Java via `application`, CLI, REST, operator UI, standalone) and assert parity of outcomes, JSON payloads, and reason codes. MCP parity is deferred until Feature 015 reaches its drift gate. | Parameterised contract suites run green for HOTP/TOTP/OCRA first, then extend to FIDO2/EMV/CAP/EUDIW; discrepancies are resolved via spec updates before facade changes. | Contract suites tagged and wired into `check`/`qualityGate`; runtime deltas recorded per NFR-013-01. | Parity failures or missing scenarios block the gate until resolved. | Telemetry remains identical because facades delegate through `application`; contract tests assert reasonCode parity and trace toggles. | Owner directive; cross-facade quality initiative. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |

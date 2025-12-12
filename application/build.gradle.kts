@@ -3,6 +3,7 @@ import org.gradle.kotlin.dsl.getByType
 
 plugins {
     `java-library`
+    `java-test-fixtures`
 }
 
 val libsCatalog = project.extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -16,6 +17,10 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testImplementation(testFixtures(projects.core))
+
+    testFixturesImplementation(projects.infraPersistence)
+    testFixturesImplementation(projects.coreOcra)
+    testFixturesImplementation(testFixtures(projects.core))
 }
 
 tasks.withType<Test>().configureEach {

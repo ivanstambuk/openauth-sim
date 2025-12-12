@@ -52,6 +52,7 @@ represent the normative behaviour for every operator-console increment.
 | NFR-009-03 | Quality gate parity (per Constitution Principle 3) | `./gradlew --no-daemon spotlessApply check`, all JVM `:rest-api`/`:application`/`:cli`/`:ui` suites, Node harness, and PMD/Spotless must stay green. | Command logs recorded in `_current-session.md`. | Gradle toolchain, Node environment. | Spec |
 | NFR-009-04 | Accessibility (tabs, info drawer, validation, preview accents) | Tablist focus, Info drawer, validation messaging, and preview accent styling meet WCAG/keyboard expectations. | Selenium/axe audits + manual review. | Thymeleaf templates, CSS tokens. | Spec |
 | NFR-009-05 | Node harness determinism | JS tests run consistently (no timers/non-deterministic APIs) and add ≤2 minutes to `./gradlew check`. | CI logs, harness README, filtering property. | Node + Gradle configuration. | Spec |
+| NFR-009-06 | Cross-facade UI parity | Operator console behaviour for canonical scenarios must remain consistent with REST/CLI/Native Java outcomes and JSON payloads; cross-facade contract tests in Feature 013 (FR-013-11) provide the normative parity checks for UI-visible success/failure messaging and trace toggles. | Tagged Selenium/JS smoke parity suites green; discrepancies resolved via spec updates before UI changes. | rest-api UI controllers, Selenium/Node harness. | Spec |
 
 ## UI / Interaction Mock-ups
 
