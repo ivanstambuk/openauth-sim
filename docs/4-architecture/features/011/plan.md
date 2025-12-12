@@ -36,7 +36,7 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
 
 ## Implementation Drift Gate
 
-- Summary: Use this gate to ensure that governance artefacts (AGENTS, runbooks, constitution, analysis-gate docs, hooks, gitlint/formatter policy) and recorded commands remain aligned with FR-011-01..09 and NFR-011-01..05, and that every governance change is logged in `_current-session.md`.
+- Summary: Use this gate to ensure that governance artefacts (AGENTS, runbooks, constitution, analysis-gate docs, hooks, gitlint/formatter policy) and recorded commands remain aligned with FR-011-01..10 and NFR-011-01..05, and that every governance change is logged in `_current-session.md`.
 
 - **Checklist for future drift-gate runs (agents):**
   - **Preconditions**
@@ -49,11 +49,12 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
       - `./gradlew --no-daemon qualityGate` when governance changes affect the quality pipeline.  
 
   - **Spec ↔ governance docs mapping**
-    - [ ] For FR-011-01..FR-011-09 and NFR-011-01..05, confirm that:  
+    - [ ] For FR-011-01..FR-011-10 and NFR-011-01..05, confirm that:  
       - [AGENTS.md](AGENTS.md), [docs/5-operations/runbook-session-reset.md](docs/5-operations/runbook-session-reset.md), and [docs/5-operations/session-quick-reference.md](docs/5-operations/session-quick-reference.md) reference Feature 011 as the governance owner and describe hook guard expectations.  
       - [docs/6-decisions/project-constitution.md](docs/6-decisions/project-constitution.md) and [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) align with Feature 011’s description of gates and logging.  
       - [.gitlint](.gitlint), [githooks/pre-commit](githooks/pre-commit), and [githooks/commit-msg](githooks/commit-msg) behaviour matches what the spec/plan/tasks state (gitlint enforcement, cache warm/retry, hook outputs).  
       - Palantir formatter version and usage are consistent across spec/plan/tasks, [gradle/libs.versions.toml](gradle/libs.versions.toml), and [build.gradle.kts](build.gradle.kts).  
+      - Dependency lock refresh guidance (`--write-locks`) is present in AGENTS/runbooks and aligns with the dependency-lock expectations in FR-011-10.  
 
   - **Hooks & formatter behaviour**
     - [ ] Verify that [githooks/pre-commit](githooks/pre-commit) still:  
@@ -81,7 +82,7 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
     - [ ] [docs/_current-session.md](docs/_current-session.md) logs that the Feature 011 Implementation Drift Gate was executed (date, commands, and reference to this plan section).  
 
 ### Drift Report – 2025-11-13
-- **Scope review:** Spec/plan/tasks now describe steady-state governance coverage (AGENTS/runbooks/constitution, managed hooks, Palantir formatter, analysis gate logging) with no legacy references. Roadmap + knowledge map cite Feature 011 as the governance authority (FR-011-01..09, NFR-011-01..05, S-011-01..09).
+- **Scope review:** Spec/plan/tasks now describe steady-state governance coverage (AGENTS/runbooks/constitution, managed hooks, Palantir formatter, analysis gate logging) with no legacy references. Roadmap + knowledge map cite Feature 011 as the governance authority (FR-011-01..10, NFR-011-01..05, S-011-01..10).
 - **Hook & formatter alignment:** Managed hook behaviour (gitlint enforcement, cache warm/retry, hook guard logging) and Palantir formatter pin remain documented across spec/plan/tasks plus supporting docs. Guidance ties hooks to `./gradlew spotlessApply check` and `qualityGate` when needed.
 - **Audit logging:** `_current-session.md` logging expectations persist, and governance docs reference Feature 011 for hook guard + analysis gate procedures.
 - **Verification commands:** `./gradlew --no-daemon spotlessApply check` (2025-11-13, 10 s, 96 tasks: 2 executed, 94 up-to-date) recorded for this drift gate; prior hook guard + gitlint dry runs remain in the verification log and `_current-session.md` entries.
@@ -98,6 +99,8 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
    - Synced AGENTS/runbooks/constitution/analysis-gate docs with the consolidated scope, logged the hook guard + pre-commit dry-run + quality gate commands, and filed remaining automation backlog items.
 5. **I5 – Commit message semicolon ban + assistant Git handoff protocol** (Owner: Ivan, Status: Completed on 2025-12-12)  
    - Added semicolon rejection to managed hooks, required multi-`-m` flags for multi-line commit bodies, and updated AGENTS/runbooks to always present Git commands in fenced code blocks.
+6. **I6 – Dependency lock refresh runbook** (Owner: Ivan, Status: Completed on 2025-12-12)  
+   - Documented `--write-locks` usage for dependency changes (PMD aux classpath lock drift) in AGENTS and the session quick reference.
 
 _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, and manual [githooks/commit-msg](githooks/commit-msg) dry runs when policies change.
 
@@ -113,6 +116,7 @@ _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_
 | S-011-07 | Hooks/docs mention Palantir policy + `spotlessApply` command expectations. | P3-I2 |
 | S-011-08 | `_current-session.md` + session log ([docs/_current-session.md](docs/_current-session.md)) capture each governance increment. | P3-I3/P3-I4 |
 | S-011-09 | Commit messages forbid semicolons and assistants use multi-`-m` and fenced Git commands when handing off commits. | P3-I5 |
+| S-011-10 | Dependency changes refresh Gradle lockfiles early via documented `--write-locks` workflow. | P3-I6 |
 
 ## Analysis Gate
 Run [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) whenever governance artefacts change meaningfully. Record the execution in `_current-session.md` and note any follow-ups in this plan.

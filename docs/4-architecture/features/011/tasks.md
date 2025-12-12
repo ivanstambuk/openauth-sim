@@ -37,6 +37,12 @@ _Last updated:_ 2025-12-12
   - `./githooks/commit-msg <temp-message-file>`  
   - `./gradlew --no-daemon spotlessApply check`  
 
+- [x] T-011-05 – Document dependency lock refresh workflow (FR-011-10).  
+  _Intent:_ Ensure governance docs explicitly cover `--write-locks` usage when dependencies change (especially for PMD aux-classpath), so lockfile drift is resolved immediately rather than surfacing late during full verification.  
+  _Verification commands:_  
+  - `git config core.hooksPath`  
+  - `./gradlew --no-daemon spotlessApply check`  
+
 ## Verification Log
 - 2025-12-12 – `git config core.hooksPath` (hook guard check)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
