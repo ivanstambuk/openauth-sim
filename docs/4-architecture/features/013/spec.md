@@ -56,8 +56,8 @@ facades, alongside the documentation that describes the quality gates and verifi
 |----|-------------|--------|-------------|--------------|--------|
 | NFR-013-01 | Maintain aggregated quality gate runtime within ±15% despite added checks (SpotBugs, PMD, reflection scan). | Developer ergonomics | Record runtimes before/after each increment in plan/tasks. | Gradle build. | Spec.
 | NFR-013-02 | Jacoco coverage buffer (≥0.90 line/branch) restored for Maintenance CLI once the relaxation ends; hotspot reports kept current. | Quality assurance | Jacoco report excerpts stored in plan/tasks; `jacocoCoverageVerification` thresholds documented. | CLI module. | Spec.
-| NFR-013-03 | Reflection guard + sealed hierarchies remain enforced via ArchUnit/`reflectionScan`; local and CI gates share identical configuration. | Governance | ArchUnit + reflectionScan part of `qualityGate`; docs mention command. | `core-architecture-tests`, buildSrc. | Spec.
-| NFR-013-04 | PMD/SpotBugs configuration remains deterministic (shared include/whitelist files, single version pins) and adds ≤2 minutes to CI. | Build stability | CI job durations recorded; configuration stored in repo. | SpotBugs, PMD, buildSrc. | Spec.
+| NFR-013-03 | Reflection guard + sealed hierarchies remain enforced via ArchUnit/`reflectionScan`; local and CI gates share identical configuration. | Governance | ArchUnit + reflectionScan part of `qualityGate`; docs mention command. | `core-architecture-tests`, `gradle/quality-conventions.gradle.kts`. | Spec.
+| NFR-013-04 | PMD/SpotBugs configuration remains deterministic (shared include/whitelist files, single version pins) and adds ≤2 minutes to CI. | Build stability | CI job durations recorded; configuration stored in repo. | SpotBugs, PMD, `gradle/quality-conventions.gradle.kts`. | Spec.
 | NFR-013-05 | Build upgrades (Gradle 9, plugin bumps) remain reproducible with warning-mode sweeps documented and configuration cache validated. | Tooling reliability | `./gradlew --warning-mode=all clean check` + `--configuration-cache help` outputs logged during upgrade. | Gradle wrapper. | Spec.
 
 ## UI / Interaction Mock-ups

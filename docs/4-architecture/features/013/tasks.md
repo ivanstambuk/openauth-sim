@@ -143,6 +143,22 @@ _Last updated:_ 2025-12-12
   - `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"`  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-013-19 – Gradle quality conventions extraction (NFR-013-04, FR-013-10).  
+  _Intent:_ Extract the root `subprojects { ... }` quality configuration block (Checkstyle/PMD/SpotBugs/ErrorProne/Jacoco/PIT +
+  dependency locking + resolution pinning + JUnit/Test defaults) into `gradle/quality-conventions.gradle` (applied via the
+  wrapper `gradle/quality-conventions.gradle.kts`), then replace the inlined block with `subprojects { apply(from = …) }`
+  so the root build stays compact without changing task semantics.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`  
+  - `./gradlew --no-daemon qualityGate`  
+  - `./gradlew --no-daemon reflectionScan`
+
+- [x] T-013-20 – Remove temporary Gradle plan after migration (FR-013-10).  
+  _Intent:_ Delete `docs/tmp/4-gradle-quality-conventions-plan.md` once Feature 013 spec/plan/tasks encode the work and the
+  quality gate is green.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity; adapter layer runner refactor)
@@ -150,6 +166,9 @@ _Last updated:_ 2025-12-12
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:schemaContractTest` (PASS – tagged schema contract suite)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test` (PASS – schema/runtime validation and reasonCode parity checks)
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – schema governance increment complete; temp sketch removed)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – extracted Gradle quality conventions into `gradle/quality-conventions.gradle` and applied via `gradle/quality-conventions.gradle.kts`)
+- 2025-12-12 – `./gradlew --no-daemon qualityGate` (PASS – quality gate remains green after conventions extraction)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – removed `docs/tmp/4-gradle-quality-conventions-plan.md` after migration)
 - 2025-11-16 – `./gradlew --no-daemon spotlessApply check` (PASS – Option A MCP design captured in plan/tasks; no code shipped)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture` (PASS – typed task verifies fixture parity before every REST test/check run)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture` (PASS – mirrors canonical docs fixture into `rest-api/docs` and logs copy locations)

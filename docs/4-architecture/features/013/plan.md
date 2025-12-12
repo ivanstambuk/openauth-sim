@@ -265,3 +265,26 @@ commands executed and any outstanding TODOs in `_current-session.md` and this pl
    - Added `:rest-api:crossFacadeContractTest` to run tagged suites directly.
    - Record runtime deltas in `_current-session.md` per NFR-013-01.
    - Remove `docs/tmp/2-cross-facade-contract-tests-plan.md` once this increment set ships and all content is preserved in specs/plan/tasks.
+
+## Active Increment – Gradle quality conventions
+
+> Goal: extract shared subproject quality wiring (Checkstyle/PMD/SpotBugs/ErrorProne/Jacoco/PIT defaults, dependency locking,
+> resolution strategy pinning, and JUnit/Test defaults) out of the root build file into a reusable convention script while
+> keeping all task semantics unchanged.
+
+1. **I013-GQC-1 – Convention script extraction (delivered 2025-12-12)**
+   - Move the root `subprojects { ... }` quality configuration block into `gradle/quality-conventions.gradle` and keep
+     `gradle/quality-conventions.gradle.kts` as a thin wrapper (Kotlin applied scripts cannot compile against third-party
+     Gradle plugin types without build-logic classpath wiring).
+   - Keep global orchestration tasks in the root build (`architectureTest`, aggregated Jacoco, `mutationTest`,
+     `reflectionScan`, `qualityGate`) and keep their wiring unchanged.
+
+2. **I013-GQC-2 – Root wiring refactor (delivered 2025-12-12)**
+   - Replace the inlined root `subprojects` quality block with `subprojects { apply(from = …) }` (wrapping into the
+     Groovy convention script via `gradle/quality-conventions.gradle.kts`).
+   - Acceptance criteria: `./gradlew --no-daemon spotlessApply check qualityGate reflectionScan` stays green without changes
+     to task names, required task dependencies, or emitted reports.
+
+3. **I013-GQC-3 – Audit trail + temp plan cleanup (delivered 2025-12-12)**
+   - Record the verification commands in [docs/_current-session.md](docs/_current-session.md) (FR-013-10).
+   - Delete `docs/tmp/4-gradle-quality-conventions-plan.md` after the governing Feature 013 artefacts fully encode the work.
