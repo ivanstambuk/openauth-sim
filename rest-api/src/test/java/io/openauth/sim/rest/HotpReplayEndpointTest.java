@@ -17,6 +17,7 @@ import io.openauth.sim.core.otp.hotp.HotpDescriptor;
 import io.openauth.sim.core.otp.hotp.HotpGenerator;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +77,7 @@ class HotpReplayEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored HOTP replay returns match without advancing the counter and emits telemetry")
     void storedReplayDoesNotAdvanceCounter() throws Exception {
         credentialStore.save(storedCredential(10L));
@@ -94,6 +97,8 @@ class HotpReplayEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("HotpReplayResponse", responseBody);
 
             JsonNode response = JSON.readTree(responseBody);
             assertEquals("match", response.get("status").asText());
@@ -126,6 +131,7 @@ class HotpReplayEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Inline HOTP replay matches without mutating counter and emits telemetry")
     void inlineReplayDoesNotAdvanceCounter() throws Exception {
         long counter = 3L;
@@ -148,6 +154,8 @@ class HotpReplayEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("HotpReplayResponse", responseBody);
 
             JsonNode response = JSON.readTree(responseBody);
             assertEquals("match", response.get("status").asText());
@@ -196,6 +204,7 @@ class HotpReplayEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Inline HOTP replay rejects metadata payload to encourage metadata-free UI submissions")
     void inlineReplayRejectsMetadataPayload() throws Exception {
         long counter = 2L;
@@ -220,6 +229,8 @@ class HotpReplayEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("HotpReplayErrorResponse", responseBody);
 
         JsonNode response = JSON.readTree(responseBody);
         assertThat(response.path("status").asText()).isEqualTo("invalid_input");

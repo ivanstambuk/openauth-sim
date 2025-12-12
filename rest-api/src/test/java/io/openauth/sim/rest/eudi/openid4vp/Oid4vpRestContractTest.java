@@ -9,7 +9,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,7 @@ final class Oid4vpRestContractTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("POST /requests returns request metadata, QR payload, telemetry, and verbose trace")
     void createAuthorizationRequestReturnsVerboseTrace() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/eudiw/openid4vp/requests")
@@ -59,6 +62,8 @@ final class Oid4vpRestContractTest {
                 .getResponse()
                 .getContentAsString();
 
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("AuthorizationResponse", responseBody);
+
         JsonNode response = MAPPER.readTree(responseBody);
         assertEquals("HAIP", response.get("profile").asText());
         assertTrue(response.hasNonNull("authorizationRequest"));
@@ -71,6 +76,7 @@ final class Oid4vpRestContractTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("POST /wallet/simulate emits presentation metadata, vpToken JSON, and verbose trace hashes")
     void walletSimulationReturnsPresentationsAndTrace() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/eudiw/openid4vp/wallet/simulate")
@@ -90,6 +96,8 @@ final class Oid4vpRestContractTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("WalletSimulationResponse", responseBody);
 
         JsonNode response = MAPPER.readTree(responseBody);
         assertEquals("SUCCESS", response.get("status").asText());
@@ -130,6 +138,7 @@ final class Oid4vpRestContractTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("POST /presentations/seed returns ingestion metadata and telemetry")
     void presentationSeedReturnsCounts() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/eudiw/openid4vp/presentations/seed")
@@ -147,6 +156,8 @@ final class Oid4vpRestContractTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("SeedResponse", responseBody);
 
         JsonNode response = MAPPER.readTree(responseBody);
         assertEquals("synthetic", response.get("source").asText());

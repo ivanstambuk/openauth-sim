@@ -108,9 +108,36 @@ _Last updated:_ 2025-12-12
   - `./gradlew --no-daemon qualityGate`  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-013-13 – REST OpenAPI runtime schema validation (FR-013-12).  
+  _Intent:_ Validate representative REST responses (success + error branches per protocol) against the `$ref`-linked OpenAPI component schemas in `docs/3-reference/rest-openapi.json` using a lightweight validator (no new deps).  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:test --tests "*Schema*"`  
+  - `./gradlew --no-daemon spotlessApply check`
+
+- [x] T-013-14 – Required-field OpenAPI governance (FR-013-12).  
+  _Intent:_ Mark REST response DTO fields as required (where always present) and ensure optional fields do not violate schema (omit nulls or mark nullable) so schema validation is meaningful; refresh OpenAPI snapshots via the snapshot test.  
+  _Verification commands:_  
+  - `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`  
+  - `./gradlew --no-daemon :rest-api:test`  
+
+- [x] T-013-15 – Schema contract Gradle entrypoints (FR-013-12).  
+  _Intent:_ Add module-scoped Gradle test tasks for schema contract suites (REST/telemetry as applicable) and tag the relevant tests so developers can run them without the full module test suite.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon :rest-api:schemaContractTest`  
+  - `./gradlew --no-daemon :application:test --tests "*Telemetry*"`  
+
+- [x] T-013-16 – Remove temp sketch after migration (FR-013-12).  
+  _Intent:_ Delete `docs/tmp/3-json-and-telemetry-governance-plan.md` once Feature 013 spec/plan/tasks fully encode its requirements and all enforcement tests are green.  
+  _Verification commands:_  
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
 - 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity)
+- 2025-12-12 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"` (PASS – refreshed REST OpenAPI snapshots after schema governance updates)
+- 2025-12-12 – `./gradlew --no-daemon :rest-api:schemaContractTest` (PASS – tagged schema contract suite)
+- 2025-12-12 – `./gradlew --no-daemon :rest-api:test` (PASS – schema/runtime validation and reasonCode parity checks)
+- 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (PASS – schema governance increment complete; temp sketch removed)
 - 2025-11-16 – `./gradlew --no-daemon spotlessApply check` (PASS – Option A MCP design captured in plan/tasks; no code shipped)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:verifyEmvTraceProvenanceFixture` (PASS – typed task verifies fixture parity before every REST test/check run)
 - 2025-11-15 – `./gradlew --no-daemon :rest-api:syncEmvTraceProvenanceFixture` (PASS – mirrors canonical docs fixture into `rest-api/docs` and logs copy locations)

@@ -1,10 +1,12 @@
 package io.openauth.sim.rest.webauthn;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 record WebAuthnReplayErrorResponse(
         @JsonProperty("status") String status,
 
@@ -24,6 +26,7 @@ record WebAuthnReplayErrorResponse(
                     "attestation_format_mismatch",
                     "attestation_object_invalid",
                     "verification_failed",
+                    "webauthn_replay_failed",
                     "unexpected_error"
                 })
         @JsonProperty("reasonCode")

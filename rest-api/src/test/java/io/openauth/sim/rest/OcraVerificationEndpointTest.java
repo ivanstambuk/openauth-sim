@@ -20,6 +20,7 @@ import io.openauth.sim.core.model.SecretEncoding;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecord;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -31,6 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -61,6 +63,7 @@ final class OcraVerificationEndpointTest {
     private MockMvc mockMvc;
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored credential replay returns match with mode-aware telemetry")
     void storedCredentialReplayReturnsMatch() throws Exception {
         TestLogHandler handler = registerTelemetryHandler();
@@ -77,6 +80,8 @@ final class OcraVerificationEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("OcraVerificationResponse", responseBody);
 
             JsonNode response = JSON.readTree(responseBody);
             JsonNode metadata = response.get("metadata");
@@ -242,6 +247,7 @@ final class OcraVerificationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored replay validation failure returns 422 with mode-aware telemetry")
     void storedReplayValidationFailure() throws Exception {
         TestLogHandler handler = registerTelemetryHandler();
@@ -257,6 +263,8 @@ final class OcraVerificationEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("OcraVerificationErrorResponse", responseBody);
 
             JsonNode error = JSON.readTree(responseBody);
             assertEquals("invalid", error.get("details").get("status").asText());

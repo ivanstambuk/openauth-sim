@@ -18,11 +18,13 @@ import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +73,7 @@ class TotpEvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored TOTP evaluation generates OTP within drift window")
     void storedTotpEvaluationGeneratesOtp() throws Exception {
         TotpDescriptor descriptor = TotpDescriptor.create(
@@ -102,6 +105,8 @@ class TotpEvaluationEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("TotpEvaluationResponse", responseBody);
 
         JsonNode response = MAPPER.readTree(responseBody);
         assertEquals("generated", response.get("status").asText());
@@ -246,6 +251,7 @@ class TotpEvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Inline TOTP evaluation rejects invalid Base32 secrets")
     void inlineTotpEvaluationRejectsInvalidBase32Secret() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/totp/evaluate/inline")
@@ -259,6 +265,8 @@ class TotpEvaluationEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("TotpEvaluationErrorResponse", responseBody);
 
         JsonNode response = MAPPER.readTree(responseBody);
         assertEquals("shared_secret_base32_invalid", response.get("reasonCode").asText());

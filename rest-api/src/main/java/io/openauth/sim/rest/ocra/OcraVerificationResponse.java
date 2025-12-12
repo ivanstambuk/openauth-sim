@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record OcraVerificationResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "match",
                     "strict_mismatch",
@@ -21,7 +23,9 @@ record OcraVerificationResponse(
         @JsonProperty("reasonCode")
         String reasonCode,
 
-        @JsonProperty("metadata") OcraVerificationMetadata metadata,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("metadata")
+        OcraVerificationMetadata metadata,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
     // DTO bridging service-layer result to REST response payload.
 }

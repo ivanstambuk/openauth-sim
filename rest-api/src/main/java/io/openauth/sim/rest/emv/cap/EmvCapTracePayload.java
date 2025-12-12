@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.application.emv.cap.EmvCapEvaluationApplicationService.Trace;
 import io.openauth.sim.core.emv.cap.EmvCapTraceProvenanceSchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -197,10 +198,11 @@ record EmvCapTracePayload(
 
                 record Decoded(
                         @JsonProperty("label") String label,
-                        @JsonProperty("value") Object value) {
+                        @JsonProperty("value") String value) {
 
                     static Decoded from(Trace.Provenance.CdolBreakdown.Entry.Decoded decoded) {
-                        return new Decoded(decoded.label(), decoded.value());
+                        Object raw = decoded.value();
+                        return new Decoded(decoded.label(), raw == null ? null : String.valueOf(raw));
                     }
                 }
             }
@@ -220,7 +222,9 @@ record EmvCapTracePayload(
 
             record Field(
                     @JsonProperty("name") String name,
-                    @JsonProperty("value") Object value) {}
+
+                    @Schema(oneOf = {String.class, Boolean.class}) @JsonProperty("value")
+                    Object value) {}
         }
 
         record MacTranscript(
@@ -365,7 +369,8 @@ record EmvCapTracePayload(
                         (String) entry.get("offset"),
                         (String) entry.get("rawHex"),
                         new EmvCapTraceProvenancePayload.CdolBreakdown.Entry.Decoded(
-                                (String) decoded.get("label"), decoded.get("value"))));
+                                (String) decoded.get("label"),
+                                decoded.get("value") == null ? null : String.valueOf(decoded.get("value")))));
             }
             return new EmvCapTraceProvenancePayload.CdolBreakdown(schemaItems, entries, (String) cdol.get("concatHex"));
         }

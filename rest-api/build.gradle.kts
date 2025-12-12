@@ -112,6 +112,7 @@ dependencies {
     testImplementation(springBootStarterTest)
     testImplementation(seleniumHtmlUnitDriver)
     testImplementation(testFixtures(projects.application))
+    testImplementation(testFixtures(projects.core))
     testImplementation(projects.cli)
     testImplementation(picocli)
     testImplementation(spotbugsAnnotations) {
@@ -168,6 +169,17 @@ tasks.register<Test>("crossFacadeContractTest") {
     classpath = standardTest.get().classpath
     useJUnitPlatform {
         includeTags("crossFacadeContract")
+    }
+    shouldRunAfter(standardTest)
+}
+
+tasks.register<Test>("schemaContractTest") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs REST OpenAPI schema contract tests (tagged schemaContract)."
+    testClassesDirs = standardTest.get().testClassesDirs
+    classpath = standardTest.get().classpath
+    useJUnitPlatform {
+        includeTags("schemaContract")
     }
     shouldRunAfter(standardTest)
 }

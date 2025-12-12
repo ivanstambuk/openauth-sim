@@ -9,10 +9,12 @@ import java.util.Map;
 /** Error payload emitted by HOTP evaluation endpoints. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpEvaluationErrorResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "generated",
                     "credential_not_found",
@@ -23,8 +25,12 @@ record HotpEvaluationErrorResponse(
         @JsonProperty("reasonCode")
         String reasonCode,
 
-        @JsonProperty("message") String message,
-        @JsonProperty("details") Map<String, Object> details,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("message")
+        String message,
+
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("details")
+        Map<String, Object> details,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
 
     HotpEvaluationErrorResponse {

@@ -20,6 +20,7 @@ import io.openauth.sim.core.otp.totp.TotpGenerator;
 import io.openauth.sim.core.otp.totp.TotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -31,6 +32,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +85,7 @@ class TotpReplayEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored TOTP replay returns match without mutating credential metadata")
     void storedReplayReturnsMatch() throws Exception {
         TotpDescriptor descriptor = TotpDescriptor.create(
@@ -115,6 +118,8 @@ class TotpReplayEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("TotpReplayResponse", responseBody);
 
             JsonNode response = JSON.readTree(responseBody);
             assertEquals("match", response.get("status").asText());
@@ -247,6 +252,7 @@ class TotpReplayEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Inline TOTP replay rejects invalid Base32 secrets")
     void inlineTotpReplayRejectsInvalidBase32Secret() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/totp/replay")
@@ -261,6 +267,8 @@ class TotpReplayEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("TotpReplayErrorResponse", responseBody);
 
         JsonNode response = JSON.readTree(responseBody);
         assertEquals("shared_secret_base32_invalid", response.get("reasonCode").asText());

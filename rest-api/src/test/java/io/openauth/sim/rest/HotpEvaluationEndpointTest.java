@@ -14,6 +14,7 @@ import io.openauth.sim.core.model.CredentialType;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.otp.hotp.HotpHashAlgorithm;
 import io.openauth.sim.core.store.CredentialStore;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +79,7 @@ class HotpEvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored HOTP evaluation generates OTP, advances counter, and emits telemetry")
     void storedCredentialEvaluationGeneratesOtp() throws Exception {
         credentialStore.save(storedCredential(0L));
@@ -94,6 +97,8 @@ class HotpEvaluationEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("HotpEvaluationResponse", responseBody);
 
             JsonNode response = MAPPER.readTree(responseBody);
             assertEquals("generated", response.get("status").asText());
@@ -125,6 +130,7 @@ class HotpEvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Inline HOTP evaluation generates OTP and emits telemetry without persistence")
     void inlineHotpEvaluationGeneratesOtp() throws Exception {
         TestLogHandler handler = registerTelemetryHandler();
@@ -146,6 +152,8 @@ class HotpEvaluationEndpointTest {
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
+
+            OpenApiSchemaAssertions.assertMatchesComponentSchema("HotpEvaluationResponse", responseBody);
 
             JsonNode response = MAPPER.readTree(responseBody);
             assertEquals("generated", response.get("status").asText());

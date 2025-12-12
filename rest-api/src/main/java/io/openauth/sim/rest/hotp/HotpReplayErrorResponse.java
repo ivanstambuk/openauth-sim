@@ -9,23 +9,30 @@ import java.util.Map;
 /** Error payload returned when HOTP replay encounters validation or unexpected issues. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpReplayErrorResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "match",
                     "otp_mismatch",
                     "credential_not_found",
                     "invalid_hotp_metadata",
+                    "metadata_not_supported",
                     "validation_error",
                     "unexpected_error"
                 })
         @JsonProperty("reasonCode")
         String reasonCode,
 
-        @JsonProperty("message") String message,
-        @JsonProperty("details") Map<String, Object> details,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("message")
+        String message,
+
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("details")
+        Map<String, Object> details,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
 
     HotpReplayErrorResponse {

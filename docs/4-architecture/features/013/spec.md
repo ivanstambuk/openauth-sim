@@ -25,12 +25,15 @@ facades, alongside the documentation that describes the quality gates and verifi
   NonSerializableClass/NonExhaustiveSwitch) with shared configuration files and suppression etiquette.
 - G-013-04 – Ensure build-tool upgrades (Gradle 9 wrapper, plugin bumps) and removal of legacy entry points are documented
   with the required verification commands (`qualityGate`, `pmdMain pmdTest`, `spotbugsMain`, `./gradlew --warning-mode=all clean check`).
+- G-013-05 – Enforce schema-backed JSON and telemetry governance (CLI schema, REST OpenAPI snapshots, MCP tool schemas)
+  through automated contract tests so cross-facade drift is caught early.
 
 ## Non-Goals
 - Shipping new runtime behaviour or modifying quality thresholds beyond what the legacy specs already enforce.
 - Reintroducing deprecated entry points, telemetry fallbacks, or reflection-based seams.
 - Relaxing SpotBugs/PMD detectors or the Jacoco coverage buffer without a follow-up governance feature.
-- Designing or shipping new AI/agent-specific integration surfaces (for example Model Context Protocol servers or documentation JSON-LD metadata) in this iteration; those are tracked as future-tooling backlog items once documentation-facing LLM surfaces (Feature 010 FR-010-13) are stable.
+- Designing or shipping new MCP facade behaviour (Feature 015) or documentation-facing JSON-LD automation (Feature 010);
+  Feature 013 only governs the shared quality gates plus schema/telemetry drift tests that keep these surfaces aligned.
 
 ## Functional Requirements
 | ID | Requirement | Success path | Validation path | Failure path | Telemetry & traces | Source |
@@ -46,6 +49,7 @@ facades, alongside the documentation that describes the quality gates and verifi
 | FR-013-09 | Legacy CLI/JS entry points (legacy telemetry fallbacks, router shims, old presets) removed; docs/tests reference canonical adapters/routes only. | CLI/REST/UI telemetry uses `TelemetryContracts`; router state keys canonical; docs highlight change. | `rg "legacyEmit"` returns none; Selenium/REST tests confirm canonical routing. | Old entry points linger, causing drift. | Telemetry unaffected (only canonical). | Spec.
 | FR-013-10 | Roadmap, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), and `_current-session.md` capture every toolchain change plus the commands executed (`qualityGate`, `spotbugsMain`, `pmdMain pmdTest`, `gradlew wrapper`, CLI tests). | Logs updated per increment; tasks reference command list. | Manual review before closing tasks. | Auditors cannot trace toolchain updates. | None. | Spec.
 | FR-013-11 | Cross-facade contract tests MUST execute canonical scenarios through every implemented facade (Native Java via `application`, CLI, REST, operator UI, standalone) and assert parity of outcomes, JSON payloads, and reason codes. MCP parity is deferred until Feature 015 reaches its drift gate. | Parameterised contract suites run green for HOTP/TOTP/OCRA first, then extend to FIDO2/EMV/CAP/EUDIW; discrepancies are resolved via spec updates before facade changes. | Contract suites tagged and wired into `check`/`qualityGate`; runtime deltas recorded per NFR-013-01. | Parity failures or missing scenarios block the gate until resolved. | Telemetry remains identical because facades delegate through `application`; contract tests assert reasonCode parity and trace toggles. | Owner directive; cross-facade quality initiative. |
+| FR-013-12 | JSON outputs and telemetry codes MUST be schema-governed: CLI `--output-json` payloads validate against `docs/3-reference/cli/cli.schema.json`, REST responses validate against `docs/3-reference/rest-openapi.{json,yaml}` (including required fields and `$ref`-linked component schemas), and telemetry reasonCode enums stay in parity with those schemas. MCP tool schema governance stays owned by Feature 015; this feature asserts drift gates, not MCP behaviour. | Representative CLI + REST tests validate schema conformance for success + error responses per protocol; OpenAPI snapshots remain in sync with runtime models; parity tests prevent reasonCode drift. | `./gradlew --no-daemon :cli:test :rest-api:test :application:test` (plus module-scoped schema contract tasks) stays green; OpenAPI snapshot drift is caught by `OpenApiSnapshotTest`. | Missing required fields, shape drift, or stale snapshots fail `check`/`qualityGate` until specs/snapshots/tests are updated together. | Test-only; operational telemetry unchanged. | Temp plan 003 migration; governance initiative. |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |

@@ -1,16 +1,20 @@
 package io.openauth.sim.rest.totp;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.openauth.sim.rest.OtpPreviewResponse;
 import io.openauth.sim.rest.VerboseTracePayload;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 record TotpEvaluationResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "generated",
                     "validated",
@@ -24,10 +28,15 @@ record TotpEvaluationResponse(
         @JsonProperty("reasonCode")
         String reasonCode,
 
-        @JsonProperty("valid") boolean valid,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("valid")
+        boolean valid,
+
         @JsonProperty("otp") String otp,
         @JsonProperty("previews") List<OtpPreviewResponse> previews,
-        @JsonProperty("metadata") TotpEvaluationMetadata metadata,
+
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("metadata")
+        TotpEvaluationMetadata metadata,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
     // no members
 }

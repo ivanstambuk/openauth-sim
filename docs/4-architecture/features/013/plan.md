@@ -18,9 +18,25 @@ legacy entry points—so future increments know which commands to run and which 
   reflectionScan, spotbugsMain, pmdMain pmdTest, Gradle wrapper/warning sweeps) and log them in `_current-session.md`.
 - Synchronize roadmap, knowledge map, architecture graph, session log ([docs/_current-session.md](docs/_current-session.md)), and `_current-session.md` entries with the
   refreshed toolchain ownership.
-- Track future AI/agent integration tooling (for example Model Context Protocol servers or documentation JSON-LD metadata) as parked backlog items that will only be implemented once documentation-facing LLM surfaces (Feature 010) and Maven publication coordinates are settled.
+- Coordinate with Feature 015 (MCP Agent Facade) and Feature 010 (JSON-LD documentation automation) so the aggregated
+  `qualityGate` and schema/telemetry drift tests remain consistent; Feature 013 owns governance automation, not MCP or
+  documentation feature delivery.
 
-_Out of scope:_ Executing the verification suites during this documentation-only increment or modifying build scripts beyond the small, targeted automation tasks explicitly planned below.
+_Out of scope:_ Shipping new protocol runtime behaviour; this plan focuses on schema/telemetry governance tests, OpenAPI
+required-field annotations, and Gradle entrypoints that keep existing behaviours aligned.
+
+## JSON & Telemetry Schema Governance (Plan 003 migration)
+
+This increment migrates `docs/tmp/3-json-and-telemetry-governance-plan.md` into the governing Feature 013 artefacts and
+implements the missing enforcement pieces:
+
+- **CLI JSON schema** is enforced by existing `--output-json` tests using `docs/3-reference/cli/cli.schema.json`.
+- **REST OpenAPI snapshots** remain the canonical REST contract (`docs/3-reference/rest-openapi.{json,yaml}`) and are
+  enforced via snapshot tests plus runtime response shape validation against the `$ref`-linked component schemas.
+- **Telemetry reasonCode parity** remains guarded via existing CLI/OpenAPI parity tests; this increment adds baseline
+  schema validation so payload drift is caught even when enums remain unchanged.
+- **MCP schema governance** continues under Feature 015 (tool catalogue JSON Schema + helper flows). Feature 013 only
+  ensures the shared gates and drift tests remain wired into `check`/`qualityGate`.
 
 ## Dependencies & Interfaces
 | Dependency | Notes |

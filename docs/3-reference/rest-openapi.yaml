@@ -358,8 +358,8 @@ paths:
                       contextFingerprint: "Base64URL-Hash"
                       telemetryId: "rest-ocra-verify-<uuid>"
                       outcome: "match"
-        "500":
-          description: "Unexpected error"
+        "404":
+          description: "Credential not found"
           content:
             application/json:
               schema:
@@ -384,8 +384,8 @@ paths:
                       field: "sessionHex"
                       reasonCode: "session_required"
                       sanitized: "true"
-        "404":
-          description: "Credential not found"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -463,12 +463,6 @@ paths:
               $ref: "#/components/schemas/HotpReplayRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
@@ -477,6 +471,12 @@ paths:
                 $ref: "#/components/schemas/HotpReplayResponse"
         "500":
           description: "Unexpected error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpReplayErrorResponse"
+        "422":
+          description: "Validation error"
           content:
             application/json:
               schema:
@@ -496,6 +496,12 @@ paths:
               $ref: "#/components/schemas/HotpStoredEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -508,12 +514,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/evaluate/inline:
     post:
       tags:
@@ -529,6 +529,12 @@ paths:
               $ref: "#/components/schemas/HotpInlineEvaluationRequest"
         required: true
       responses:
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -541,12 +547,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HotpEvaluationResponse"
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HotpEvaluationErrorResponse"
   /api/v1/hotp/credentials/seed:
     post:
       tags:
@@ -667,12 +667,6 @@ paths:
               $ref: "#/components/schemas/EmvCapReplayRequest"
         required: true
       responses:
-        "500":
-          description: "Unexpected error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
         "200":
           description: "Replay completed"
           content:
@@ -681,6 +675,12 @@ paths:
                 $ref: "#/components/schemas/EmvCapReplayResponse"
         "422":
           description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapReplayErrorResponse"
+        "500":
+          description: "Unexpected error"
           content:
             application/json:
               schema:
@@ -700,18 +700,18 @@ paths:
               $ref: "#/components/schemas/EmvCapEvaluationRequest"
         required: true
       responses:
-        "422":
-          description: "Validation error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
         "200":
           description: "Evaluation completed"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmvCapEvaluationResponse"
+        "422":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmvCapEvaluationErrorResponse"
         "500":
           description: "Unexpected error"
           content:
@@ -1073,6 +1073,7 @@ components:
           - "attestation_format_mismatch"
           - "attestation_object_invalid"
           - "verification_failed"
+          - "webauthn_replay_failed"
           - "unexpected_error"
         message:
           type: "string"
@@ -1158,6 +1159,10 @@ components:
         error:
           type: "string"
     WebAuthnEvaluationResponse:
+      required:
+      - "assertion"
+      - "metadata"
+      - "status"
       type: "object"
       properties:
         status:
@@ -1180,6 +1185,12 @@ components:
         response:
           $ref: "#/components/schemas/WebAuthnAssertionResponse"
     WebAuthnEvaluationErrorResponse:
+      required:
+      - "details"
+      - "message"
+      - "metadata"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -1190,6 +1201,7 @@ components:
           enum:
           - "validation_error"
           - "credential_not_found"
+          - "webauthn_evaluation_failed"
           - "unexpected_error"
         message:
           type: "string"
@@ -1711,6 +1723,10 @@ components:
         telemetryId:
           type: "string"
     TotpReplayResponse:
+      required:
+      - "metadata"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -1729,6 +1745,11 @@ components:
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     TotpReplayErrorResponse:
+      required:
+      - "details"
+      - "message"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -1740,7 +1761,17 @@ components:
           - "match"
           - "otp_out_of_window"
           - "credential_not_found"
+          - "credential_id_required"
+          - "otp_required"
+          - "shared_secret_required"
+          - "shared_secret_conflict"
+          - "shared_secret_base32_invalid"
+          - "digits_invalid"
+          - "step_seconds_invalid"
+          - "drift_invalid"
+          - "algorithm_invalid"
           - "validation_error"
+          - "totp_replay_failed"
           - "unexpected_error"
         message:
           type: "string"
@@ -1832,6 +1863,11 @@ components:
         metadata:
           $ref: "#/components/schemas/TotpHelperMetadata"
     TotpEvaluationErrorResponse:
+      required:
+      - "details"
+      - "message"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -1840,13 +1876,18 @@ components:
           type: "string"
           description: "Machine-readable outcome code"
           enum:
+          - "credential_id_required"
           - "generated"
           - "validated"
           - "credential_not_found"
           - "otp_invalid_format"
           - "otp_out_of_window"
+          - "shared_secret_base32_invalid"
+          - "shared_secret_conflict"
           - "shared_secret_invalid"
+          - "shared_secret_required"
           - "validation_error"
+          - "totp_evaluation_failed"
           - "unexpected_error"
         message:
           type: "string"
@@ -1915,6 +1956,11 @@ components:
         telemetryId:
           type: "string"
     TotpEvaluationResponse:
+      required:
+      - "metadata"
+      - "reasonCode"
+      - "status"
+      - "valid"
       type: "object"
       properties:
         status:
@@ -2053,6 +2099,10 @@ components:
         outcome:
           type: "string"
     OcraVerificationResponse:
+      required:
+      - "metadata"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -2071,6 +2121,10 @@ components:
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
     OcraVerificationErrorResponse:
+      required:
+      - "details"
+      - "error"
+      - "message"
       type: "object"
       properties:
         error:
@@ -2164,29 +2218,6 @@ components:
             type: "string"
         verbose:
           type: "boolean"
-    HotpReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-          description: "Machine-readable outcome code"
-          enum:
-          - "match"
-          - "otp_mismatch"
-          - "credential_not_found"
-          - "invalid_hotp_metadata"
-          - "validation_error"
-          - "unexpected_error"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     HotpReplayMetadata:
       type: "object"
       properties:
@@ -2210,6 +2241,10 @@ components:
         telemetryId:
           type: "string"
     HotpReplayResponse:
+      required:
+      - "metadata"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -2228,6 +2263,35 @@ components:
           $ref: "#/components/schemas/HotpReplayMetadata"
         trace:
           $ref: "#/components/schemas/VerboseTracePayload"
+    HotpReplayErrorResponse:
+      required:
+      - "details"
+      - "message"
+      - "reasonCode"
+      - "status"
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+          description: "Machine-readable outcome code"
+          enum:
+          - "match"
+          - "otp_mismatch"
+          - "credential_not_found"
+          - "invalid_hotp_metadata"
+          - "metadata_not_supported"
+          - "validation_error"
+          - "unexpected_error"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     HotpStoredEvaluationRequest:
       type: "object"
       properties:
@@ -2238,6 +2302,11 @@ components:
         verbose:
           type: "boolean"
     HotpEvaluationErrorResponse:
+      required:
+      - "details"
+      - "message"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -2286,6 +2355,10 @@ components:
         telemetryId:
           type: "string"
     HotpEvaluationResponse:
+      required:
+      - "metadata"
+      - "reasonCode"
+      - "status"
       type: "object"
       properties:
         status:
@@ -2367,6 +2440,13 @@ components:
         trustedAuthorityPolicy:
           type: "string"
     WalletSimulationResponse:
+      required:
+      - "presentations"
+      - "profile"
+      - "requestId"
+      - "responseMode"
+      - "status"
+      - "telemetry"
       type: "object"
       properties:
         requestId:
@@ -2443,6 +2523,12 @@ components:
         includeQrAscii:
           type: "boolean"
     AuthorizationResponse:
+      required:
+      - "authorizationRequest"
+      - "profile"
+      - "requestId"
+      - "requestUri"
+      - "telemetry"
       type: "object"
       properties:
         requestId:
@@ -2535,27 +2621,6 @@ components:
           type: "string"
         icc:
           type: "string"
-    EmvCapReplayErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-          description: "Machine-readable outcome code"
-          enum:
-          - "match"
-          - "otp_mismatch"
-          - "invalid_input"
-          - "unexpected_error"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/VerboseTracePayload"
     Block:
       type: "object"
       properties:
@@ -2615,7 +2680,7 @@ components:
         label:
           type: "string"
         value:
-          type: "object"
+          type: "string"
     EmvCapReplayMetadata:
       type: "object"
       properties:
@@ -2783,7 +2848,9 @@ components:
         name:
           type: "string"
         value:
-          type: "object"
+          oneOf:
+          - type: "string"
+          - type: "boolean"
     GenerateAcInput:
       type: "object"
       properties:
@@ -2885,6 +2952,27 @@ components:
           type: "string"
         issuerPolicyNotes:
           type: "string"
+    EmvCapReplayErrorResponse:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+          description: "Machine-readable outcome code"
+          enum:
+          - "match"
+          - "otp_mismatch"
+          - "invalid_input"
+          - "unexpected_error"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/VerboseTracePayload"
     EmvCapEvaluationRequest:
       type: "object"
       properties:
@@ -2920,27 +3008,13 @@ components:
           type: "string"
         includeTrace:
           type: "boolean"
-    EmvCapEvaluationErrorResponse:
-      type: "object"
-      properties:
-        status:
-          type: "string"
-        reasonCode:
-          type: "string"
-          description: "Machine-readable outcome code"
-          enum:
-          - "generated"
-          - "invalid_input"
-          - "unexpected_error"
-        message:
-          type: "string"
-        details:
-          type: "object"
-          additionalProperties:
-            type: "object"
-        trace:
-          $ref: "#/components/schemas/EmvCapTracePayload"
     EmvCapEvaluationResponse:
+      required:
+      - "maskLength"
+      - "otp"
+      - "previews"
+      - "telemetry"
+      - "trace"
       type: "object"
       properties:
         otp:
@@ -2978,6 +3052,39 @@ components:
           type: "string"
         sanitized:
           type: "boolean"
+    EmvCapEvaluationErrorResponse:
+      required:
+      - "details"
+      - "message"
+      - "reasonCode"
+      - "status"
+      type: "object"
+      properties:
+        status:
+          type: "string"
+        reasonCode:
+          type: "string"
+          description: "Machine-readable outcome code"
+          enum:
+          - "generated"
+          - "invalid_input"
+          - "unexpected_error"
+          - "invalid_request"
+          - "missing_field"
+          - "invalid_hex"
+          - "invalid_number"
+          - "invalid_mode"
+          - "credential_store_unavailable"
+          - "credential_not_found"
+          - "emv_cap_evaluation_failed"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties:
+            type: "object"
+        trace:
+          $ref: "#/components/schemas/EmvCapTracePayload"
     WebAuthnCredentialSummary:
       type: "object"
       properties:

@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record TotpReplayResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "match",
                     "otp_out_of_window",
@@ -21,7 +23,9 @@ record TotpReplayResponse(
         @JsonProperty("reasonCode")
         String reasonCode,
 
-        @JsonProperty("metadata") TotpReplayMetadata metadata,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("metadata")
+        TotpReplayMetadata metadata,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
     // canonical record
 }

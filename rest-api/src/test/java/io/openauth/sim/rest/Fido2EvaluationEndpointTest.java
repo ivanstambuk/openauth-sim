@@ -14,6 +14,7 @@ import io.openauth.sim.core.fido2.WebAuthnSignatureAlgorithm;
 import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +86,7 @@ class Fido2EvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Stored WebAuthn evaluation generates an authenticator assertion")
     void storedEvaluationGeneratesAssertion() throws Exception {
         byte[] challenge = "stored-challenge".getBytes(StandardCharsets.UTF_8);
@@ -124,6 +127,8 @@ class Fido2EvaluationEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("WebAuthnEvaluationResponse", response);
 
         JsonNode root = MAPPER.readTree(response);
         assertThat(root.get("status").asText()).isEqualTo("generated");
@@ -349,9 +354,10 @@ class Fido2EvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Evaluate endpoints reject invalid private keys")
     void evaluateRejectsInvalidPrivateKey() throws Exception {
-        mockMvc.perform(post("/api/v1/webauthn/evaluate")
+        String responseBody = mockMvc.perform(post("/api/v1/webauthn/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                     {
@@ -363,7 +369,12 @@ class Fido2EvaluationEndpointTest {
                       \"privateKey\": \"not-a-key\"
                     }
                     """.formatted(RELYING_PARTY_ID, ORIGIN, EXPECTED_TYPE, encode(new byte[32]))))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableEntity())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("WebAuthnEvaluationErrorResponse", responseBody);
     }
 
     private void saveCredential(String name, GenerationResult seed) {

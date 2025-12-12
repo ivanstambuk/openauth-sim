@@ -10,10 +10,12 @@ import java.util.List;
 /** REST payload returned by HOTP evaluation endpoints. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpEvaluationResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "generated",
                     "credential_not_found",
@@ -26,7 +28,10 @@ record HotpEvaluationResponse(
 
         @JsonProperty("otp") String otp,
         @JsonProperty("previews") List<OtpPreviewResponse> previews,
-        @JsonProperty("metadata") HotpEvaluationMetadata metadata,
+
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("metadata")
+        HotpEvaluationMetadata metadata,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
 
     // Canonical record; no additional behaviour.

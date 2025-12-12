@@ -13,6 +13,7 @@ import io.openauth.sim.application.eudi.openid4vp.fixtures.FixtureSeedSequence;
 import io.openauth.sim.core.eudi.openid4vp.FixtureDatasets;
 import io.openauth.sim.core.json.SimpleJson;
 import io.openauth.sim.rest.VerboseTracePayload;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -221,11 +222,22 @@ class Oid4vpController {
     private record SeedRequest(String source, List<String> presentations, Map<String, Object> metadata) {}
 
     private record SeedResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String source,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             int requestedCount,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             int ingestedCount,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> provenance,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             List<Map<String, Object>> presentations,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> telemetry) {
         static SeedResponse from(OpenId4VpFixtureIngestionService.IngestionResult result, int requestedCount) {
             Map<String, Object> provenance = new LinkedHashMap<>();
@@ -264,12 +276,22 @@ class Oid4vpController {
     }
 
     private record AuthorizationResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String requestId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String profile,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String requestUri,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> authorizationRequest,
+
             Map<String, Object> qr,
             VerboseTracePayload trace,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> telemetry) {
         static AuthorizationResponse from(
                 OpenId4VpAuthorizationRequestService.AuthorizationRequestResult result, boolean verbose) {
@@ -306,12 +328,24 @@ class Oid4vpController {
     }
 
     private record WalletSimulationResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String requestId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String status,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String profile,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String responseMode,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             List<Map<String, Object>> presentations,
+
             VerboseTracePayload trace,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> telemetry) {
         static WalletSimulationResponse from(
                 OpenId4VpWalletSimulationService.SimulationResult result, boolean verbose) {
@@ -332,12 +366,24 @@ class Oid4vpController {
     }
 
     private record ValidationResponse(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String requestId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String status,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String profile,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             String responseMode,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             List<Map<String, Object>> presentations,
+
             VerboseTracePayload trace,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
             Map<String, Object> telemetry) {
         static ValidationResponse from(OpenId4VpValidationService.ValidationResult result, boolean verbose) {
             List<Map<String, Object>> presentations = result.presentations().stream()

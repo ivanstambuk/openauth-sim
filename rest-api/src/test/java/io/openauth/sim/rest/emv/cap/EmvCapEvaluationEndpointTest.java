@@ -24,6 +24,7 @@ import io.openauth.sim.core.model.Credential;
 import io.openauth.sim.core.model.SecretMaterial;
 import io.openauth.sim.core.store.CredentialStore;
 import io.openauth.sim.core.store.serialization.VersionedCredentialRecordMapper;
+import io.openauth.sim.rest.support.OpenApiSchemaAssertions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,6 +139,7 @@ class EmvCapEvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Identify mode returns OTP, trace, and telemetry by default")
     void identifyModeReturnsOtpAndTrace() throws Exception {
         EmvCapVector vector = EmvCapVectorFixtures.load("identify-baseline");
@@ -147,6 +150,8 @@ class EmvCapEvaluationEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("EmvCapEvaluationResponse", responseBody);
 
         JsonNode root = MAPPER.readTree(responseBody);
         assertEquals(vector.outputs().otpDecimal(), root.get("otp").asText());
@@ -319,6 +324,7 @@ class EmvCapEvaluationEndpointTest {
     }
 
     @Test
+    @Tag("schemaContract")
     @DisplayName("Blank credentialId yields missing_field validation error")
     void missingCredentialIdReturnsValidationError() throws Exception {
         String responseBody = mockMvc.perform(post("/api/v1/emv/cap/evaluate")
@@ -330,6 +336,8 @@ class EmvCapEvaluationEndpointTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+
+        OpenApiSchemaAssertions.assertMatchesComponentSchema("EmvCapEvaluationErrorResponse", responseBody);
 
         JsonNode root = MAPPER.readTree(responseBody);
         assertEquals("invalid_input", root.get("status").asText());

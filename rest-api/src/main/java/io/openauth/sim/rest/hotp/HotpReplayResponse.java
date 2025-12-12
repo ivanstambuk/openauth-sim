@@ -8,10 +8,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /** Response payload returned by the HOTP replay endpoint. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record HotpReplayResponse(
-        @JsonProperty("status") String status,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("status")
+        String status,
 
         @Schema(
                 description = "Machine-readable outcome code",
+                requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {
                     "match",
                     "otp_mismatch",
@@ -23,7 +25,9 @@ record HotpReplayResponse(
         @JsonProperty("reasonCode")
         String reasonCode,
 
-        @JsonProperty("metadata") HotpReplayMetadata metadata,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @JsonProperty("metadata")
+        HotpReplayMetadata metadata,
+
         @JsonProperty("trace") VerboseTracePayload trace) {
 
     // Canonical record; no additional behaviour.

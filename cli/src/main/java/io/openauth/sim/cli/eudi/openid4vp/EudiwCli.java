@@ -460,7 +460,6 @@ public final class EudiwCli implements java.util.concurrent.Callable<Integer> {
                 return CommandLine.ExitCode.OK;
             } catch (Oid4vpValidationException ex) {
                 Map<String, Object> problemDetails = problemDetails(ex.problemDetails());
-                problemDetails.put("reason", ex.problemDetails().detail());
                 parent.printPayload(
                         cliEvent("validate"),
                         problemDetails,
