@@ -1170,7 +1170,7 @@
     if (!response) {
       return;
     }
-    setNodeText(resultStatusNode, response.status || 'UNKNOWN');
+    applyStatusBadge(resultStatusNode, response.status || 'UNKNOWN');
     resultStatusNode.setAttribute('data-status', response.status || '');
     updateResultMessage('', '', 'success');
     renderPresentationSections(
@@ -1187,7 +1187,7 @@
 
   function renderSimulateError(error) {
     var detail = (error && error.payload && error.payload.detail) || error.message || 'Simulation failed.';
-    setNodeText(resultStatusNode, 'FAILED');
+    applyStatusBadge(resultStatusNode, 'FAILED');
     resultStatusNode.setAttribute('data-status', 'FAILED');
     updateResultMessage('Simulation failed', detail, 'error');
     renderPresentationSections(
@@ -1204,7 +1204,7 @@
     if (!response) {
       return;
     }
-    setNodeText(replayStatusNode, response.status || 'UNKNOWN');
+    applyStatusBadge(replayStatusNode, response.status || 'UNKNOWN');
     replayStatusNode.setAttribute('data-status', response.status || '');
     setNodeText(replayProblemDetailNode, '');
     renderPresentationSections(
@@ -1221,7 +1221,7 @@
 
   function renderReplayError(error) {
     var detail = (error && error.payload && error.payload.detail) || error.message || 'Validation failed.';
-    setNodeText(replayStatusNode, 'FAILED');
+    applyStatusBadge(replayStatusNode, 'FAILED');
     replayStatusNode.setAttribute('data-status', 'FAILED');
     setNodeText(replayProblemDetailNode, detail);
     renderPresentationSections(
@@ -1376,7 +1376,7 @@
   }
 
   function renderReplayStatus(message, detail, variant) {
-    setNodeText(replayStatusNode, message || '');
+    applyStatusBadge(replayStatusNode, message || '');
     replayStatusNode.setAttribute('data-status', variant || '');
     setNodeText(replayProblemDetailNode, detail || '');
   }
@@ -1450,13 +1450,21 @@
 
   function updateResultMessage(message, hint, variant) {
     if (resultMessageNode) {
+      resultMessageNode.classList.remove('result-message--error', 'result-message--info');
       if (message) {
         resultMessageNode.textContent = message;
         resultMessageNode.removeAttribute('hidden');
+        resultMessageNode.setAttribute('aria-hidden', 'false');
         resultMessageNode.setAttribute('data-status', variant || 'info');
+        if (variant === 'error') {
+          resultMessageNode.classList.add('result-message--error');
+        } else {
+          resultMessageNode.classList.add('result-message--info');
+        }
       } else {
         resultMessageNode.textContent = '';
         resultMessageNode.setAttribute('hidden', 'hidden');
+        resultMessageNode.setAttribute('aria-hidden', 'true');
         resultMessageNode.removeAttribute('data-status');
       }
     }
@@ -1464,11 +1472,44 @@
       if (hint) {
         resultHintNode.textContent = hint;
         resultHintNode.removeAttribute('hidden');
+        resultHintNode.setAttribute('aria-hidden', 'false');
       } else {
         resultHintNode.textContent = '';
         resultHintNode.setAttribute('hidden', 'hidden');
+        resultHintNode.setAttribute('aria-hidden', 'true');
       }
     }
+  }
+
+  function resolveStatusVariant(status) {
+    var lowered = !status && status !== 0 ? '' : String(status).trim().toLowerCase();
+    if (!lowered) {
+      return 'info';
+    }
+    if (['generated', 'success', 'ok', 'valid', 'completed', 'match'].indexOf(lowered) >= 0) {
+      return 'success';
+    }
+    if (['failed', 'failure', 'error', 'invalid', 'denied', 'rejected', 'mismatch'].indexOf(lowered) >= 0) {
+      return 'error';
+    }
+    return 'info';
+  }
+
+  function applyStatusBadge(statusNode, status) {
+    if (!statusNode) {
+      return;
+    }
+    var raw = status === null || status === undefined ? '' : String(status).trim();
+    var variant = resolveStatusVariant(raw);
+    statusNode.className = 'status-badge';
+    if (variant === 'success') {
+      statusNode.classList.add('status-badge--success');
+    } else if (variant === 'error') {
+      statusNode.classList.add('status-badge--error');
+    } else {
+      statusNode.classList.add('status-badge--info');
+    }
+    statusNode.textContent = raw ? raw : '—';
   }
 
   function setNodeText(node, value) {

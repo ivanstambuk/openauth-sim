@@ -818,9 +818,9 @@ fieldset {
 }
 
 .result-message--error {
-  border-color: rgba(255, 93, 122, 0.45);
-  background: rgba(185, 28, 28, 0.16);
-  color: var(--ocra-color-danger);
+  border-color: rgba(255, 93, 122, 0.6);
+  background: rgba(185, 28, 28, 0.2);
+  color: var(--ocra-color-text);
 }
 
 .result-message--info {
@@ -965,21 +965,28 @@ fieldset {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   background: var(--ocra-color-surface-muted);
+  border: 1px solid rgba(22, 211, 243, 0.14);
   color: var(--ocra-color-text-muted);
 }
 
 .status-badge.status-badge--success {
-  background: rgba(15, 122, 108, 0.12);
+  background: rgba(15, 122, 108, 0.16);
+  border-color: rgba(65, 224, 176, 0.45);
+  box-shadow: 0 0 0 1px rgba(65, 224, 176, 0.15);
   color: var(--ocra-color-success);
 }
 
 .status-badge.status-badge--error {
-  background: rgba(185, 28, 28, 0.12);
+  background: rgba(185, 28, 28, 0.2);
+  border-color: rgba(255, 93, 122, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 93, 122, 0.18);
   color: var(--ocra-color-danger);
 }
 
 .status-badge.status-badge--info {
   background: rgba(18, 59, 93, 0.12);
+  border-color: rgba(22, 211, 243, 0.32);
+  box-shadow: 0 0 0 1px rgba(22, 211, 243, 0.12);
   color: var(--ocra-color-primary);
 }
 

@@ -209,62 +209,64 @@
                   </div>
                 </div>
 
-                <div class="field-group">
-                  <label for="eudiwInlinePolicies">Trusted authority policies (comma separated)</label>
-                  <input
-                      id="eudiwInlinePolicies"
-                      type="text"
-                      data-testid="eudiw-inline-policies"
-                      autocomplete="off"
-                    />
-                </div>
+                <div class="field-grid">
+                  <div class="field-group">
+                    <label for="eudiwInlinePolicies">Trusted authority policies (comma separated)</label>
+                    <input
+                        id="eudiwInlinePolicies"
+                        type="text"
+                        data-testid="eudiw-inline-policies"
+                        autocomplete="off"
+                      />
+                  </div>
 
-                <div class="field-group">
-                  <label for="eudiwInlineSdJwt">SD-JWT compact</label>
-                  <textarea
-                      id="eudiwInlineSdJwt"
-                      rows="4"
-                      data-testid="eudiw-inline-sdjwt"
-                      spellcheck="false"
-                    ></textarea>
-                </div>
+                  <div class="field-group">
+                    <label for="eudiwInlineSdJwt">SD-JWT compact</label>
+                    <textarea
+                        id="eudiwInlineSdJwt"
+                        rows="4"
+                        data-testid="eudiw-inline-sdjwt"
+                        spellcheck="false"
+                      ></textarea>
+                  </div>
 
-                <div class="field-group">
-                  <label for="eudiwInlineDisclosures">Disclosures (JSON)</label>
-                  <textarea
-                      id="eudiwInlineDisclosures"
-                      rows="4"
-                      data-testid="eudiw-inline-disclosures"
-                      spellcheck="false"
-                    ></textarea>
-                </div>
+                  <div class="field-group">
+                    <label for="eudiwInlineDisclosures">Disclosures (JSON)</label>
+                    <textarea
+                        id="eudiwInlineDisclosures"
+                        rows="4"
+                        data-testid="eudiw-inline-disclosures"
+                        spellcheck="false"
+                      ></textarea>
+                  </div>
 
-                <div class="field-group">
-                  <label for="eudiwInlineKbJwt">KB-JWT compact (optional)</label>
-                  <textarea
-                      id="eudiwInlineKbJwt"
-                      rows="3"
-                      data-testid="eudiw-inline-kbjwt"
-                      spellcheck="false"
-                    ></textarea>
-                </div>
+                  <div class="field-group">
+                    <label for="eudiwInlineKbJwt">KB-JWT compact (optional)</label>
+                    <textarea
+                        id="eudiwInlineKbJwt"
+                        rows="3"
+                        data-testid="eudiw-inline-kbjwt"
+                        spellcheck="false"
+                      ></textarea>
+                  </div>
 
-                <div class="field-group">
-                  <label for="eudiwInlineDeviceResponse">DeviceResponse (Base64, optional)</label>
-                  <textarea
-                      id="eudiwInlineDeviceResponse"
-                      rows="3"
-                      data-testid="eudiw-inline-device-response"
-                      spellcheck="false"
-                    ></textarea>
-                  <p class="hint">
-                    Provide ISO/IEC 18013-5 DeviceResponse payloads when simulating mdoc presentations.
-                  </p>
+                  <div class="field-group">
+                    <label for="eudiwInlineDeviceResponse">DeviceResponse (Base64, optional)</label>
+                    <textarea
+                        id="eudiwInlineDeviceResponse"
+                        rows="3"
+                        data-testid="eudiw-inline-device-response"
+                        spellcheck="false"
+                      ></textarea>
+                    <p class="hint">
+                      Provide ISO/IEC 18013-5 DeviceResponse payloads when simulating mdoc presentations.
+                    </p>
+                  </div>
                 </div>
               </section>
 
               <section
-                  class="stack-md"
+                  class="stack-md field-grid"
                   data-mode-section="stored"
                   data-testid="eudiw-evaluate-stored-section"
                   aria-label="Stored wallet preset"
@@ -350,7 +352,7 @@
                 Baseline mode – HAIP enforcement disabled
               </div>
               <div class="result-summary">
-                <p class="result-badge" data-testid="eudiw-result-status">Awaiting simulation</p>
+                <span class="status-badge status-badge--info" data-testid="eudiw-result-status">Awaiting simulation</span>
                 <p class="result-message" data-result-message hidden="hidden" aria-hidden="true"></p>
                 <p class="hint" data-result-hint hidden="hidden" aria-hidden="true"></p>
               </div>
@@ -439,19 +441,21 @@
                   </div>
                   <p class="hint">Inline samples will populate the VP Token JSON textarea.</p>
                 </div>
-                <div class="field-group">
-                  <label for="eudiwReplayVpToken">Inline VP Token JSON</label>
-                  <textarea
-                      id="eudiwReplayVpToken"
-                      rows="10"
-                      data-testid="eudiw-replay-vp-token"
-                      spellcheck="false"
-                    ></textarea>
+                <div class="field-grid">
+                  <div class="field-group">
+                    <label for="eudiwReplayVpToken">Inline VP Token JSON</label>
+                    <textarea
+                        id="eudiwReplayVpToken"
+                        rows="10"
+                        data-testid="eudiw-replay-vp-token"
+                        spellcheck="false"
+                      ></textarea>
+                  </div>
                 </div>
               </section>
 
               <section
-                  class="stack-md"
+                  class="stack-md field-grid"
                   data-mode-section="stored"
                   data-testid="eudiw-replay-stored-section"
                   hidden="hidden"
@@ -502,7 +506,7 @@
 
             <aside class="stack-lg result-panel" data-testid="eudiw-replay-result">
               <div class="result-summary">
-                <p class="result-badge" data-testid="eudiw-replay-status">Awaiting validation</p>
+                <span class="status-badge status-badge--info" data-testid="eudiw-replay-status">Awaiting validation</span>
                 <p class="result-message" data-result-message hidden="hidden" aria-hidden="true"></p>
                 <p class="hint" data-result-hint hidden="hidden" aria-hidden="true"></p>
               </div>

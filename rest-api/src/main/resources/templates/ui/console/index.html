@@ -160,6 +160,34 @@
         ></th:block>
 
       <section
+          id="protocol-panel-eudi-iso-18013-5"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="eudi-iso-18013-5"
+          aria-labelledby="protocol-tab-eudi-iso-18013-5"
+          th:attr="hidden=${activeProtocol}!='eudi-iso-18013-5' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-iso-18013-5' ? 'true' : null"
+        >
+        <h2>EUDIW ISO/IEC 18013-5</h2>
+        <p>
+          ISO/IEC 18013-5 mobile driving licence flows will surface here once credential issuance and
+          presentation pipelines are implemented.
+        </p>
+      </section>
+
+      <section
+          id="protocol-panel-eudi-siopv2"
+          class="protocol-panel protocol-panel--placeholder"
+          data-protocol-panel="eudi-siopv2"
+          aria-labelledby="protocol-tab-eudi-siopv2"
+          th:attr="hidden=${activeProtocol}!='eudi-siopv2' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-siopv2' ? 'true' : null"
+        >
+        <h2>EUDIW SIOPv2</h2>
+        <p>
+          SIOPv2 authentication journeys for the EUDI wallet will appear here when the simulator supports
+          self-issued OpenID provider interactions.
+        </p>
+      </section>
+
+      <section
           class="verbose-trace-controls"
           data-testid="verbose-trace-controls"
         >
@@ -202,34 +230,6 @@
           </summary>
           <pre class="verbose-trace-panel__content" data-testid="verbose-trace-content"></pre>
         </details>
-      </section>
-
-      <section
-          id="protocol-panel-eudi-iso-18013-5"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="eudi-iso-18013-5"
-          aria-labelledby="protocol-tab-eudi-iso-18013-5"
-          th:attr="hidden=${activeProtocol}!='eudi-iso-18013-5' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-iso-18013-5' ? 'true' : null"
-        >
-        <h2>EUDIW ISO/IEC 18013-5</h2>
-        <p>
-          ISO/IEC 18013-5 mobile driving licence flows will surface here once credential issuance and
-          presentation pipelines are implemented.
-        </p>
-      </section>
-
-      <section
-          id="protocol-panel-eudi-siopv2"
-          class="protocol-panel protocol-panel--placeholder"
-          data-protocol-panel="eudi-siopv2"
-          aria-labelledby="protocol-tab-eudi-siopv2"
-          th:attr="hidden=${activeProtocol}!='eudi-siopv2' ? 'hidden' : null, aria-hidden=${activeProtocol}!='eudi-siopv2' ? 'true' : null"
-        >
-        <h2>EUDIW SIOPv2</h2>
-        <p>
-          SIOPv2 authentication journeys for the EUDI wallet will appear here when the simulator supports
-          self-issued OpenID provider interactions.
-        </p>
       </section>
 
       <div
