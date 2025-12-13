@@ -53,8 +53,8 @@ _Last updated:_ 2025-12-13
   _Verification commands:_  
   - `./tools/docs-verify.sh --all`  
 
-- [x] T-011-08 – Add Agent Delivery Optimization (ADO) closeout protocol (FR-011-12, S-011-11).  
-  _Intent:_ Require a max-5-bullet, action-only ADO note in chat before commit handoffs to propose guardrails/instruction tweaks/patterns that prevent regressions and accelerate the next run. Keep ADO chat-only by default; persist process changes only via governance docs/tests/specs. Add a reminder line to `tools/codex-commit-review.sh` output (stderr only) so commit-prep workflows prompt the ADO step.  
+- [x] T-011-08 – Add Agent Delivery Optimization (ADO) closeout protocol (FR-011-12/13, S-011-11/12).  
+  _Intent:_ Require a max-5-bullet, action-only ADO note in chat before commit handoffs to propose guardrails/instruction tweaks/patterns that prevent regressions and accelerate the next run. Treat a green increment as an implicit commit-prep trigger: stage the repo, show a staged diff summary, generate a Conventional Commit message, and hand off copy/paste `git commit`/`git push` commands unless the operator explicitly requests to defer commits. Keep ADO chat-only by default; persist process changes only via governance docs/tests/specs. Add a reminder line to `tools/codex-commit-review.sh` output (stderr only) so commit-prep workflows prompt the ADO step.  
   _Verification commands:_  
   - `./tools/docs-verify.sh --all`  
   - `./gradlew --no-daemon spotlessApply check`  

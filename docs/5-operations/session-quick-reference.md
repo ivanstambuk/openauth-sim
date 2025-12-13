@@ -19,7 +19,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 - [ ] Confirm whether the user granted a compatibility exception; default is no fallbacks for any facade unless explicitly requested.
 
 ## Commit Protocol Reminder
-- When the user says “commit” or “commit and push,” assistants prepare the commit while the user runs the commands. Stage (or explicitly list) the relevant files, verify `./gradlew --no-daemon spotlessApply check` has passed, and gather the staged diff for review.
+- Default behavior: after a self-contained increment is green (`./gradlew --no-daemon spotlessApply check`), assistants prepare a commit handoff without waiting for an explicit “commit” prompt (unless the operator explicitly asks to defer commits). Stage the repository, verify checks are green, and gather the staged diff for review.
 - Before presenting `git commit` / `git push` commands, include an Agent Delivery Optimization (ADO) note (max 5 bullets, action-only) proposing process/guardrail improvements that prevent regressions and speed the next run.
 - Run [./tools/codex-commit-review.sh](./tools/codex-commit-review.sh) (or equivalent) to obtain a gitlint-compliant Conventional Commit message. When code and docs change together, include a `Spec impact:` line that explicitly lists the impacted artefacts (spec/plan/tasks/ADR paths). Commit messages must not contain semicolons; if a body needs multiple lines, compose it using multiple `-m` flags. Do **not** use yes/no flags. Then output copy/paste-ready fenced-code-block `git commit …` and `git push …` commands (with any required timeouts noted). The operator executes those commands locally unless they explicitly delegate execution.
 

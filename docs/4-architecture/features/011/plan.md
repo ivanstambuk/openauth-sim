@@ -106,7 +106,7 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
 8. **I8 – Docs-only verification lane** (Owner: Ivan, Status: Completed on 2025-12-13)  
    - Added `tools/docs-verify.sh` (Spotless misc + markdown line-wrap + link checks) and documented it as the fast loop for doc-only increments.
 9. **I9 – Agent Delivery Optimization (ADO) closeout protocol** (Owner: Ivan, Status: Completed on 2025-12-13)  
-   - Documented the ADO note (max 5 bullets, action-only) in AGENTS and the session quick reference, and added a reminder to `tools/codex-commit-review.sh` so commit handoffs include it.
+   - Documented the ADO note (max 5 bullets, action-only) and the “green increment ⇒ commit-prep handoff” default in AGENTS and the session quick reference, and added a reminder to `tools/codex-commit-review.sh` so commit handoffs include ADO.
 
 _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, and manual [githooks/commit-msg](githooks/commit-msg) dry runs when policies change.
 
@@ -124,6 +124,7 @@ _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_
 | S-011-09 | Commit messages forbid semicolons and assistants use multi-`-m` and fenced Git commands when handing off commits. | P3-I5 |
 | S-011-10 | Dependency changes refresh Gradle lockfiles early via documented `--write-locks` workflow. | P3-I6 |
 | S-011-11 | Assistants include an Agent Delivery Optimization (ADO) note in commit handoffs. | P3-I9 |
+| S-011-12 | Assistants default to commit-prep handoffs after green increments. | P3-I9 |
 
 ## Analysis Gate
 Run [docs/5-operations/analysis-gate-checklist.md](docs/5-operations/analysis-gate-checklist.md) whenever governance artefacts change meaningfully. Record the execution in `_current-session.md` and note any follow-ups in this plan.
