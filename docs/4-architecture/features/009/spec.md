@@ -94,7 +94,7 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 - Node/JS: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` plus the aggregated `check` target to run Node harness suites.
 - Visual QA (opt-in):
   - Capture: run `bash tools/ui-visual/run-operator-console-snapshots.sh` to capture baseline + Evaluate/Replay screenshots into `build/ui-snapshots/**` (bounded by `UI_VISUAL_MAX_RUNS`).
-  - Review: use `build/ui-snapshots/<run-id>/manifest.json` + PNGs as the artifact for AI visual review (spacing, alignment, contrast, backgrounds, typography drift, missing panels).
+  - Review (triage-first): start with `build/ui-snapshots/<run-id>/triage/current-interactive.png` to scan high-signal “result panel” states; when a baseline exists, use `triage/top-changes.png` + `triage/triage.json` to focus on the biggest diffs (baseline left, current right); open the underlying full-size PNGs only for the 1–3 screens that look off, using `manifest.json` as the table of contents.
   - Backlog: log each issue as a Feature 009 task (or the owning UI feature) with screenshot references and acceptance criteria.
   - Validate: re-run the harness after fixes and compare against the prior run directory to confirm the issue is resolved.
 - Documentation: `./gradlew --no-daemon spotlessApply check` to keep specs/roadmap/knowledge-map/formatted; manual doc review ensures session log ([docs/_current-session.md](docs/_current-session.md))/_current-session updates.

@@ -37,6 +37,10 @@ After each run, the runner generates triage artefacts under `build/ui-snapshots/
 - `top-changes.png`: a montage of the top diffs (baseline on the left, current on the right).
 - `current-interactive.png`: a montage of interactive `*--result.png` states from the current run.
 
+Notes:
+- Diff ranking is computed with **SSIM** (Structural Similarity Index; `1.0` means identical, lower means more different).
+- “Montage” here simply means a single grid image containing many screenshots, so you can scan changes quickly.
+
 Disable triage if you want the fastest possible capture-only run:
 
 ```bash
@@ -64,7 +68,11 @@ UI_VISUAL_MAX_RUNS=5 bash tools/ui-visual/run-operator-console-snapshots.sh
 Use this harness only for UI-affecting changes (CSS/layout tweaks, console JS changes, or REST changes that alter UI rendering).
 
 1) **Capture**: run `bash tools/ui-visual/run-operator-console-snapshots.sh` and note the produced run directory.
-2) **Review**: use `build/ui-snapshots/<run-id>/manifest.json` as the table of contents and have the agent inspect the PNGs for layout/CSS anomalies.
+2) **Review (triage-first)**:
+   - Start with `build/ui-snapshots/<run-id>/triage/current-interactive.png` to scan the high-signal “result panel” states quickly.
+   - If a prior run exists, use `build/ui-snapshots/<run-id>/triage/top-changes.png` + `triage/triage.json` to review only the biggest run-to-run diffs.
+   - Open individual full-size PNGs only when something looks off in the montages.
+   - Use `build/ui-snapshots/<run-id>/manifest.json` as the table of contents when you need to locate the underlying full screenshots.
    - If `manifest.json` includes entries with an `error`, treat that state as missing and fix the UI or harness until it can be captured again.
 3) **Backlog**: create a task (Feature 009 or the owning UI feature) per issue with screenshot references + acceptance criteria.
 4) **Validate**: re-run the harness after each fix and compare against the prior run directory to confirm the issue is resolved.
