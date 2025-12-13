@@ -1,0 +1,13 @@
+{
+  "name": "openauth-sim-ui-visual",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.57.0"
+  },
+  "scripts": {
+    "install:browsers": "playwright install chromium",
+    "snapshots": "node capture-operator-console.mjs"
+  }
+}
+

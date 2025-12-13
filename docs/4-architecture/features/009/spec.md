@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Status | Complete |
-| Last updated | 2025-11-15 |
+| Last updated | 2025-12-13 |
 | Owners | Ivan (project owner) |
 | Linked plan | [docs/4-architecture/features/009/plan.md](docs/4-architecture/features/009/plan.md) |
 | Linked tasks | [docs/4-architecture/features/009/tasks.md](docs/4-architecture/features/009/tasks.md) |
@@ -46,6 +46,7 @@ Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralise
 | FR-009-08 | Evaluation flows accept preview windows (`window.backward/forward`), render Delta-ordered tables (with accent on Delta = 0), and expose CLI/REST flags while keeping replay drift inputs unchanged. | CLI output, REST JSON, and UI tables render the ordered previews; invalid offsets return informative errors and blocks the request. | CLI/REST/Selenium tests cover {0,0} defaults, multi-row windows, accent styling, and helper-text removal. | Preview tables missing, delta accent absent, or helper text unexpectedly shown. | `otp.evaluate.preview`, `otp.evaluate.preview_invalid_window`. | Spec |
 | FR-009-09 | Static JS modules expose per-protocol controller factories, reuse shared helpers (SecretFieldBridge, VerboseTraceConsole), and run through the `operatorConsoleJsTest` Gradle task with filtering support. | Node harness suites (`node --test `rest-api/src/test/javascript/`...`) exercise HOTP, TOTP, OCRA, FIDO2, EMV, and shared widgets; `./gradlew operatorConsoleJsTest -PconsoleTestFilter=<protocol>` filters runs. | Gradle aggregators (`check`) fail when Node tests regress; docs describe harness onboarding. | Inline scripts remain, harness missing features, or Gradle task not wired under `check`. | Optional telemetry `build.console_js.test`. | Spec |
 | FR-009-10 | Documentation, knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), roadmap, and `_current-session.md` describe the consolidated console scope (tabs, traces, debug helpers, scripted tests) and reference the new feature as the exclusive source. | Docs mention Feature 009 for console ownership | `spotlessApply check` plus manual doc review confirm the entries; `_current-session.md` cites the deletion/completion log. | Legacy features still cited or docs unsynchronised. | n/a | Spec |
+| FR-009-11 | Provide a headless visual snapshot harness for `/ui/console` to capture real-browser screenshots of default and interactive UI states (tabs + Evaluate/Replay result panels for inline/stored sample flows) into a temporary, non-committed directory for visual QA of layout/CSS regressions. | Operator (or agent) runs the harness against a locally started REST server and gets PNG screenshots per protocol that include baseline tab renders plus at least one Evaluate/Replay result state per supported protocol (where the panel is live). | Harness runs headless by default, disables animations, uses stable viewport sizing, drives only sample/seeded interactions (no manual data entry), supports overriding base URL + output directory, and prunes old run directories under `build/ui-snapshots/**` (default keep: 10). | Harness launches a visible browser window by default, writes snapshots into tracked paths, blocks user interaction via persistent overlays, grows `build/ui-snapshots/**` unbounded when using the default runner, or produces non-deterministic captures without a documented reason. | n/a | Spec |
 
 ## Non-Functional Requirements
 | ID | Requirement | Driver | Measurement | Dependencies | Source |
@@ -56,6 +57,7 @@ Cross-facade conventions (Native Java/CLI/REST/UI/MCP/standalone) are centralise
 | NFR-009-04 | Accessibility (tabs, info drawer, validation, preview accents) | Tablist focus, Info drawer, validation messaging, and preview accent styling meet WCAG/keyboard expectations. | Selenium/axe audits + manual review. | Thymeleaf templates, CSS tokens. | Spec |
 | NFR-009-05 | Node harness determinism | JS tests run consistently (no timers/non-deterministic APIs) and add ≤2 minutes to `./gradlew check`. | CI logs, harness README, filtering property. | Node + Gradle configuration. | Spec |
 | NFR-009-06 | Cross-facade UI parity | Operator console behaviour for canonical scenarios must remain consistent with REST/CLI/Native Java outcomes and JSON payloads; cross-facade contract tests in Feature 013 (FR-013-11) provide the normative parity checks for UI-visible success/failure messaging and trace toggles. | Tagged Selenium/JS smoke parity suites green; discrepancies resolved via spec updates before UI changes. | rest-api UI controllers, Selenium/Node harness. | Spec |
+| NFR-009-07 | Visual snapshot harness ergonomics | Visual QA tooling must never block the default Gradle quality gates; it must be opt-in, headless-by-default, and keep all generated artefacts under `build/` (or another ignored output directory). | Manual runs and `.gitignore` coverage confirm no snapshots are tracked; harness docs show explicit invocation separate from `check`; default runner prunes old runs so `build/ui-snapshots/**` stays bounded. | Node + Playwright tooling. | Spec |
 
 ## UI / Interaction Mock-ups
 
@@ -85,10 +87,12 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 | S-009-08 | Evaluation preview windows render ordered tables with Delta=0 accent, CLI/REST flags pick offsets, and helper text is concise.
 | S-009-09 | Console JS modules run inside the `operatorConsoleJsTest` harness with filtering, covering HOTP/TOTP/OCRA/FIDO2/EMV/shared widgets.
 | S-009-10 | Knowledge map, session log ([docs/_current-session.md](docs/_current-session.md)), roadmap, and `_current-session.md` describe the console feature as the authoritative place for all related content.
+| S-009-11 | Visual snapshot harness captures headless real-browser screenshots for each protocol tab plus representative Evaluate/Replay result states (inline/stored via presets/seeding) into `build/ui-snapshots/**` for CSS/layout regression review.
 
 ## Test Strategy
 - JVM suites: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`, and `./gradlew --no-daemon :ui:test` to cover console flows, trace builders, and validation helpers.
 - Node/JS: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` plus the aggregated `check` target to run Node harness suites.
+- Visual QA (opt-in): `bash tools/ui-visual/run-operator-console-snapshots.sh` to start the local REST server on a dedicated port and capture per-tab and interactive (Evaluate/Replay) screenshots into `build/ui-snapshots/**`.
 - Documentation: `./gradlew --no-daemon spotlessApply check` to keep specs/roadmap/knowledge-map/formatted; manual doc review ensures session log ([docs/_current-session.md](docs/_current-session.md))/_current-session updates.
 
 ## Interface & Contract Catalogue
