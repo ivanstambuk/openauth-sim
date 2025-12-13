@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 @Tag("architecture")
 final class TelemetryContractArchitectureTest {
 
-    private static final String CLI_PACKAGE = "io.openauth.sim.cli";
-    private static final String REST_PACKAGE = "io.openauth.sim.rest";
-    private static final String UI_PACKAGE = "io.openauth.sim.rest.ui";
+    private static final String CLI_PACKAGE = FacadeBoundariesArchitectureTest.CLI_PACKAGE;
+    private static final String REST_PACKAGE = FacadeBoundariesArchitectureTest.REST_PACKAGE;
+    private static final String UI_PACKAGE = FacadeBoundariesArchitectureTest.UI_PACKAGE;
     private static final String APPLICATION_TELEMETRY_PACKAGE = "io.openauth.sim.application.telemetry";
 
     @Test

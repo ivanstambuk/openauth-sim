@@ -3,7 +3,7 @@
 _Linked specification:_ [docs/4-architecture/features/013/spec.md](docs/4-architecture/features/013/spec.md)  
 _Linked tasks:_ [docs/4-architecture/features/013/tasks.md](docs/4-architecture/features/013/tasks.md)  
 _Status:_ In review  
-_Last updated:_ 2025-12-12  
+_Last updated:_ 2025-12-13  
 _Owners:_ Ivan (project owner)  
 _Roadmap entry:_ #13 – Toolchain & Quality Platform
 
@@ -16,6 +16,7 @@ legacy entry points—so future increments know which commands to run and which 
 - Keep CLI exit harness, Maintenance CLI coverage, reflection policy, Java 17 refactor, architecture harmonization, SpotBugs/PMD enforcement, and Gradle upgrade guidance current inside this spec/plan/tasks set.
 - List the commands that must run before/after toolchain changes (`qualityGate`, module tests, jacocoAggregatedReport,
   reflectionScan, spotbugsMain, pmdMain pmdTest, Gradle wrapper/warning sweeps) and log them in `_current-session.md`.
+- Centralize facade boundary ArchUnit rules (CLI↔REST, MCP↔REST, etc.) so future enforcement additions live in one place.
 - Synchronize roadmap, knowledge map, architecture graph, session log ([docs/_current-session.md](docs/_current-session.md)), and `_current-session.md` entries with the
   refreshed toolchain ownership.
 - Coordinate with Feature 015 (MCP Agent Facade) and Feature 010 (JSON-LD documentation automation) so the aggregated

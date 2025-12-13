@@ -1,7 +1,7 @@
 # Feature 013 Tasks – Toolchain & Quality Platform
 
 _Status:_ In review  
-_Last updated:_ 2025-12-12
+_Last updated:_ 2025-12-13
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -177,7 +177,17 @@ _Last updated:_ 2025-12-12
   _Verification commands:_  
   - `./gradlew --no-daemon spotlessApply check`
 
+- [x] T-013-24 – Centralize facade boundary ArchUnit rules (FR-013-13, S-013-04).  
+  _Intent:_ Add a single ArchUnit suite (`FacadeBoundariesArchitectureTest`) that defines canonical facade package
+  constants plus reusable boundary rules (CLI↔REST bans, MCP↔REST bans, etc.), then refactor existing architecture tests
+  to reuse the shared constants/rules.
+  _Verification commands:_  
+  - `./gradlew --no-daemon :core-architecture-tests:test`
+  - `./gradlew --no-daemon spotlessApply check`
+
 ## Verification Log
+- 2025-12-13 – `./gradlew --no-daemon :core-architecture-tests:test` (PASS – facade boundary ArchUnit suite centralised)
+- 2025-12-13 – `./gradlew --no-daemon spotlessApply check` (PASS – facade boundary ArchUnit suite centralised)
 - 2025-12-12 – `./gradlew --no-daemon check` (PASS – cross-facade parity suites green; temp sketch removed; lockfiles refreshed)
 - 2025-12-12 – `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` (PASS – HOTP/TOTP/OCRA/FIDO2/EMV/EUDIW parity; adapter layer runner refactor)
 - 2025-12-12 – `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"` (PASS – refreshed REST OpenAPI snapshots after schema governance updates)

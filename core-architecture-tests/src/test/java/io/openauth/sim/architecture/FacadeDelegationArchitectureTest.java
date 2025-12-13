@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import io.openauth.sim.core.credentials.ocra.OcraCredentialFactory;
 import io.openauth.sim.core.credentials.ocra.OcraResponseCalculator;
@@ -16,16 +15,15 @@ import org.junit.jupiter.api.Test;
 @Tag("architecture")
 final class FacadeDelegationArchitectureTest {
 
-    private static final String CLI_PACKAGE = "io.openauth.sim.cli";
-    private static final String REST_PACKAGE = "io.openauth.sim.rest";
-    private static final String UI_PACKAGE = "io.openauth.sim.rest.ui";
+    private static final String CLI_PACKAGE = FacadeBoundariesArchitectureTest.CLI_PACKAGE;
+    private static final String REST_PACKAGE = FacadeBoundariesArchitectureTest.REST_PACKAGE;
+    private static final String UI_PACKAGE = FacadeBoundariesArchitectureTest.UI_PACKAGE;
     private static final String REST_HOTP_PACKAGE = "io.openauth.sim.rest.hotp";
     private static final String REST_TOTP_PACKAGE = "io.openauth.sim.rest.totp";
     private static final String REST_OCRA_PACKAGE = "io.openauth.sim.rest.ocra";
     private static final String REST_EMV_PACKAGE = "io.openauth.sim.rest.emv.cap";
     private static final String REST_FIDO_PACKAGE = "io.openauth.sim.rest.webauthn";
     private static final String REST_EUDIW_PACKAGE = "io.openauth.sim.rest.eudi.openid4vp";
-    private static final String TOOLS_MCP_PACKAGE = "io.openauth.sim.tools.mcp";
     private static final String APPLICATION_HOTP_PACKAGE = "io.openauth.sim.application.hotp";
     private static final String APPLICATION_TOTP_PACKAGE = "io.openauth.sim.application.totp";
     private static final String APPLICATION_EMV_PACKAGE = "io.openauth.sim.application.emv.cap";
@@ -35,75 +33,6 @@ final class FacadeDelegationArchitectureTest {
     private static final String APPLICATION_OCRA_PACKAGE = "io.openauth.sim.application.ocra";
     private static final String REST_EVALUATION_SERVICE = "io.openauth.sim.rest.ocra.OcraEvaluationService";
     private static final String REST_VERIFICATION_SERVICE = "io.openauth.sim.rest.ocra.OcraVerificationService";
-    private static final String CORE_STORE_PACKAGE = "io.openauth.sim.core.store";
-    private static final String MAPDB_CLASS = "io.openauth.sim.core.store.MapDbCredentialStore";
-
-    @Test
-    @DisplayName("CLI facades avoid MapDbCredentialStore (production)")
-    void cliDoesNotDependOnMapDbCredentialStore() {
-        JavaClasses imported = new ClassFileImporter().importPackages(CLI_PACKAGE, CORE_STORE_PACKAGE);
-
-        ArchRule rule = ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage(CLI_PACKAGE + "..")
-                .and()
-                .haveSimpleNameNotContaining("Maintenance") // maintenance tooling is allowed to touch MapDB directly
-                .should()
-                .dependOnClassesThat()
-                .haveFullyQualifiedName(MAPDB_CLASS)
-                .because("CLI facades should obtain persistence via CredentialStoreFactory, not MapDbCredentialStore");
-
-        rule.check(imported);
-    }
-
-    @Test
-    @DisplayName("REST facades avoid MapDbCredentialStore")
-    void restDoesNotDependOnMapDbCredentialStore() {
-        JavaClasses imported = new ClassFileImporter().importPackages(REST_PACKAGE, CORE_STORE_PACKAGE);
-
-        ArchRule rule = ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage(REST_PACKAGE + "..")
-                .should()
-                .dependOnClassesThat()
-                .haveFullyQualifiedName(MAPDB_CLASS)
-                .because("REST should obtain persistence via CredentialStoreFactory, not MapDbCredentialStore");
-
-        rule.check(imported);
-    }
-
-    @Test
-    @DisplayName("UI facades avoid MapDbCredentialStore")
-    void uiDoesNotDependOnMapDbCredentialStore() {
-        JavaClasses imported = new ClassFileImporter().importPackages(UI_PACKAGE, CORE_STORE_PACKAGE);
-
-        ArchRule rule = ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage(UI_PACKAGE + "..")
-                .should()
-                .dependOnClassesThat()
-                .haveFullyQualifiedName(MAPDB_CLASS)
-                .because("UI should obtain persistence via CredentialStoreFactory, not MapDbCredentialStore");
-
-        rule.check(imported);
-    }
-
-    @Test
-    @DisplayName("MCP tools avoid direct core dependencies")
-    void mcpToolsAvoidCoreDependencies() {
-        JavaClasses imported = new ClassFileImporter()
-                .importPackages(TOOLS_MCP_PACKAGE, "io.openauth.sim.core", "io.openauth.sim.application");
-
-        ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage(TOOLS_MCP_PACKAGE + "..")
-                .should()
-                .dependOnClassesThat()
-                .resideInAPackage("io.openauth.sim.core..")
-                .because("MCP facades should call REST endpoints, not core internals")
-                .allowEmptyShould(true)
-                .check(imported);
-    }
 
     @Test
     @DisplayName("REST OCRA services delegate via application layer (not core)")

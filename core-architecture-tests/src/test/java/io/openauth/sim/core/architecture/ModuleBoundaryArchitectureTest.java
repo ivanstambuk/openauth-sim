@@ -30,40 +30,6 @@ final class ModuleBoundaryArchitectureTest {
     }
 
     @Test
-    @DisplayName("Facade modules remain isolated from one another")
-    void facadesMustNotDependOnEachOther() {
-        ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage("io.openauth.sim.cli..")
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage("io.openauth.sim.rest..", "io.openauth.sim.ui..")
-                .because("CLI should only rely on core abstractions")
-                .allowEmptyShould(true)
-                .check(APPLICATION_CLASSES);
-
-        ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage("io.openauth.sim.rest..")
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage("io.openauth.sim.cli..", "io.openauth.sim.ui..")
-                .because("REST API must not leak CLI or UI concerns")
-                .allowEmptyShould(true)
-                .check(APPLICATION_CLASSES);
-
-        ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage("io.openauth.sim.ui..")
-                .should()
-                .dependOnClassesThat()
-                .resideInAnyPackage("io.openauth.sim.cli..", "io.openauth.sim.rest..")
-                .because("UI module should remain independent from other facades")
-                .allowEmptyShould(true)
-                .check(APPLICATION_CLASSES);
-    }
-
-    @Test
     @DisplayName("Persistence implementation does not depend on facades")
     void persistenceMustNotDependOnFacades() {
         ArchRuleDefinition.noClasses()
