@@ -62,8 +62,9 @@ Rules:
 3) If ONLY docs/ staged → use type "docs" and summarise the documentation change.
 4) If docs/ AND code staged → subject summarises functional change; body must exist and contain exactly one line: Spec impact: <summary of documentation/spec impact>.
 5) If no docs staged → body is optional; omit when not needed.
-6) Never include additional text, explanations, or markdown outside the JSON.
-7) Be specific in the subject; prefer action-oriented verbs.
+6) Body lines must be ≤ 120 characters (gitlint); do not use semicolons in subject or body.
+7) Never include additional text, explanations, or markdown outside the JSON.
+8) Be specific in the subject; prefer action-oriented verbs.
 RULES
 
   read -r -d '' input <<PAYLOAD || true
@@ -84,7 +85,7 @@ PAYLOAD
   printf "%s\n%s" "$prompt" "$input" >"$codex_tmp_dir/payload.txt"
   payload="$(cat "$codex_tmp_dir/payload.txt")"
 
-  codex_cmd=${CODEX_CMD:-codex exec --model gpt-5-codex --sandbox read-only --skip-git-repo-check --color never}
+  codex_cmd=${CODEX_CMD:-codex exec --model gpt-5-codex --sandbox read-only --skip-git-repo-check --color never -c model_reasoning_effort=\"high\" -c show_raw_agent_reasoning=false}
 
   log "Generating commit message with Codex via: $codex_cmd"
   raw="$(cd "$codex_tmp_dir" && printf "%s" "$payload" | bash -lc "$codex_cmd --cd \"$codex_tmp_dir\" -- -")" || die "Codex invocation failed."
