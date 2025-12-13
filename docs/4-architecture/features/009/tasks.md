@@ -42,6 +42,12 @@ _Last updated:_ 2025-12-13
   _Verification:_  
   - `./tools/docs-verify.sh --all`  
 
+- [x] T-009-07 – Generate triage artefacts and freeze time for snapshots (FR-009-11, NFR-009-07).  
+  _Intent:_ Reduce visual QA latency by freezing time to a deterministic timestamp and producing local-only triage artefacts (diff ranking + montage) for each snapshot run.  
+  _Verification:_  
+  - `bash tools/ui-visual/run-operator-console-snapshots.sh`  
+  - `cat build/ui-snapshots/<run-id>/triage/triage.json`  
+
 ## Verification Log
 - 2025-11-13 – `./gradlew --no-daemon spotlessApply check` (Implementation Drift Gate verification run)
 - 2025-12-13 – `bash tools/ui-visual/run-operator-console-snapshots.sh` (includes `UI_VISUAL_MAX_RUNS` pruning), `./tools/docs-verify.sh --all`, `./gradlew --no-daemon spotlessApply check` (PASS; includes interactive Evaluate/Replay result states)

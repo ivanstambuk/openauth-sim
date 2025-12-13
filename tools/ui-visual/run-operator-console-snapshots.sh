@@ -9,6 +9,10 @@ base_url="${UI_VISUAL_BASE_URL:-http://localhost:${port}}"
 run_id="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
 out_dir="${UI_VISUAL_OUT_DIR:-${repo_root}/build/ui-snapshots/${run_id}}"
 max_runs="${UI_VISUAL_MAX_RUNS:-10}"
+triage_enabled="${UI_VISUAL_TRIAGE:-1}"
+triage_top="${UI_VISUAL_TRIAGE_TOP:-12}"
+freeze_time_iso="${UI_VISUAL_FREEZE_TIME_ISO:-}"
+freeze_time="${UI_VISUAL_FREEZE_TIME:-1}"
 snapshots_root="${repo_root}/build/ui-snapshots"
 db_path="${out_dir}/credentials.db"
 log_path="${out_dir}/rest-api.log"
@@ -17,6 +21,37 @@ if [[ ! "${max_runs}" =~ ^[0-9]+$ ]]; then
   echo "[ui-visual] UI_VISUAL_MAX_RUNS must be a non-negative integer (got: ${max_runs}); defaulting to 10" >&2
   max_runs="10"
 fi
+
+if [[ ! "${triage_enabled}" =~ ^[0-9]+$ ]]; then
+  echo "[ui-visual] UI_VISUAL_TRIAGE must be 0 or 1 (got: ${triage_enabled}); defaulting to 1" >&2
+  triage_enabled="1"
+fi
+
+if [[ ! "${triage_top}" =~ ^[0-9]+$ ]]; then
+  echo "[ui-visual] UI_VISUAL_TRIAGE_TOP must be a non-negative integer (got: ${triage_top}); defaulting to 12" >&2
+  triage_top="12"
+fi
+
+select_baseline_run() {
+  local root="$1"
+  local current="$2"
+
+  if [[ ! -d "${root}" ]]; then
+    return 0
+  fi
+
+  mapfile -t runs < <(find "${root}" -mindepth 1 -maxdepth 1 -type d -name '20??-??-??T*' -printf '%p\n' | LC_ALL=C sort)
+  local baseline=""
+  for run in "${runs[@]}"; do
+    if [[ "${run}" == "${current}" ]]; then
+      continue
+    fi
+    baseline="${run}"
+  done
+  if [[ -n "${baseline}" ]]; then
+    printf "%s" "${baseline}"
+  fi
+}
 
 prune_snapshot_runs() {
   local root="$1"
@@ -108,4 +143,20 @@ if ! curl -sf "${base_url}/ui/console" >/dev/null; then
   exit 1
 fi
 
-node "${tool_dir}/capture-operator-console.mjs" --base-url "${base_url}" --out-dir "${out_dir}"
+capture_args=(--base-url "${base_url}" --out-dir "${out_dir}")
+if [[ "${freeze_time}" == "0" ]]; then
+  capture_args+=(--no-freeze-time)
+elif [[ -n "${freeze_time_iso}" ]]; then
+  capture_args+=(--freeze-time-iso "${freeze_time_iso}")
+fi
+
+node "${tool_dir}/capture-operator-console.mjs" "${capture_args[@]}"
+
+if [[ "${triage_enabled}" -gt 0 ]]; then
+  baseline_run="$(select_baseline_run "${snapshots_root}" "${out_dir}" || true)"
+  triage_args=(--current "${out_dir}" --top "${triage_top}")
+  if [[ -n "${baseline_run}" ]]; then
+    triage_args+=(--baseline "${baseline_run}")
+  fi
+  python3 "${tool_dir}/triage-operator-console-snapshots.py" "${triage_args[@]}" || true
+fi

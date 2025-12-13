@@ -31,6 +31,22 @@ bash tools/ui-visual/run-operator-console-snapshots.sh
 
 Outputs land under `build/ui-snapshots/<run-id>/`.
 
+### Triage artefacts (diff ranking + montage)
+After each run, the runner generates triage artefacts under `build/ui-snapshots/<run-id>/triage/` to speed up visual QA reviews:
+- `triage.json`: diff ranking versus the most recent prior run (when available).
+- `top-changes.png`: a montage of the top diffs (baseline on the left, current on the right).
+- `current-interactive.png`: a montage of interactive `*--result.png` states from the current run.
+
+Disable triage if you want the fastest possible capture-only run:
+
+```bash
+UI_VISUAL_TRIAGE=0 bash tools/ui-visual/run-operator-console-snapshots.sh
+```
+
+### Deterministic time (reducing diff noise)
+By default the capture harness freezes browser time to a deterministic timestamp so fields like “use current unix seconds” don’t drift.
+Use `--no-freeze-time` when running `capture-operator-console.mjs` directly if you need real time.
+
 ### Keeping the snapshot directory bounded
 The runner prunes old runs under `build/ui-snapshots/**` before creating a new one.
 
@@ -71,3 +87,5 @@ node tools/ui-visual/capture-operator-console.mjs --base-url http://localhost:80
 - `--base-url <url>`: base URL hosting `/ui/console` (default: `http://localhost:18080`)
 - `--out-dir <path>`: output directory for screenshots (default: `build/ui-snapshots/<timestamp>/`)
 - `--headed`: run with a visible browser window (off by default)
+- `--no-freeze-time`: disable deterministic time freezing (on by default)
+- `--freeze-time-iso <iso>`: override the deterministic timestamp (default documented in `manifest.json`)

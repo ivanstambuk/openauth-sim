@@ -18,6 +18,8 @@ function parseArgs(argv) {
     outDir: path.join(repoRoot, 'build', 'ui-snapshots', nowRunId()),
     headed: false,
     timeoutMs: 30_000,
+    freezeTime: true,
+    freezeTimeIso: '2025-01-01T00:00:00Z',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -36,6 +38,15 @@ function parseArgs(argv) {
     }
     if (arg === '--headed') {
       options.headed = true;
+      continue;
+    }
+    if (arg === '--no-freeze-time') {
+      options.freezeTime = false;
+      continue;
+    }
+    if (arg === '--freeze-time-iso') {
+      options.freezeTime = true;
+      options.freezeTimeIso = String(argv[++index] ?? options.freezeTimeIso);
       continue;
     }
     if (arg === '--help' || arg === '-h') {
@@ -485,6 +496,8 @@ async function run() {
         '  --out-dir <path>     Output directory for screenshots (default: build/ui-snapshots/<run-id>/)',
         '  --timeout-ms <ms>    Playwright action timeout (default: 30000)',
         '  --headed             Run with a visible browser window (default: headless)',
+        '  --no-freeze-time     Disable deterministic time freezing (default: frozen)',
+        '  --freeze-time-iso    Override frozen time ISO (default: 2025-01-01T00:00:00Z)',
         '',
       ].join('\n'),
     );
@@ -495,13 +508,64 @@ async function run() {
   const outDir = path.resolve(options.outDir);
   await mkdir(outDir, { recursive: true });
 
+  let frozenTimeIso = null;
+  if (options.freezeTime) {
+    const candidate = String(options.freezeTimeIso ?? '').trim();
+    if (!candidate) {
+      throw new Error('freezeTimeIso is empty (use --no-freeze-time to disable)');
+    }
+    const parsed = Date.parse(candidate);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(`freezeTimeIso is not a valid ISO timestamp: ${candidate}`);
+    }
+    frozenTimeIso = candidate;
+  }
+
   const browser = await chromium.launch({ headless: !options.headed });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
     colorScheme: 'dark',
     reducedMotion: 'reduce',
+    timezoneId: 'UTC',
+    locale: 'en-US',
   });
+
+  if (frozenTimeIso) {
+    await context.addInitScript({
+      content: `
+        (function () {
+          try {
+            var iso = ${JSON.stringify(frozenTimeIso)};
+            var fixed = Date.parse(iso);
+            if (!Number.isFinite(fixed)) {
+              return;
+            }
+            var OriginalDate = Date;
+            class FrozenDate extends OriginalDate {
+              constructor(...args) {
+                if (args.length === 0) {
+                  super(fixed);
+                } else {
+                  super(...args);
+                }
+              }
+              static now() {
+                return fixed;
+              }
+            }
+            FrozenDate.parse = OriginalDate.parse;
+            FrozenDate.UTC = OriginalDate.UTC;
+            // eslint-disable-next-line no-global-assign
+            Date = FrozenDate;
+          } catch (e) {
+            // ignore time-freeze failures
+          }
+        })();
+      `,
+    });
+  }
+
   await context.addInitScript({
     content: `
       (function () {
@@ -533,11 +597,13 @@ async function run() {
   const manifest = {
     baseUrl,
     startedAt: new Date().toISOString(),
+    frozenTimeIso,
     screenshots: [],
     errors: [],
     bootstrap: {},
     notes: [
       'All screenshots are captured headless-by-default using Playwright Chromium.',
+      frozenTimeIso ? `Time is frozen at ${frozenTimeIso} (UTC) for deterministic screenshots.` : 'Time freezing is disabled.',
       'Animations/transitions are force-disabled via injected CSS to reduce diff noise.',
       'Interactive states rely on sample presets and seed controls (no manual data entry).',
     ],
