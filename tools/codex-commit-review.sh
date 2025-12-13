@@ -170,6 +170,8 @@ PY
   else
     printf "%s\n" "$subject"
   fi
+
+  log "Reminder: include an Agent Delivery Optimization (ADO) note (max 5 bullets) in the handoff before committing."
 }
 
 main "$@"

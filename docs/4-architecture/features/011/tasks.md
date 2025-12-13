@@ -53,13 +53,20 @@ _Last updated:_ 2025-12-13
   _Verification commands:_  
   - `./tools/docs-verify.sh --all`  
 
+- [x] T-011-08 – Add Agent Delivery Optimization (ADO) closeout protocol (FR-011-12, S-011-11).  
+  _Intent:_ Require a max-5-bullet, action-only ADO note in chat before commit handoffs to propose guardrails/instruction tweaks/patterns that prevent regressions and accelerate the next run. Keep ADO chat-only by default; persist process changes only via governance docs/tests/specs. Add a reminder line to `tools/codex-commit-review.sh` output (stderr only) so commit-prep workflows prompt the ADO step.  
+  _Verification commands:_  
+  - `./tools/docs-verify.sh --all`  
+  - `./gradlew --no-daemon spotlessApply check`  
+
 ## Verification Log
 - 2025-12-12 – `git config core.hooksPath` (hook guard check)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with semicolon fixture (expected rejection)
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, PASS)
 - 2025-12-13 – `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check` (PASS – hook guard logging helper)
-- 2025-12-13 – `./tools/docs-verify.sh --all` (PASS – docs-only verification lane)
+- 2025-12-13 – `./tools/docs-verify.sh --all` (PASS – docs-only verification lane, ADO closeout protocol)
+- 2025-12-13 – `./gradlew --no-daemon spotlessApply check` (PASS – ADO closeout protocol)
 - 2025-12-12 – `git config core.hooksPath` (hook guard check; low-ambiguity fast path update)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected; low-ambiguity fast path update)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with valid Conventional Commit message (PASS; low-ambiguity fast path update)

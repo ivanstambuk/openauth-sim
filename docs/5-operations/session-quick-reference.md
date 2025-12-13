@@ -20,6 +20,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 
 ## Commit Protocol Reminder
 - When the user says “commit” or “commit and push,” assistants prepare the commit while the user runs the commands. Stage (or explicitly list) the relevant files, verify `./gradlew --no-daemon spotlessApply check` has passed, and gather the staged diff for review.
+- Before presenting `git commit` / `git push` commands, include an Agent Delivery Optimization (ADO) note (max 5 bullets, action-only) proposing process/guardrail improvements that prevent regressions and speed the next run.
 - Run [./tools/codex-commit-review.sh](./tools/codex-commit-review.sh) (or equivalent) to obtain a gitlint-compliant Conventional Commit message. When code and docs change together, include a `Spec impact:` line that explicitly lists the impacted artefacts (spec/plan/tasks/ADR paths). Commit messages must not contain semicolons; if a body needs multiple lines, compose it using multiple `-m` flags. Do **not** use yes/no flags. Then output copy/paste-ready fenced-code-block `git commit …` and `git push …` commands (with any required timeouts noted). The operator executes those commands locally unless they explicitly delegate execution.
 
 ## Handoff Prompt Template
@@ -31,6 +32,7 @@ You’re resuming work on [project/workstream identifier]. Core context:
 - Recent increments: [brief bullet list of the last completed increments, noting key files touched and outcomes].
 - Pending scope: [next planned increments/tasks], including failing tests to stage, implementation goals, telemetry/observability requirements, and documentation updates (keep this aligned with the `## Next suggested actions` section in `docs/_current-session.md`).
 - Git state: [branch], staged files [list or “clean”], outstanding TODOs [if any].
+- ADO notes: [max 5 bullets of concrete process improvements to prevent regressions and accelerate the next run].
 - Next steps you should take now: [ordered checklist, e.g., “1. Stage failing tests for … 2. Implement … 3. Update docs …”].
 - Reminders: keep planned tasks/increments ≤90 minutes by organising work into logical slices (execution may run longer if needed), update docs (spec/plan/tasks/roadmap), run `./gradlew --no-daemon spotlessApply check` before commits, capture telemetry/trust-anchor decisions (if relevant), and document open questions in `docs/4-architecture/open-questions.md`.
 ```
