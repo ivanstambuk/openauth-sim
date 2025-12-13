@@ -3,7 +3,7 @@
 _Linked specification:_ [docs/4-architecture/features/011/spec.md](docs/4-architecture/features/011/spec.md)  
 _Linked tasks:_ [docs/4-architecture/features/011/tasks.md](docs/4-architecture/features/011/tasks.md)  
 _Status:_ Complete  
-_Last updated:_ 2025-12-12  
+_Last updated:_ 2025-12-13  
 _Owners:_ Ivan (project owner)  
 _Roadmap entry:_ #11 – Governance & Workflow Automation
 
@@ -18,7 +18,7 @@ feature IDs. Feature 011 documents the hook workflows and the Palantir formatt
   logs every governance increment.
 - Stage remaining backlog/automation work (gitlint tuning, markdown lint) for future increments.
 
-_Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; changing gitlint rules; adding new tooling.
+_Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; changing gitlint rules; adding substantial new tooling beyond small helper scripts that improve governance logging.
 
 ## Dependencies & Interfaces
 | Dependency | Notes |
@@ -101,6 +101,8 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
    - Added semicolon rejection to managed hooks, required multi-`-m` flags for multi-line commit bodies, and updated AGENTS/runbooks to always present Git commands in fenced code blocks.
 6. **I6 – Dependency lock refresh runbook** (Owner: Ivan, Status: Completed on 2025-12-12)  
    - Documented `--write-locks` usage for dependency changes (PMD aux classpath lock drift) in AGENTS and the session quick reference.
+7. **I7 – Hook guard logging helper** (Owner: Ivan, Status: Completed on 2025-12-13)  
+   - Added `tools/hook-guard-log.sh` to run a verification command and append `git config core.hooksPath` + PASS/FAIL into `docs/_current-session.md`.
 
 _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, and manual [githooks/commit-msg](githooks/commit-msg) dry runs when policies change.
 

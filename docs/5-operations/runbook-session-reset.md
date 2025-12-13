@@ -8,7 +8,7 @@ Detection (Alerts/Queries):
 
 Immediate actions:
 1. Read [AGENTS.md](AGENTS.md) to refresh global working agreements and the project constitution link.
-2. Run `git config core.hooksPath` and ensure it returns `githooks`; set it if unset so the managed pre-commit hook executes, then log the command/output in `_current-session.md` per Feature 011 governance policy.
+2. Run `git config core.hooksPath` and ensure it returns `githooks`; set it if unset so the managed pre-commit hook executes, then log the command/output in `_current-session.md` per Feature 011 governance policy (prefer `./tools/hook-guard-log.sh <verification command...>` when running verification).
 3. Review [docs/4-architecture/roadmap.md](docs/4-architecture/roadmap.md) for current workstreams and milestones.
 4. Inspect the active feature specification(s) in ``docs/4-architecture/features`/<NNN>/spec.md`.
 5. Inspect the corresponding feature plan(s) in ``docs/4-architecture/features`/<NNN>/plan.md`.

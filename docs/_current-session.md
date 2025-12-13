@@ -514,3 +514,10 @@ githooks
 - Documentation log (2025-12-12): Migrated and removed the temporary plan `docs/tmp/5-facade-contract-playbook-plan.md` after Feature 013 spec/plan/tasks encoded the work.
 - Hook guard (2025-12-12): `git config core.hooksPath` -> `githooks`.
 - Verification log (2025-12-12): `./gradlew --no-daemon spotlessApply check` (PASS – facade contract playbook published and linked).
+
+## Hook guard 2025-12-13T08:39:01+01:00
+
+`git config core.hooksPath`:
+githooks
+
+Verification: `./gradlew --no-daemon spotlessApply check` (PASS)

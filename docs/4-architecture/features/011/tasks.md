@@ -1,7 +1,7 @@
 # Feature 011 Tasks – Governance & Workflow Automation
 
 _Status:_ Complete  
-_Last updated:_ 2025-12-12
+_Last updated:_ 2025-12-13
 
 > Keep this checklist aligned with the feature plan increments. Stage tests before implementation, record verification commands beside each task, and prefer bite-sized entries (≤90 minutes).
 > When referencing requirements, keep feature IDs (`F-`), non-goal IDs (`N-`), and scenario IDs (`S-<NNN>-`) inside the same parentheses immediately after the task title (omit categories that do not apply).
@@ -43,11 +43,17 @@ _Last updated:_ 2025-12-12
   - `git config core.hooksPath`  
   - `./gradlew --no-daemon spotlessApply check`  
 
+- [x] T-011-06 – Add hook guard session-log helper (FR-011-04, FR-011-08).  
+  _Intent:_ Add `tools/hook-guard-log.sh` so agents can run a verification command and reliably append the hook guard output plus PASS/FAIL into `docs/_current-session.md`.  
+  _Verification commands:_  
+  - `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check`  
+
 ## Verification Log
 - 2025-12-12 – `git config core.hooksPath` (hook guard check)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with semicolon fixture (expected rejection)
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, PASS)
+- 2025-12-13 – `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check` (PASS – hook guard logging helper)
 - 2025-12-12 – `git config core.hooksPath` (hook guard check; low-ambiguity fast path update)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected; low-ambiguity fast path update)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with valid Conventional Commit message (PASS; low-ambiguity fast path update)

@@ -4,7 +4,7 @@ Use this appendix to accelerate hand-offs and new-session spin-up. Update it whe
 
 ## Session Kickoff Checklist
 - [ ] Run `git status -sb` to review branch, staged changes, and repo cleanliness.
-- [ ] Confirm environment prerequisites: `JAVA_HOME` points to a Java 17 JDK and `git config core.hooksPath` returns `githooks`; log the command/output in `_current-session.md` so Feature 011 traceability stays intact.
+- [ ] Confirm environment prerequisites: `JAVA_HOME` points to a Java 17 JDK and `git config core.hooksPath` returns `githooks`; log the command/output in `_current-session.md` so Feature 011 traceability stays intact (prefer `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check` when running verification).
 - [ ] Review current context: latest roadmap entry, active specification, feature plan, tasks checklist, and [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md).
 - [ ] Confirm that the active feature spec already encodes known decisions directly in its requirements/NFR/behaviour/telemetry sections (no per-feature `## Clarifications` appendices).
 - [ ] If new clarifications arise, record them in [docs/4-architecture/open-questions.md](docs/4-architecture/open-questions.md), pause planning until answers are agreed, then update the spec sections and mark the questions as resolved with links to those sections; create or reference an ADR for architectural or other high‑impact decisions.
