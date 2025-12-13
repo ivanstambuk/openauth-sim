@@ -45,6 +45,7 @@ You’re resuming work on [project/workstream identifier]. Core context:
 - Repository snapshot: `git status -sb`
 - Summarise staged/local changes: `git diff --stat` (or `git diff --cached --stat` when reviewing staged work)
 - Focused module test: `./gradlew --no-daemon :core:test --tests "io.openauth.sim.core.fido2.YourTestClass"` (swap module/test as needed)
+- Docs-only fast lane (Spotless misc + markdown checks): `./tools/docs-verify.sh` (use `--all` for a full docs sweep)
 - Formatting + baseline verification: `./gradlew --no-daemon spotlessApply check`
 - Full quality gate (when required): `./gradlew --no-daemon qualityGate`
 - JSON-LD snippets + bundle: `./gradlew --no-daemon generateJsonLd` (task now runs automatically inside `check`/`qualityGate`, but manual runs update ``docs/3-reference/json-ld/snippets`/*.jsonld` and [build/json-ld/openauth-sim.json](build/json-ld/openauth-sim.json) without invoking the rest of the pipeline.)

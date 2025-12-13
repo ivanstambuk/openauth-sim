@@ -2,12 +2,13 @@
 
 > Keep this file up to date across all active chats. Treat it as the single source of truth for in-progress workstreams so every hand-off is instant. Replace the bracketed text and prune sections you do not need.
 
-- Date: 2025-12-12
+- Date: 2025-12-13
 - Primary branch: `main`
 - Other active branches: none
 
 ## Governance & Tooling
 
+- Governance log (2025-12-13, docs-only verification lane): Added `tools/docs-verify.sh` (Spotless misc + markdown checks) and `tools/scripts/check-markdown-links.py` to provide a fast iteration lane for doc-only increments. Documented the lane in [AGENTS.md](AGENTS.md), [docs/5-operations/session-quick-reference.md](docs/5-operations/session-quick-reference.md), and Feature 011 spec/plan/tasks. Commands: `./tools/docs-verify.sh --all` (PASS) and `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check` (PASS).
 - Governance log (2025-12-12, Gradle quality conventions): Extracted the root `subprojects { ... }` quality configuration into `gradle/quality-conventions.gradle` (applied via `gradle/quality-conventions.gradle.kts`), preserving task semantics while keeping the root build shorter. Commands: `./gradlew --no-daemon spotlessApply check` (PASS) and `./gradlew --no-daemon qualityGate` (PASS).
 - Governance log (2025-12-12, JSON/OpenAPI schema governance): Migrated the temporary JSON + telemetry governance sketch into Feature 013 spec/plan/tasks, added `$ref`-aware `JsonShapeAsserter` (core test fixtures) plus REST `OpenApiSchemaAssertions`, tagged representative REST endpoint tests for runtime OpenAPI schema validation, and introduced the `:rest-api:schemaContractTest` runner. Tightened REST OpenAPI response required fields, regenerated OpenAPI snapshots, and aligned EMV trace schema union handling via an OpenAPI customizer. Commands: `git config core.hooksPath` → `githooks`, `OPENAPI_SNAPSHOT_WRITE=true ./gradlew --no-daemon :rest-api:test --tests "*OpenApiSnapshotTest"`, `./gradlew --no-daemon :rest-api:schemaContractTest`, and `./gradlew --no-daemon spotlessApply check` (PASS).
 - Governance log (2025-12-12, cross-facade contract tests): Migrated the temporary cross-facade parity sketch into Feature 013 spec/plan/tasks, added canonical scenario fixtures in `application` test fixtures, and introduced tagged `*CrossFacadeContractTest` suites for HOTP/TOTP/OCRA/FIDO2/EMV/CAP/EUDIW across Native Java/CLI/REST. Added `:rest-api:crossFacadeContractTest` helper task and refreshed dependency locks. Commands: `./gradlew --no-daemon :rest-api:test --tests "*CrossFacadeContractTest"` and `./gradlew --no-daemon check` (PASS).
@@ -516,6 +517,13 @@ githooks
 - Verification log (2025-12-12): `./gradlew --no-daemon spotlessApply check` (PASS – facade contract playbook published and linked).
 
 ## Hook guard 2025-12-13T08:39:01+01:00
+
+`git config core.hooksPath`:
+githooks
+
+Verification: `./gradlew --no-daemon spotlessApply check` (PASS)
+
+## Hook guard 2025-12-13T09:01:03+01:00
 
 `git config core.hooksPath`:
 githooks

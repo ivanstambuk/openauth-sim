@@ -103,6 +103,8 @@ _Out of scope:_ Editing hook scripts, Gradle configs, or formatter versions; cha
    - Documented `--write-locks` usage for dependency changes (PMD aux classpath lock drift) in AGENTS and the session quick reference.
 7. **I7 – Hook guard logging helper** (Owner: Ivan, Status: Completed on 2025-12-13)  
    - Added `tools/hook-guard-log.sh` to run a verification command and append `git config core.hooksPath` + PASS/FAIL into `docs/_current-session.md`.
+8. **I8 – Docs-only verification lane** (Owner: Ivan, Status: Completed on 2025-12-13)  
+   - Added `tools/docs-verify.sh` (Spotless misc + markdown line-wrap + link checks) and documented it as the fast loop for doc-only increments.
 
 _Verification commands:_ `git config core.hooksPath`, `tmp_index=$(mktemp); GIT_INDEX_FILE=$tmp_index ./githooks/pre-commit`, `./gradlew --no-daemon spotlessApply check`, `./gradlew --no-daemon qualityGate`, and manual [githooks/commit-msg](githooks/commit-msg) dry runs when policies change.
 

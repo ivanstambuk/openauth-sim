@@ -48,12 +48,18 @@ _Last updated:_ 2025-12-13
   _Verification commands:_  
   - `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check`  
 
+- [x] T-011-07 – Add docs-only verification lane command (FR-011-11).  
+  _Intent:_ Add `tools/docs-verify.sh` so doc-only iterations can run Spotless misc formatting plus markdown link checks without running the full test suite; keep the full `spotlessApply check` gate as the pre-merge requirement.  
+  _Verification commands:_  
+  - `./tools/docs-verify.sh --all`  
+
 ## Verification Log
 - 2025-12-12 – `git config core.hooksPath` (hook guard check)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with semicolon fixture (expected rejection)
 - 2025-12-12 – `./gradlew --no-daemon spotlessApply check` (governance drift gate verification, PASS)
 - 2025-12-13 – `./tools/hook-guard-log.sh ./gradlew --no-daemon spotlessApply check` (PASS – hook guard logging helper)
+- 2025-12-13 – `./tools/docs-verify.sh --all` (PASS – docs-only verification lane)
 - 2025-12-12 – `git config core.hooksPath` (hook guard check; low-ambiguity fast path update)
 - 2025-12-12 – Temporary-index [./githooks/pre-commit](./githooks/pre-commit) dry-run (no staged changes, hook skipped as expected; low-ambiguity fast path update)
 - 2025-12-12 – Temporary [./githooks/commit-msg](./githooks/commit-msg) run with valid Conventional Commit message (PASS; low-ambiguity fast path update)

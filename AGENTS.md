@@ -26,6 +26,7 @@ For AI coding assistants and agents, start with:
   - `docs/` – constitution, roadmap, specs/plans/tasks, protocol reference pages, and how-to guides (including ``docs/2-how-to`/*-from-java.md`).
 - **Build and test commands (canonical)**
   - Full formatting + verification: `./gradlew --no-daemon spotlessApply check`
+  - Docs-only fast lane (format + link checks): `./tools/docs-verify.sh` (still run the full gate before merge)
   - Focused Native Java checks (when editing entry points only): `./gradlew --no-daemon :application:test :core:test`
   - REST/CLI/UI integration checks (when changing facades): `./gradlew --no-daemon :rest-api:test :cli:test :ui:test`
   - MCP proxy end-to-end check: `./gradlew --no-daemon :tools-mcp-server:test :rest-api:test :tools-mcp-server:spotlessApply qualityGate`
