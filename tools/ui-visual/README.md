@@ -31,6 +31,14 @@ bash tools/ui-visual/run-operator-console-snapshots.sh
 
 Outputs land under `build/ui-snapshots/<run-id>/`.
 
+### Playwright Chromium install (speed)
+The runner installs Playwright’s managed Chromium **only if it’s missing** (so repeat runs are faster).
+If you want to skip the install check entirely:
+
+```bash
+UI_VISUAL_PLAYWRIGHT_INSTALL=0 bash tools/ui-visual/run-operator-console-snapshots.sh
+```
+
 ### Triage artefacts (diff ranking + montage)
 After each run, the runner generates triage artefacts under `build/ui-snapshots/<run-id>/triage/` to speed up visual QA reviews:
 - `triage.json`: diff ranking versus the most recent prior run (when available).

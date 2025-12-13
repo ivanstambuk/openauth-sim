@@ -9,6 +9,7 @@ base_url="${UI_VISUAL_BASE_URL:-http://localhost:${port}}"
 run_id="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
 out_dir="${UI_VISUAL_OUT_DIR:-${repo_root}/build/ui-snapshots/${run_id}}"
 max_runs="${UI_VISUAL_MAX_RUNS:-10}"
+playwright_install="${UI_VISUAL_PLAYWRIGHT_INSTALL:-1}"
 triage_enabled="${UI_VISUAL_TRIAGE:-1}"
 triage_top="${UI_VISUAL_TRIAGE_TOP:-12}"
 freeze_time_iso="${UI_VISUAL_FREEZE_TIME_ISO:-}"
@@ -20,6 +21,11 @@ log_path="${out_dir}/rest-api.log"
 if [[ ! "${max_runs}" =~ ^[0-9]+$ ]]; then
   echo "[ui-visual] UI_VISUAL_MAX_RUNS must be a non-negative integer (got: ${max_runs}); defaulting to 10" >&2
   max_runs="10"
+fi
+
+if [[ ! "${playwright_install}" =~ ^[0-9]+$ ]]; then
+  echo "[ui-visual] UI_VISUAL_PLAYWRIGHT_INSTALL must be 0 or 1 (got: ${playwright_install}); defaulting to 1" >&2
+  playwright_install="1"
 fi
 
 if [[ ! "${triage_enabled}" =~ ^[0-9]+$ ]]; then
@@ -51,6 +57,25 @@ select_baseline_run() {
   if [[ -n "${baseline}" ]]; then
     printf "%s" "${baseline}"
   fi
+}
+
+ensure_playwright_chromium() {
+  local tool="$1"
+
+  if [[ "${playwright_install}" == "0" ]]; then
+    echo "[ui-visual] Skipping Playwright Chromium install (UI_VISUAL_PLAYWRIGHT_INSTALL=0)"
+    return 0
+  fi
+
+  local executable_path=""
+  executable_path="$(cd "${tool}" && node --input-type=module -e "import { chromium } from 'playwright'; console.log(chromium.executablePath());" 2>/dev/null | tail -n 1 || true)"
+
+  if [[ -n "${executable_path}" ]] && [[ -f "${executable_path}" ]]; then
+    return 0
+  fi
+
+  echo "[ui-visual] Installing Playwright Chromium (browser cache missing)"
+  (cd "${tool}" && npx playwright install chromium)
 }
 
 prune_snapshot_runs() {
@@ -112,7 +137,7 @@ if [[ ! -d "${tool_dir}/node_modules" ]]; then
   (cd "${tool_dir}" && npm ci)
 fi
 
-(cd "${tool_dir}" && npx playwright install chromium)
+ensure_playwright_chromium "${tool_dir}"
 
 cleanup() {
   if [[ -n "${rest_pid:-}" ]] && kill -0 "${rest_pid}" 2>/dev/null; then
