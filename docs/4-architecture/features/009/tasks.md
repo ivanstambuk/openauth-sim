@@ -37,6 +37,11 @@ _Last updated:_ 2025-12-13
   - `bash tools/ui-visual/run-operator-console-snapshots.sh`  
   - `ls -1 build/ui-snapshots | wc -l`  
 
+- [x] T-009-06 – Define the visual QA review loop for snapshots (FR-009-11, NFR-009-07).  
+  _Intent:_ Document the capture → review → backlog → validate workflow for using snapshot runs as the artifact for AI visual review and UI drift detection.  
+  _Verification:_  
+  - `./tools/docs-verify.sh --all`  
+
 ## Verification Log
 - 2025-11-13 – `./gradlew --no-daemon spotlessApply check` (Implementation Drift Gate verification run)
 - 2025-12-13 – `bash tools/ui-visual/run-operator-console-snapshots.sh` (includes `UI_VISUAL_MAX_RUNS` pruning), `./tools/docs-verify.sh --all`, `./gradlew --no-daemon spotlessApply check` (PASS; includes interactive Evaluate/Replay result states)

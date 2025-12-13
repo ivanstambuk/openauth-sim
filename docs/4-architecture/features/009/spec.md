@@ -92,7 +92,11 @@ The mock-up emphasises the consolidated tab list, inline secrets, validation/pre
 ## Test Strategy
 - JVM suites: `./gradlew --no-daemon :rest-api:test --tests "io.openauth.sim.rest.ui.*OperatorUiSeleniumTest"`, `./gradlew --no-daemon :cli:test --tests "*VerboseTrace*"`, `./gradlew --no-daemon :application:test --tests "*VerboseTrace*"`, and `./gradlew --no-daemon :ui:test` to cover console flows, trace builders, and validation helpers.
 - Node/JS: `node --test [rest-api/src/test/javascript/emv/console.test.js](rest-api/src/test/javascript/emv/console.test.js)`, `./gradlew --no-daemon operatorConsoleJsTest -PconsoleTestFilter=<protocol>` plus the aggregated `check` target to run Node harness suites.
-- Visual QA (opt-in): `bash tools/ui-visual/run-operator-console-snapshots.sh` to start the local REST server on a dedicated port and capture per-tab and interactive (Evaluate/Replay) screenshots into `build/ui-snapshots/**`.
+- Visual QA (opt-in):
+  - Capture: run `bash tools/ui-visual/run-operator-console-snapshots.sh` to capture baseline + Evaluate/Replay screenshots into `build/ui-snapshots/**` (bounded by `UI_VISUAL_MAX_RUNS`).
+  - Review: use `build/ui-snapshots/<run-id>/manifest.json` + PNGs as the artifact for AI visual review (spacing, alignment, contrast, backgrounds, typography drift, missing panels).
+  - Backlog: log each issue as a Feature 009 task (or the owning UI feature) with screenshot references and acceptance criteria.
+  - Validate: re-run the harness after fixes and compare against the prior run directory to confirm the issue is resolved.
 - Documentation: `./gradlew --no-daemon spotlessApply check` to keep specs/roadmap/knowledge-map/formatted; manual doc review ensures session log ([docs/_current-session.md](docs/_current-session.md))/_current-session updates.
 
 ## Interface & Contract Catalogue
